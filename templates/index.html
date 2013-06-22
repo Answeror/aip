@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Booru Box</title>
+    </head>
+    <body>
+        <div class="js-masonry" data-masonry-options='{ "itemSelector": ".item", "columnWidth": 220 }'>
+            {% for im in images %}
+            <div class='item'>
+                <img width='{{ 200 }}' height='{{ im.preview_height * 200 / im.preview_width }}' data-original='{{ im.preview_url }}'>
+            </div>
+            {% endfor %}
+        </div>
+        <footer>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script src="{{ url_for('static', filename='masonry.pkgd.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='jquery.lazyload.min.js') }}"></script>
+        <script type="text/javascript" charset="utf-8">
+            $(function() {
+                $("img").lazyload({effect : "fadeIn"});
+            });
+        </script>
+        </footer>
+    </body>
+</html>

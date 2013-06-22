@@ -2,3 +2,5 @@
 *.un~
 *.pyc
 temp/
+*.ipynb
+*.log

@@ -1,0 +1,10 @@
+{
+    "providers" : [
+        {
+            "key": "yande.re",
+            "name": "yande.re",
+            "type": "danbooru",
+            "url": "https://yande.re"
+        }
+    ]
+}
