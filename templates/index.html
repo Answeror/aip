@@ -2,27 +2,58 @@
 <html>
     <head>
         <title>Booru Box</title>
+        <link rel='stylesheet' href='{{ url_for('static', filename='style.css') }}'>
     </head>
     <body>
-        <div class="js-masonry" data-masonry-options='{ "itemSelector": ".item", "columnWidth": 220 }'>
-            {% for im in pagination.items %}
-            <div class='item'>
-                <img width='{{ 200 }}' height='{{ im.preview_height * 200 / im.preview_width }}' data-original='{{ im.preview_url }}'>
+        <div id='container'>
+            <div id='items'>
+                {% for im in pagination.items %}
+                <div class='item'>
+                    <img width='{{ im.preview_width }}' height='{{ im.preview_height }}' data-original='{{ im.preview_url }}'>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
         <div>
             {% if pagination.prev %}<a href='{{ url_for_page(pagination.prev) }}'>&laquo;</a>{% endif %}
             <span>...</span>
-            {% if pagination.next %}<a href='{{ url_for_page(pagination.next) }}'>&raquo;</a>{% endif %}
+            {% if pagination.next %}<a class='more' href='{{ url_for_page(pagination.next) }}'>&raquo;</a>{% endif %}
         </div>
         <footer>
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
         <script src="{{ url_for('static', filename='masonry.pkgd.min.js') }}"></script>
-        <script src="{{ url_for('static', filename='jquery.lazyload.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='waypoints.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='waypoints-infinite.js') }}"></script>
         <script type="text/javascript" charset="utf-8">
             $(function() {
-                $("img").lazyload({effect : "fadeIn"});
+                $.fn.lazyload = function(){
+                    $this = $(this);
+                    $this.find('img').waypoint(function(){
+                        $this = $(this);
+                        $this.hide().attr("src", $this.data('original')).fadeIn(1000);
+                    }, {
+                        triggerOnce: true,
+                        offset: function() {
+                            return $.waypoints('viewportHeight') + $(this).height();
+                        }
+                    });
+                };
+                var $container = $('#items');
+                $container.masonry({
+                    itemSelector: '.item',
+                    columnWidth: {{ column_width }},
+                    gutter: {{ gutter }}
+                });
+                $container.lazyload();
+                $('#items').waypoint('infinite', {
+                    items: '.item',
+                    more: '.more',
+                    onAfterAppended: function($items) {
+                        // ensure that images load before adding to masonry layout
+                        $container.masonry('appended', $items, true);
+                        $items.lazyload();
+                    }
+                });
             });
         </script>
         </footer>

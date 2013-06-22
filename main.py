@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import division
 from flask import (
     Flask,
     url_for,
@@ -10,9 +11,23 @@ from flask import (
 from BooruPy import BooruManager
 import logging
 import os
+from operator import attrgetter as attr
 
 
 PER = 20
+COLUMN_WIDTH = 200
+GUTTER = 10
+
+
+def scale(images):
+    if images:
+        for im in images:
+            im.scale = COLUMN_WIDTH
+        max(images, key=attr('score')).scale = GUTTER + 2 * COLUMN_WIDTH
+        for im in images:
+            im.preview_height = im.scale * im.preview_height / im.preview_width
+            im.preview_width = im.scale
+    return images
 
 
 class Site(object):
@@ -24,9 +39,9 @@ class Site(object):
         @app.route('/page/<int:page>')
         def index(page):
             tags = []
-            images = [im for im, _ in zip(self.provider.get_images(tags), range(100))]
+            images = [im for im, _ in zip(self.provider.get_images(tags), range(1024))]
             from pagination import Infinite
-            pagination = Infinite(page, PER, lambda page, per: images[(page - 1) * per:page * per])
+            pagination = Infinite(page, PER, lambda page, per: scale(images[(page - 1) * per:page * per]))
             return render_template('index.html', pagination=pagination)
 
         def url_for_page(page):
@@ -35,6 +50,8 @@ class Site(object):
             return url_for(request.endpoint, **args)
 
         app.jinja_env.globals['url_for_page'] = url_for_page
+        app.jinja_env.globals['column_width'] = COLUMN_WIDTH
+        app.jinja_env.globals['gutter'] = GUTTER
 
     def run(self, *args, **kargs):
         return self.app.run(*args, **kargs)
