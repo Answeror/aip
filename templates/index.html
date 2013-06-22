@@ -5,11 +5,16 @@
     </head>
     <body>
         <div class="js-masonry" data-masonry-options='{ "itemSelector": ".item", "columnWidth": 220 }'>
-            {% for im in images %}
+            {% for im in pagination.items %}
             <div class='item'>
                 <img width='{{ 200 }}' height='{{ im.preview_height * 200 / im.preview_width }}' data-original='{{ im.preview_url }}'>
             </div>
             {% endfor %}
+        </div>
+        <div>
+            {% if pagination.prev %}<a href='{{ url_for_page(pagination.prev) }}'>&laquo;</a>{% endif %}
+            <span>...</span>
+            {% if pagination.next %}<a href='{{ url_for_page(pagination.next) }}'>&raquo;</a>{% endif %}
         </div>
         <footer>
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>

@@ -4,6 +4,7 @@
 from flask import (
     Flask,
     url_for,
+    request,
     render_template
 )
 from BooruPy import BooruManager
@@ -11,16 +12,29 @@ import logging
 import os
 
 
+PER = 20
+
+
 class Site(object):
 
     def __init__(self, app):
         self.app = app
 
-        @app.route("/")
-        def index():
+        @app.route('/', defaults={'page': 1})
+        @app.route('/page/<int:page>')
+        def index(page):
             tags = []
-            images = [im for im, _ in zip(self.provider.get_images(tags), range(300))]
-            return render_template('index.html', images=images)
+            images = [im for im, _ in zip(self.provider.get_images(tags), range(100))]
+            from pagination import Infinite
+            pagination = Infinite(page, PER, lambda page, per: images[(page - 1) * per:page * per])
+            return render_template('index.html', pagination=pagination)
+
+        def url_for_page(page):
+            args = request.view_args.copy()
+            args['page'] = page
+            return url_for(request.endpoint, **args)
+
+        app.jinja_env.globals['url_for_page'] = url_for_page
 
     def run(self, *args, **kargs):
         return self.app.run(*args, **kargs)
