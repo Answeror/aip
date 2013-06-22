@@ -4,7 +4,10 @@
             "key": "yande.re",
             "name": "yande.re",
             "type": "danbooru",
-            "url": "https://yande.re"
+            "url": "https://yande.re",
+            "mapping": {
+                "url": "file_url"
+            }
         }
     ]
 }

@@ -12,22 +12,12 @@ from BooruPy import BooruManager
 import logging
 import os
 from operator import attrgetter as attr
+import tempfile
 
 
 PER = 20
 COLUMN_WIDTH = 200
 GUTTER = 10
-
-
-def scale(images):
-    if images:
-        for im in images:
-            im.scale = COLUMN_WIDTH
-        max(images, key=attr('score')).scale = GUTTER + 2 * COLUMN_WIDTH
-        for im in images:
-            im.preview_height = im.scale * im.preview_height / im.preview_width
-            im.preview_width = im.scale
-    return images
 
 
 class Site(object):
@@ -38,11 +28,15 @@ class Site(object):
         @app.route('/', defaults={'page': 1})
         @app.route('/page/<int:page>')
         def index(page):
-            tags = []
-            images = [im for im, _ in zip(self.provider.get_images(tags), range(1024))]
             from pagination import Infinite
-            pagination = Infinite(page, PER, lambda page, per: scale(images[(page - 1) * per:page * per]))
+            tags = []
+            pagination = Infinite(page, PER, lambda page, per: self.scale(list(self.provider.get_images(tags, page - 1, per))))
             return render_template('index.html', pagination=pagination)
+
+        @app.route('/image/<filename>')
+        def image(filename):
+            with open(os.path.join(tempfile.tempdir, filename), 'rb') as f:
+                return f.read(), 200, {'Content-Type': 'image/jpeg'}
 
         def url_for_page(page):
             args = request.view_args.copy()
@@ -52,6 +46,23 @@ class Site(object):
         app.jinja_env.globals['url_for_page'] = url_for_page
         app.jinja_env.globals['column_width'] = COLUMN_WIDTH
         app.jinja_env.globals['gutter'] = GUTTER
+
+    def scale(self, images):
+        if images:
+            for im in images:
+                im.scale = COLUMN_WIDTH
+            max(images, key=attr('score')).scale = GUTTER + 2 * COLUMN_WIDTH
+            for im in images:
+                im.preview_height = im.scale * im.preview_height / im.preview_width
+                im.preview_width = im.scale
+                if im.preview_width != COLUMN_WIDTH and hasattr(im, 'sample_url'):
+                    f = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
+                    f.write(self.provider._fetch(im.sample_url))
+                    f.close()
+                    im.filename = os.path.basename(f.name)
+                    with self.app.app_context():
+                        im.preview_url = url_for('image', filename=im.filename)
+        return images
 
     def run(self, *args, **kargs):
         return self.app.run(*args, **kargs)
