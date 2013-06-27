@@ -41,8 +41,8 @@
                 var $container = $('#items');
                 $container.masonry({
                     itemSelector: '.item',
-                    columnWidth: {{ column_width }},
-                    gutter: {{ gutter }}
+                    columnWidth: {{ g.column_width }},
+                    gutter: {{ g.gutter }}
                 });
                 $container.lazyload();
                 $('#items').waypoint('infinite', {
