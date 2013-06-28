@@ -4,3 +4,4 @@
 temp/
 *.ipynb
 *.log
+*.egg-info/

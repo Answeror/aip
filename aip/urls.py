@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 
-from . import views, app
+from . import views, aip
 
 
-app.route('/', defaults={'page': 1})(views.posts)
-app.route('/page/<int:page>')(views.posts)
-app.route('/image/<id>')(views.image)
+aip.route('/', defaults={'page': 1})(views.posts)
+aip.route('/page/<int:page>')(views.posts)
+aip.route('/image/<id>')(views.image)

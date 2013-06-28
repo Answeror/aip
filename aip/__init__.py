@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flask import Flask
+from flask import Blueprint
 
 
-app = Flask(__name__)
-app.config.from_object('%s.settings' % __name__)
+aip = Blueprint(
+    'aip',
+    __name__,
+    template_folder='templates',
+    static_folder='static'
+)
 
 
 from . import urls

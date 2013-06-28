@@ -15,9 +15,9 @@
             </div>
         </div>
         <div>
-            {% if pagination.prev %}<a href='{{ url_for_page(pagination.prev) }}'>&laquo;</a>{% endif %}
+            {% if pagination.prev %}<a href='{{ g.url_for_page(pagination.prev) }}'>&laquo;</a>{% endif %}
             <span>...</span>
-            {% if pagination.next %}<a class='more' href='{{ url_for_page(pagination.next) }}'>&raquo;</a>{% endif %}
+            {% if pagination.next %}<a class='more' href='{{ g.url_for_page(pagination.next) }}'>&raquo;</a>{% endif %}
         </div>
         <footer>
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>

@@ -16,5 +16,8 @@ def setuplogging(level, stdout):
 
 if __name__ == "__main__":
     setuplogging(logging.DEBUG, True)
-    from aip import app
+    from flask import Flask
+    app = Flask(__name__)
+    from aip import aip
+    app.register_blueprint(aip)
     app.run(debug=True)

@@ -12,13 +12,13 @@ from flask import (
 import os
 from operator import attrgetter as attr
 import tempfile
-from . import app
-
+from . import aip
+from .settings import PER, COLUMN_WIDTH, GUTTER
 
 def manager():
     if not manager in g:
         from BooruPy import BooruManager
-        g.manager = BooruManager(os.path.join(app.static_folder, 'provider.json'))
+        g.manager = BooruManager(os.path.join(aip.static_folder, 'provider.json'))
     return g.manager
 
 
@@ -45,12 +45,13 @@ def scale(images):
 
 
 def posts(page):
+    init_globals()
     init_page_layout()
     from .pagination import Infinite
     tags = []
     pagination = Infinite(
         page,
-        app.config['PER'],
+        PER,
         lambda page, per: scale(provider().get_images(tags, page - 1, per))
     )
     return render_template('index.html', pagination=pagination)
@@ -62,8 +63,8 @@ def image(id):
 
 
 def init_page_layout():
-    g.column_width = app.config['COLUMN_WIDTH']
-    g.gutter = app.config['GUTTER']
+    g.column_width = COLUMN_WIDTH
+    g.gutter = GUTTER
 
 
 def url_for_page(page):
@@ -72,4 +73,5 @@ def url_for_page(page):
     return url_for(request.endpoint, **args)
 
 
-app.jinja_env.globals['url_for_page'] = url_for_page
+def init_globals():
+    g.url_for_page = url_for_page
