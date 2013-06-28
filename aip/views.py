@@ -15,6 +15,7 @@ import tempfile
 from . import aip
 from .settings import PER, COLUMN_WIDTH, GUTTER
 
+
 def manager():
     if not manager in g:
         from BooruPy import BooruManager
@@ -33,7 +34,7 @@ def scale(images):
             im.scale = g.column_width
         max(images, key=attr('score')).scale = g.gutter + 2 * g.column_width
         for im in images:
-            im.preview_height = im.scale * im.preview_height / im.preview_width
+            im.preview_height = im.scale * im.height / im.width
             im.preview_width = im.scale
             #if im.preview_width != g.column_width and hasattr(im, 'sample_url'):
                 #f = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)

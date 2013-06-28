@@ -19,5 +19,5 @@ if __name__ == "__main__":
     from flask import Flask
     app = Flask(__name__)
     from aip import aip
-    app.register_blueprint(aip)
+    app.register_blueprint(aip, url_prefix='/aip')
     app.run(debug=True)
