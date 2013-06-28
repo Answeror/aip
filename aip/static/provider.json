@@ -4,7 +4,7 @@
             "key": "yande.re",
             "name": "yande.re",
             "type": "danbooru",
-            "url": "http://danbooru.donmai.us",
+            "url": "https://yande.re",
             "mapping": {
                 "url": "file_url"
             }
