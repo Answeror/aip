@@ -13,7 +13,7 @@ app = Flask('application')
 app.config.from_object('application.settings')
 
 from aip import aip
-app.register_blueprint(aip, url_prefix='/aip')
+app.register_blueprint(aip)
 
 # Enable jinja2 loop controls extension
 app.jinja_env.add_extension('jinja2.ext.loopcontrols')
