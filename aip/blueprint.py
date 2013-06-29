@@ -38,7 +38,7 @@ class Blueprint(flask.Blueprint):
     def manager(self):
         if not hasattr(self, '_manager'):
             from BooruPy import BooruManager
-            self._manager = BooruManager(os.path.join(
+            self._manager = BooruManager.from_python_file(os.path.join(
                 self.static_folder,
                 PROVIER_CONFIG_FILE_FILENAME
             ))
@@ -84,7 +84,7 @@ class Blueprint(flask.Blueprint):
                     tags = []
                     for i, im in zip(range(100), p.get_images(tags)):
                         im = self._make_image(im, site.id)
-                        if im.ctime <= latest_ctime:
+                        if latest_ctime is not None and im.ctime <= latest_ctime:
                             break
                         con.add_or_update(im)
                 con.commit()
