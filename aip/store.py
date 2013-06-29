@@ -43,6 +43,10 @@ class Site(object):
     #setattr(Image, field, property(lambda self: noimpl(field)))
 
 
+class Cache(object):
+    pass
+
+
 class Repo(object):
 
     def connection(self):
@@ -71,3 +75,6 @@ class Connection(object):
 
     def latest_ctime_bi_site_id(self, id):
         noimpl('latest_ctime_bi_site_id')
+
+    def get_cache_bi_id(self, id):
+        noimpl('get_cache_bi_id')

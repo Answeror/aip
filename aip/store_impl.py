@@ -20,6 +20,14 @@ class Site(store.Site):
             setattr(self, key, value)
 
 
+class Cache(store.Cache):
+
+    def __init__(self, id, data, meta):
+        self.id = id
+        self.data = data
+        self.meta = meta
+
+
 class Repo(store.Repo):
 
     def connection(self):
@@ -35,6 +43,7 @@ class Connection(store.Connection):
 
     images = []
     sites = []
+    cache = []
 
     def __init__(self):
         pass
@@ -69,6 +78,8 @@ class Connection(store.Connection):
             self._add_or_update(o, self.images)
         elif type(o) is Site:
             self._add_or_update(o, self.sites)
+        elif type(o) is Cache:
+            self._add_or_update(o, self.cache)
         else:
             raise Exception('unknown model: {0}'.format(type(o)))
 
@@ -88,3 +99,9 @@ class Connection(store.Connection):
         if not images:
             return None
         return max(images, key=attr('ctime'))
+
+    def get_cache_bi_id(self, id):
+        for c in self.cache:
+            if c.id == id:
+                return c
+        return None

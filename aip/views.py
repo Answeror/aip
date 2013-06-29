@@ -11,6 +11,7 @@ from flask import (
 )
 from operator import attrgetter as attr
 import logging
+import pickle
 from . import aip
 from .settings import PER, COLUMN_WIDTH, GUTTER
 
@@ -28,6 +29,10 @@ def fetch_head(url):
 
 def fetch_data(url):
     return http().request('GET', url).data
+
+
+def fetch(url):
+    return http().request('GET', url)
 
 
 def fetch_redirect_url(url):
@@ -48,8 +53,12 @@ def scale(images):
     return images
 
 
-def posts(page):
+def update():
     aip.update()
+    return 'updated'
+
+
+def posts(page):
     with aip.connection() as con:
         init_globals()
         init_page_layout()
@@ -66,7 +75,21 @@ def posts(page):
 
 def image(src):
     logging.debug('image: %s' % src)
-    return fetch_data(src), 200, {'Content-Type': 'image/jpeg'}
+    with aip.connection() as con:
+        cache = con.get_cache_bi_id(src)
+        if cache is None:
+            logging.info('cache miss %s' % src)
+            r = fetch(src)
+            cache = aip.store.Cache(
+                id=src,
+                data=r.data,
+                meta=pickle.dumps({'Content-Type': r.headers['content-type']})
+            )
+            con.add_or_update(cache)
+            con.commit()
+        else:
+            logging.info('cache hit %s' % src)
+        return cache.data, 200, pickle.loads(cache.meta)
 
 
 def init_page_layout():
