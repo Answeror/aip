@@ -6,7 +6,8 @@
             "type": "danbooru",
             "url": "https://yande.re",
             "mapping": {
-                "url": "file_url"
+                "url": "file_url",
+                "ctime": "created_at"
             }
         },
         {
@@ -15,7 +16,8 @@
             "type": "danbooru",
             "url": "http://danbooru.donmai.us",
             "mapping": {
-                "url": "file_url"
+                "url": "file_url",
+                "ctime": "created_at"
             }
         }
     ]

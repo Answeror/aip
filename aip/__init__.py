@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint
-import os
+from .blueprint import Blueprint
 
 
 aip = Blueprint(

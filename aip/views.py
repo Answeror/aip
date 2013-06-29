@@ -9,26 +9,10 @@ from flask import (
     request,
     render_template
 )
-import os
 from operator import attrgetter as attr
 import logging
 from . import aip
 from .settings import PER, COLUMN_WIDTH, GUTTER
-
-
-def manager():
-    if not manager in g:
-        from BooruPy import BooruManager
-        g.manager = BooruManager(os.path.join(aip.static_folder, 'provider.json'))
-    return g.manager
-
-
-def provider():
-    return manager().get_provider_by_id(0)
-
-
-def providers():
-    return manager().providers
 
 
 def http():
@@ -59,31 +43,25 @@ def scale(images):
         for im in images:
             im.preview_height = im.scale * im.height / im.width
             im.preview_width = im.scale
-            if im.preview_width != g.column_width and hasattr(im, 'sample_url'):
+            if im.preview_width != g.column_width and hasattr(im, 'sample_url') and im.sample_url is not None:
                 im.preview_url = url_for('.image', src=im.sample_url)
-            #if im.preview_width != g.column_width and hasattr(im, 'sample_url'):
-                #f = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
-                #f.write(provider()._fetch(im.sample_url))
-                #f.close()
-                #im.id = os.path.basename(f.name)
-                #im.preview_url = url_for('image', id=im.id)
     return images
 
 
 def posts(page):
-    init_globals()
-    init_page_layout()
-    from .pagination import Infinite
-    tags = []
-    from itertools import chain
-    pagination = Infinite(
-        page,
-        PER,
-        lambda page, per: scale(chain.from_iterable(
-            [p.get_images(tags, page - 1, per) for p in providers()]
-        ))
-    )
-    return render_template('index.html', pagination=pagination)
+    aip.update()
+    with aip.connection() as con:
+        init_globals()
+        init_page_layout()
+        from .pagination import Infinite
+        pagination = Infinite(
+            page,
+            PER,
+            lambda page, per: scale(
+                con.get_images_order_bi_ctime(r=range((page - 1) * per, page * per))
+            )
+        )
+        return render_template('index.html', pagination=pagination)
 
 
 def image(src):
