@@ -11,7 +11,7 @@ from flask import (
 )
 import os
 from operator import attrgetter as attr
-import tempfile
+import logging
 from . import aip
 from .settings import PER, COLUMN_WIDTH, GUTTER
 
@@ -27,6 +27,29 @@ def provider():
     return manager().get_provider_by_id(0)
 
 
+def providers():
+    return manager().providers
+
+
+def http():
+    if not 'http' in g:
+        import urllib3
+        g.http = urllib3.PoolManager()
+    return g.http
+
+
+def fetch_head(url):
+    return http().request('HEAD', url)
+
+
+def fetch_data(url):
+    return http().request('GET', url).data
+
+
+def fetch_redirect_url(url):
+    return fetch_head(url).get_redirect_location()
+
+
 def scale(images):
     images = list(images)
     if images:
@@ -36,6 +59,8 @@ def scale(images):
         for im in images:
             im.preview_height = im.scale * im.height / im.width
             im.preview_width = im.scale
+            if im.preview_width != g.column_width and hasattr(im, 'sample_url'):
+                im.preview_url = url_for('.image', src=im.sample_url)
             #if im.preview_width != g.column_width and hasattr(im, 'sample_url'):
                 #f = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
                 #f.write(provider()._fetch(im.sample_url))
@@ -50,17 +75,20 @@ def posts(page):
     init_page_layout()
     from .pagination import Infinite
     tags = []
+    from itertools import chain
     pagination = Infinite(
         page,
         PER,
-        lambda page, per: scale(provider().get_images(tags, page - 1, per))
+        lambda page, per: scale(chain.from_iterable(
+            [p.get_images(tags, page - 1, per) for p in providers()]
+        ))
     )
     return render_template('index.html', pagination=pagination)
 
 
-def image(id):
-    with open(os.path.join(tempfile.tempdir, id), 'rb') as f:
-        return f.read(), 200, {'Content-Type': 'image/jpeg'}
+def image(src):
+    logging.debug('image: %s' % src)
+    return fetch_data(src), 200, {'Content-Type': 'image/jpeg'}
 
 
 def init_page_layout():

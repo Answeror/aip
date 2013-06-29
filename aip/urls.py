@@ -7,4 +7,4 @@ from . import views, aip
 
 aip.route('/', defaults={'page': 1})(views.posts)
 aip.route('/page/<int:page>')(views.posts)
-aip.route('/image/<id>')(views.image)
+aip.route('/image/<path:src>')(views.image)

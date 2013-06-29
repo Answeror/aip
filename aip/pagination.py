@@ -21,7 +21,7 @@ class Infinite(object):
 
     @property
     def has_next(self):
-        return len(self.items) == self.per
+        return len(self.items) >= self.per
 
     @property
     def prev(self):
