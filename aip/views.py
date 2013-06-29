@@ -9,11 +9,22 @@ from flask import (
     request,
     render_template
 )
+from functools import wraps
 from operator import attrgetter as attr
 import logging
 import pickle
 from . import aip
 from .settings import PER, COLUMN_WIDTH, GUTTER
+
+
+def logged(f):
+    @wraps(f)
+    def inner(*args, **kargs):
+        try:
+            return f(*args, **kargs)
+        except Exception as e:
+            logging.exception(e)
+    return inner
 
 
 def http():
@@ -53,6 +64,7 @@ def scale(images):
     return images
 
 
+@logged
 def update(begin):
     from datetime import datetime
     begin = datetime.strptime(begin, '%Y%m%d')
@@ -60,6 +72,7 @@ def update(begin):
     return 'updated from %s' % begin.strftime('%Y-%m-%d')
 
 
+@logged
 def posts(page):
     with aip.connection() as con:
         init_globals()
@@ -75,6 +88,7 @@ def posts(page):
         return render_template('index.html', pagination=pagination)
 
 
+@logged
 def image(src):
     logging.debug('image: %s' % src)
     with aip.connection() as con:

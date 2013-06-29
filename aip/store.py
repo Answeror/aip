@@ -24,6 +24,11 @@ SITE_FIELDS = (
     'name',
     'url'
 )
+CACHE_FIELDS = (
+    'id',
+    ('data', bytes),
+    ('meta', bytes)
+)
 
 
 def noimpl(name):
