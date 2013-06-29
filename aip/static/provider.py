@@ -2,9 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
-def danbooru_ctime(s):
+def yandere_ctime(s):
     from datetime import datetime
     return datetime.utcfromtimestamp(int(s))
+
+
+def danbooru_ctime(s):
+    from datetime import datetime
+    return datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
 
 
 providers = [
@@ -15,7 +20,7 @@ providers = [
         'url': 'https://yande.re',
         'mapping': {
             'url': 'file_url',
-            'ctime': ('created_at', danbooru_ctime),
+            'ctime': ('created_at', yandere_ctime),
             'tags': lambda s: s.split(' ')
         }
     },

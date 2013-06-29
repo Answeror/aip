@@ -50,9 +50,9 @@ class Blueprint(flask.Blueprint):
         return self.manager.providers
 
     @locked
-    def update(self):
+    def update(self, begin=None):
         self._update_sites()
-        self._update_images()
+        self._update_images(begin)
 
     @property
     @locked
@@ -75,15 +75,17 @@ class Blueprint(flask.Blueprint):
             con.commit()
 
     @locked
-    def _update_images(self):
+    def _update_images(self, begin=None, limit=10000):
         with self.repo.connection() as con:
             for p in self.providers:
                 site = con.get_site_bi_id(p.shortname)
                 if site is not None:
                     latest_ctime = con.latest_ctime_bi_site_id(site.id)
                     tags = []
-                    for i, im in zip(range(100), p.get_images(tags)):
+                    for i, im in zip(range(limit), p.get_images(tags)):
                         im = self._make_image(im, site.id)
+                        if begin is not None and im.ctime <= begin:
+                            break
                         if latest_ctime is not None and im.ctime <= latest_ctime:
                             break
                         con.add_or_update(im)

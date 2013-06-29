@@ -53,9 +53,11 @@ def scale(images):
     return images
 
 
-def update():
-    aip.update()
-    return 'updated'
+def update(begin):
+    from datetime import datetime
+    begin = datetime.strptime(begin, '%Y%m%d')
+    aip.update(begin)
+    return 'updated from %s' % begin.strftime('%Y-%m-%d')
 
 
 def posts(page):
