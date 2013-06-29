@@ -2,18 +2,21 @@
 # -*- coding: utf-8 -*-
 
 
+from datetime import datetime
+
+
 IMAGE_FIELDS = (
     'id',
     'url',
-    'width',
-    'height',
+    ('width', int),
+    ('height', int),
     'rating',
-    'score',
+    ('score', int),
     'preview_url',
     'sample_url',
     'tags',
-    'ctime',
-    'mtime',
+    ('ctime', datetime),
+    ('mtime', datetime),
     'site_id'
 )
 SITE_FIELDS = (
