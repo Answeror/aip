@@ -5,3 +5,5 @@ temp/
 *.ipynb
 *.log
 *.egg-info/
+build/
+dist/
