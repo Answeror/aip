@@ -98,7 +98,7 @@ class Connection(store.Connection):
         images = [im for im in self.images if im.site_id == id]
         if not images:
             return None
-        return max(images, key=attr('ctime'))
+        return max([im.ctime for im in images])
 
     def get_cache_bi_id(self, id):
         for c in self.cache:
