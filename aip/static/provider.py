@@ -35,7 +35,7 @@ providers = [
         'mapping': {
             'url': 'file_url',
             'ctime': ('created_at', danbooru_ctime),
-            'tags': lambda s: s.split(' '),
+            'tags': lambda s: s.replace(' ', ';'),
             'width': int,
             'height': int,
             'score': int

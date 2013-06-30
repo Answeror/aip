@@ -6,47 +6,43 @@ import aip.store
 from datetime import datetime
 
 
-def _add_property(cls, item):
+def _field(item):
     if type(item) is tuple:
         k, t = item
     else:
         k = item
-        t = str
-    if t is str:
-        t = ndb.StringProperty
-    elif t is int:
-        t = ndb.IntegerProperty
-    elif t is datetime:
-        t = ndb.DateTimeProperty
-    elif t is bytes:
-        t = ndb.BlobProperty
+        t = unicode
+
+    def inner(t):
+        if t is unicode:
+            t = ndb.StringProperty
+        elif t is int:
+            t = ndb.IntegerProperty
+        elif t is datetime:
+            t = ndb.DateTimeProperty
+        elif t is bytes:
+            t = lambda: ndb.BlobProperty(indexed=False)
+        elif type(t) is unicode and t == u'text':
+            t = ndb.TextProperty
+        else:
+            assert False, 'unknown type: {0}'.format(t)
+        return t
+
+    if type(t) is list:
+        t = inner(t[0])(repeated=True)
     else:
-        assert False, 'unknown type: {0}'.format(t)
-    setattr(cls, k, t())
+        t = inner(t)()
+
+    return k, t
 
 
-class Image(aip.store.Image, ndb.Model):
-    pass
+def _fields(items):
+    return dict([_field(item) for item in items])
 
 
-for item in aip.store.IMAGE_FIELDS:
-    _add_property(Image, item)
-
-
-class Site(aip.store.Site, ndb.Model):
-    pass
-
-
-for item in aip.store.SITE_FIELDS:
-    _add_property(Site, item)
-
-
-class Cache(aip.store.Cache, ndb.Model):
-    pass
-
-
-for item in aip.store.CACHE_FIELDS:
-    _add_property(Cache, item)
+Image = type('Image', (aip.store.Image, ndb.Model), _fields(aip.store.IMAGE_FIELDS))
+Site = type('Site', (aip.store.Site, ndb.Model), _fields(aip.store.SITE_FIELDS))
+Cache = type('Cache', (aip.store.Cache, ndb.Model), _fields(aip.store.CACHE_FIELDS))
 
 
 class Repo(aip.store.Repo):
@@ -75,7 +71,8 @@ class Connection(aip.store.Connection):
         pass
 
     def add_or_update(self, o):
-        o.put()
+        if not type(o).query(type(o).id == o.id).iter().has_next():
+            o.put()
 
     def get_images_order_bi_ctime(self, r):
         for i, im in enumerate(Image.query().order(-Image.ctime)):
@@ -83,15 +80,15 @@ class Connection(aip.store.Connection):
                 yield im
 
     def get_site_bi_id(self, id):
-        q = Site.query(Site.id == id)
+        q = Site.query(Site.id == id).iter()
         return q.next() if q.has_next() else None
 
     def latest_ctime_bi_site_id(self, id):
-        q = Image.query(Image.site_id == id).order(-Image.ctime)
+        q = Image.query(Image.site_id == id).order(-Image.ctime).iter()
         if not q.has_next():
             return None
         return q.next().ctime
 
     def get_cache_bi_id(self, id):
-        q = Cache.query(Cache.id == id)
+        q = Cache.query(Cache.id == id).iter()
         return q.next() if q.has_next() else None

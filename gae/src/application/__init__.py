@@ -32,7 +32,7 @@ def inject_profiler():
 
 # Werkzeug Debugger (only enabled when DEBUG=True)
 if app.debug:
-    app = DebuggedApplication(app, evalex=True)
+    app.wsgi_app = DebuggedApplication(app.wsgi_app, True)
 
 # GAE Mini Profiler (only enabled on dev server)
 app = profiler.ProfilerWSGIMiddleware(app)

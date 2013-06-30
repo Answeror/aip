@@ -14,7 +14,7 @@ IMAGE_FIELDS = (
     ('score', int),
     'preview_url',
     'sample_url',
-    'tags',
+    ('tags', u'text'),
     ('ctime', datetime),
     ('mtime', datetime),
     'site_id'

@@ -75,7 +75,7 @@ class Blueprint(flask.Blueprint):
             con.commit()
 
     @locked
-    def _update_images(self, begin=None, limit=10000):
+    def _update_images(self, begin=None, limit=100):
         with self.repo.connection() as con:
             for p in self.providers:
                 site = con.get_site_bi_id(p.shortname)

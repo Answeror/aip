@@ -254,7 +254,7 @@ def is_connection_dropped(conn):  # Platform-specific
 
         try:
             return select([sock], [], [], 0.0)[0]
-        except SocketError:
+        except:
             return True
 
     # This version is better on platforms that support it.

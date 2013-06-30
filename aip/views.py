@@ -9,6 +9,7 @@ from flask import (
     request,
     render_template
 )
+import urllib
 from functools import wraps
 from operator import attrgetter as attr
 import logging
@@ -24,6 +25,7 @@ def logged(f):
             return f(*args, **kargs)
         except Exception as e:
             logging.exception(e)
+            raise
     return inner
 
 
@@ -60,7 +62,7 @@ def scale(images):
             im.preview_height = im.scale * im.height / im.width
             im.preview_width = im.scale
             if im.preview_width != g.column_width and hasattr(im, 'sample_url') and im.sample_url is not None:
-                im.preview_url = url_for('.image', src=im.sample_url)
+                im.preview_url = url_for('.image', src=urllib.quote_plus(im.sample_url))
     return images
 
 
@@ -85,16 +87,19 @@ def posts(page):
                 con.get_images_order_bi_ctime(r=range((page - 1) * per, page * per))
             )
         )
+        for it in pagination.items:
+            pass
         return render_template('index.html', pagination=pagination)
 
 
 @logged
 def image(src):
+    src = urllib.unquote_plus(src)
     logging.debug('image: %s' % src)
     with aip.connection() as con:
         cache = con.get_cache_bi_id(src)
         if cache is None:
-            logging.info('cache miss %s' % src)
+            logging.debug('cache miss %s' % src)
             r = fetch(src)
             cache = aip.store.Cache(
                 id=src,
@@ -104,7 +109,7 @@ def image(src):
             con.add_or_update(cache)
             con.commit()
         else:
-            logging.info('cache hit %s' % src)
+            logging.debug('cache hit %s' % src)
         return cache.data, 200, pickle.loads(cache.meta)
 
 
