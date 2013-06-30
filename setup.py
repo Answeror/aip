@@ -9,7 +9,7 @@ setup(
     name='aip',
     version='0.1.0',
     author='answeror',
-    anthor_email='answeror@gmail.com',
+    author_email='answeror@gmail.com',
     packages=['aip'],
     description='AIP Instrumentality Project'
 )
