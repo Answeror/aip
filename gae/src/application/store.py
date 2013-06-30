@@ -53,7 +53,7 @@ class Repo(aip.store.Repo):
 
 def _random_name():
     import uuid
-    return uuid.uuid4()
+    return unicode(uuid.uuid4())
 
 
 class Connection(aip.store.Connection):
@@ -70,9 +70,16 @@ class Connection(aip.store.Connection):
     def commit(self):
         pass
 
+    def has(self, o):
+        return type(o).query(type(o).id == o.id).iter().has_next()
+
     def add_or_update(self, o):
-        if not type(o).query(type(o).id == o.id).iter().has_next():
+        if o.id is None:
+            o.id = _random_name()
             o.put()
+        else:
+            if not self.has(o):
+                o.put()
 
     def get_images_order_bi_ctime(self, r):
         for i, im in enumerate(Image.query().order(-Image.ctime)):

@@ -13,20 +13,20 @@ def danbooru_ctime(s):
 
 
 providers = [
-    {
-        'key': 'yande.re',
-        'name': 'yande.re',
-        'type': 'danbooru',
-        'url': 'https://yande.re',
-        'mapping': {
-            'url': 'file_url',
-            'ctime': ('created_at', yandere_ctime),
-            'tags': lambda s: s.replace(' ', ';'),
-            'width': int,
-            'height': int,
-            'score': int
-        }
-    },
+    #{
+        #'key': 'yande.re',
+        #'name': 'yande.re',
+        #'type': 'danbooru',
+        #'url': 'https://yande.re',
+        #'mapping': {
+            #'url': 'file_url',
+            #'ctime': ('created_at', yandere_ctime),
+            #'tags': lambda s: s.replace(' ', ';'),
+            #'width': int,
+            #'height': int,
+            #'score': int
+        #}
+    #},
     {
         'key': 'danbooru.donmai.us',
         'name': 'danbooru.donmai.us',
