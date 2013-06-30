@@ -11,5 +11,6 @@ setup(
     author='answeror',
     author_email='answeror@gmail.com',
     packages=['aip'],
-    description='AIP Instrumentality Project'
+    description='AIP Instrumentality Project',
+    include_package_data=True
 )
