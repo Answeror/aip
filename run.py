@@ -18,6 +18,6 @@ if __name__ == "__main__":
     setuplogging(logging.DEBUG, True)
     from flask import Flask
     app = Flask(__name__)
-    from aip import aip
-    app.register_blueprint(aip)
+    from aip import make
+    app.register_blueprint(make())
     app.run(debug=True)
