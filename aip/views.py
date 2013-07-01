@@ -2,19 +2,19 @@
 # -*- coding: utf-8 -*-
 
 
-
 from flask import (
     g,
     url_for,
     request,
     render_template
 )
-import urllib.request, urllib.parse, urllib.error
+import urllib.request
+import urllib.parse
+import urllib.error
 from functools import wraps
 from operator import attrgetter as attr
 import logging
 import pickle
-from . import aip
 from .settings import PER, COLUMN_WIDTH, GUTTER
 
 
@@ -70,13 +70,13 @@ def scale(images):
 def update(begin):
     from datetime import datetime
     begin = datetime.strptime(begin, '%Y%m%d')
-    aip.update(begin)
+    g.aip.update(begin)
     return 'updated from %s' % begin.strftime('%Y-%m-%d')
 
 
 @logged
 def posts(page):
-    with aip.connection() as con:
+    with g.aip.connection() as con:
         init_globals()
         init_page_layout()
         from .pagination import Infinite
@@ -96,12 +96,12 @@ def posts(page):
 def image(src):
     src = urllib.parse.unquote_plus(src)
     logging.debug('image: %s' % src)
-    with aip.connection() as con:
+    with g.aip.connection() as con:
         cache = con.get_cache_bi_id(src)
         if cache is None:
             logging.debug('cache miss %s' % src)
             r = fetch(src)
-            cache = aip.store.Cache(
+            cache = g.aip.store.Cache(
                 id=src,
                 data=r.data,
                 meta=pickle.dumps({'Content-Type': r.headers['content-type']})
