@@ -148,3 +148,8 @@ def update_images(begin):
     begin = datetime.strptime(begin, '%Y%m%d')
     g.aip.update_images(begin)
     return ''
+
+
+def last_update_time():
+    t = g.aip.last_update_time
+    return '' if t is None else t.strftime('%Y-%m-%d %H:%M:%S')

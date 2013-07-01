@@ -44,6 +44,10 @@ class StoreMeta(store.StoreMeta):
         return inst
 
 
+class Meta(store.Meta, metaclass=StoreMeta):
+    pass
+
+
 class Image(store.Image, metaclass=StoreMeta):
     pass
 
@@ -62,6 +66,7 @@ class Repo(store.Repo):
         self.images = []
         self.sites = []
         self.cache = []
+        self.meta = {}
 
     def connection(self):
         return Connection(self)
@@ -85,6 +90,10 @@ class Connection(store.Connection):
     @property
     def cache(self):
         return self.repo.cache
+
+    @property
+    def meta(self):
+        return self.repo.meta
 
     def __init__(self, repo):
         self.repo = repo
@@ -152,3 +161,9 @@ class Connection(store.Connection):
 
     def image_count(self):
         return len(self.images)
+
+    def set_meta(self, id, value):
+        self.meta[id] = value
+
+    def get_meta(self, id):
+        return self.meta.get(id, None)

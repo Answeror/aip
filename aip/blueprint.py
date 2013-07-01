@@ -6,6 +6,8 @@ import os
 import flask
 import threading
 import logging
+import pickle
+from datetime import datetime
 from .settings import PROVIER_CONFIG_FILE_FILENAME
 
 
@@ -64,8 +66,21 @@ class Blueprint(flask.Blueprint):
 
     @locked
     def update(self, begin=None):
+        self.last_update_time = datetime.now()
         self.update_sites()
         self.update_images(begin)
+
+    @property
+    def last_update_time(self):
+        with self.connection() as con:
+            value = con.get_meta('last_update_time')
+            return None if value is None else pickle.loads(value)
+
+    @last_update_time.setter
+    def last_update_time(self, value):
+        with self.connection() as con:
+            con.set_meta('last_update_time', pickle.dumps(value))
+            con.commit()
 
     @property
     @locked

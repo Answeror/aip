@@ -18,6 +18,14 @@ class StoreMeta(abc.ABCMeta):
         return abc.ABCMeta.__new__(meta, name, bases, attr)
 
 
+class Meta(object, metaclass=StoreMeta):
+
+    FIELDS = (
+        'id',
+        ('value', bytes)
+    )
+
+
 class Image(object, metaclass=StoreMeta):
 
     FIELDS = (
@@ -101,4 +109,12 @@ class Connection(object, metaclass=StoreMeta):
 
     @abc.abstractmethod
     def image_count(self):
+        return
+
+    @abc.abstractmethod
+    def set_meta(self, id, value):
+        return
+
+    @abc.abstractmethod
+    def get_meta(self, id):
         return

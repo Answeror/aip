@@ -15,3 +15,4 @@ def make(aip):
     aip.route('/image_count')(views.image_count)
     aip.route('/update_images', defaults={'begin': datetime.today().strftime('%Y%m%d')})(views.update_images)
     aip.route('/update_images/<begin>')(views.update_images)
+    aip.route('/last_update_time')(views.last_update_time)
