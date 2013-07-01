@@ -5,14 +5,16 @@
 from nose.tools import assert_equal
 from bs4 import BeautifulSoup as Soup
 from flask import Flask
-from .. import aip
+from .. import make
+from .settings import CONFIG_FILE_PATH
 
 
 class TestAip(object):
 
     def setUp(self):
         app = Flask(__name__)
-        app.register_blueprint(aip)
+        self.aip = make()
+        app.register_blueprint(self.aip)
         self.app = app.test_client()
 
     def tearDown(self):
@@ -23,3 +25,7 @@ class TestAip(object):
         soup = Soup(r.data)
         content = soup.find(id='items').get_text().strip()
         return assert_equal(content, '')
+
+    def test_config(self):
+        self.aip.config(CONFIG_FILE_PATH)
+        assert_equal(len(self.aip.providers), 2)
