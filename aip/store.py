@@ -3,86 +3,102 @@
 
 
 from datetime import datetime
+import abc
 
 
-IMAGE_FIELDS = (
-    'id',
-    'url',
-    ('width', int),
-    ('height', int),
-    'rating',
-    ('score', int),
-    'preview_url',
-    'sample_url',
-    ('tags', 'text'),
-    ('ctime', datetime),
-    ('mtime', datetime),
-    'site_id'
-)
-SITE_FIELDS = (
-    'id',
-    'name',
-    'url'
-)
-CACHE_FIELDS = (
-    'id',
-    ('data', bytes),
-    ('meta', bytes)
-)
+class StoreMeta(abc.ABCMeta):
+
+    def __new__(meta, name, bases, attr):
+        if 'FIELDS' in attr:
+            fields = attr['FIELDS']
+            for field in fields:
+                if type(field) is tuple:
+                    field, _ = field
+                attr[field] = abc.abstractproperty(lambda self: None)
+        return abc.ABCMeta.__new__(meta, name, bases, attr)
 
 
-def noimpl(name):
-    raise NotImplementedError("%s not implemented" % name)
+class Image(object, metaclass=StoreMeta):
+
+    FIELDS = (
+        'id',
+        'url',
+        ('width', int),
+        ('height', int),
+        'rating',
+        ('score', int),
+        'preview_url',
+        'sample_url',
+        ('tags', 'text'),
+        ('ctime', datetime),
+        ('mtime', datetime),
+        'site_id'
+    )
 
 
-class Image(object):
-    pass
+class Site(object, metaclass=StoreMeta):
+
+    FIELDS = (
+        'id',
+        'name',
+        'url'
+    )
 
 
-#for field in IMAGE_FIELDS:
-    #setattr(Image, field, property(lambda self: noimpl(field)))
+class Cache(object, metaclass=StoreMeta):
+
+    FIELDS = (
+        'id',
+        ('data', bytes),
+        ('meta', bytes)
+    )
 
 
-class Site(object):
-    pass
+class Repo(object, metaclass=StoreMeta):
 
-
-#for field in SITE_FIELDS:
-    #setattr(Image, field, property(lambda self: noimpl(field)))
-
-
-class Cache(object):
-    pass
-
-
-class Repo(object):
-
+    @abc.abstractmethod
     def connection(self):
-        noimpl('connection')
+        return
 
 
-class Connection(object):
+class Connection(object, metaclass=StoreMeta):
 
+    @abc.abstractmethod
     def __enter__(self, *args, **kargs):
-        noimpl()
+        return
 
+    @abc.abstractmethod
     def __exit__(self, *args, **kargs):
-        noimpl()
+        return
 
+    @abc.abstractmethod
     def commit(self):
-        noimpl('commit')
+        return
 
+    @abc.abstractmethod
     def add_or_update(self, o):
-        noimpl('add_or_update')
+        return
 
+    @abc.abstractmethod
     def get_images_order_bi_ctime(self, r):
-        noimpl('get_images_order_bi_ctime')
+        return
 
+    @abc.abstractmethod
     def get_site_bi_id(self):
-        noimpl('get_site_bi_id')
+        return
 
+    @abc.abstractmethod
     def latest_ctime_bi_site_id(self, id):
-        noimpl('latest_ctime_bi_site_id')
+        return
 
+    @abc.abstractmethod
     def get_cache_bi_id(self, id):
-        noimpl('get_cache_bi_id')
+        return
+
+    @abc.abstractmethod
+    def site_count(self):
+        return
+
+    @abc.abstractmethod
+    def image_count(self):
+        return

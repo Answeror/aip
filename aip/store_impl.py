@@ -3,29 +3,57 @@
 
 
 from operator import attrgetter as attr
+import abc
+from functools import partial
 from . import store
 
 
-class Image(store.Image):
+def _data(field):
+    return '_%s' % field
 
-    def __init__(self, **kargs):
+
+class StoreMeta(store.StoreMeta):
+
+    def __new__(meta, name, bases, attr):
+        for base in bases:
+            if hasattr(base, 'FIELDS'):
+                fields = getattr(base, 'FIELDS')
+                break
+        for field in fields:
+            if type(field) is tuple:
+                field, _ = field
+
+            # cannot use lambda here!
+            def get(field, self):
+                assert hasattr(self, _data(field))
+                return getattr(self, _data(field))
+
+            def set(field, self, value):
+                setattr(self, _data(field), value)
+
+            attr[field] = property(
+                partial(get, field),
+                partial(set, field)
+            )
+        return store.StoreMeta.__new__(meta, name, bases, attr)
+
+    def __call__(cls, **kargs):
+        inst = store.StoreMeta.__call__(cls)
         for key, value in list(kargs.items()):
-            setattr(self, key, value)
+            setattr(inst, _data(key), value)
+        return inst
 
 
-class Site(store.Site):
-
-    def __init__(self, **kargs):
-        for key, value in list(kargs.items()):
-            setattr(self, key, value)
+class Image(store.Image, metaclass=StoreMeta):
+    pass
 
 
-class Cache(store.Cache):
+class Site(store.Site, metaclass=StoreMeta):
+    pass
 
-    def __init__(self, id, data, meta):
-        self.id = id
-        self.data = data
-        self.meta = meta
+
+class Cache(store.Cache, metaclass=StoreMeta):
+    pass
 
 
 class Repo(store.Repo):

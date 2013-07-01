@@ -77,6 +77,8 @@ class TestConfigured(TestBase):
         r = self.app.get('/image_count')
         assert_equal(r.data, b'0')
         self.app.get('/update_sites')
+        r = self.app.get('/site_count')
+        assert_equal(r.data, b'2')
         self.app.get('/update_images/20130630')
         r = self.app.get('/image_count')
         assert_equal(r.data, b'270')
