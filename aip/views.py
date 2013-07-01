@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
-from __future__ import division
+
 from flask import (
     g,
     url_for,
     request,
     render_template
 )
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from functools import wraps
 from operator import attrgetter as attr
 import logging
@@ -62,7 +62,7 @@ def scale(images):
             im.preview_height = im.scale * im.height / im.width
             im.preview_width = im.scale
             if im.preview_width != g.column_width and hasattr(im, 'sample_url') and im.sample_url is not None:
-                im.preview_url = url_for('.image', src=urllib.quote_plus(im.sample_url))
+                im.preview_url = url_for('.image', src=urllib.parse.quote_plus(im.sample_url))
     return images
 
 
@@ -84,7 +84,7 @@ def posts(page):
             page,
             PER,
             lambda page, per: scale(
-                con.get_images_order_bi_ctime(r=range((page - 1) * per, page * per))
+                con.get_images_order_bi_ctime(r=list(range((page - 1) * per, page * per)))
             )
         )
         for it in pagination.items:
@@ -94,7 +94,7 @@ def posts(page):
 
 @logged
 def image(src):
-    src = urllib.unquote_plus(src)
+    src = urllib.parse.unquote_plus(src)
     logging.debug('image: %s' % src)
     with aip.connection() as con:
         cache = con.get_cache_bi_id(src)

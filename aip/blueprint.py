@@ -6,7 +6,7 @@ import os
 import flask
 import threading
 import logging
-from settings import PROVIER_CONFIG_FILE_FILENAME
+from .settings import PROVIER_CONFIG_FILE_FILENAME
 
 
 class Blueprint(flask.Blueprint):
@@ -82,7 +82,7 @@ class Blueprint(flask.Blueprint):
                 if site is not None:
                     latest_ctime = con.latest_ctime_bi_site_id(site.id)
                     tags = []
-                    for i, im in zip(range(limit), p.get_images(tags)):
+                    for i, im in zip(list(range(limit)), p.get_images(tags)):
                         im = self._make_image(im, site.id)
                         if begin is not None and im.ctime <= begin:
                             break

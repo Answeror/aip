@@ -9,14 +9,14 @@ from . import store
 class Image(store.Image):
 
     def __init__(self, **kargs):
-        for key, value in kargs.items():
+        for key, value in list(kargs.items()):
             setattr(self, key, value)
 
 
 class Site(store.Site):
 
     def __init__(self, **kargs):
-        for key, value in kargs.items():
+        for key, value in list(kargs.items()):
             setattr(self, key, value)
 
 
@@ -65,7 +65,7 @@ class Connection(store.Connection):
             append = True
             for other in os:
                 if other.id == o.id:
-                    for key, value in o.__dict__.items():
+                    for key, value in list(o.__dict__.items()):
                         if value is not None:
                             setattr(other, key, value)
                     append = False
