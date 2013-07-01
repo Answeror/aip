@@ -9,6 +9,10 @@ import logging
 from .settings import PROVIER_CONFIG_FILE_FILENAME
 
 
+def _ensure_exists(path):
+    assert os.path.exists(path), 'file not exist: %s' % path
+
+
 class Blueprint(flask.Blueprint):
 
     lock = threading.RLock()
@@ -33,12 +37,21 @@ class Blueprint(flask.Blueprint):
     def store(self, value):
         self._store = value
 
+    @locked
+    def config(self, path):
+        _ensure_exists(path)
+        self._manager = self._make_manager(path)
+
+    def _make_manager(self, path):
+        _ensure_exists(path)
+        from BooruPy import BooruManager
+        return BooruManager.from_python_file(path)
+
     @property
     @locked
     def manager(self):
         if not hasattr(self, '_manager'):
-            from BooruPy import BooruManager
-            self._manager = BooruManager.from_python_file(os.path.join(
+            self._manager = self._make_manager(os.path.join(
                 self.static_folder,
                 PROVIER_CONFIG_FILE_FILENAME
             ))
