@@ -105,3 +105,6 @@ class Connection(store.Connection):
             if c.id == id:
                 return c
         return None
+
+    def site_count(self):
+        return len(self.sites)

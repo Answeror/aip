@@ -39,3 +39,10 @@ class TestConfigured(TestBase):
         soup = Soup(r.data)
         content = soup.find(id='items').get_text().strip()
         return assert_equal(content, '')
+
+    def test_update_sites(self):
+        r = self.app.get('/site_count')
+        assert_equal(r.data, b'0')
+        self.app.get('/update_sites')
+        r = self.app.get('/site_count')
+        assert_equal(r.data, b'2')

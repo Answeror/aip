@@ -126,3 +126,13 @@ def url_for_page(page):
 
 def init_globals():
     g.url_for_page = url_for_page
+
+
+def site_count():
+    with g.aip.connection() as con:
+        return str(con.site_count())
+
+
+def update_sites():
+    g.aip.update_sites()
+    return ''

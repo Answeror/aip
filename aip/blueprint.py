@@ -64,7 +64,7 @@ class Blueprint(flask.Blueprint):
 
     @locked
     def update(self, begin=None):
-        self._update_sites()
+        self.update_sites()
         self._update_images(begin)
 
     @property
@@ -75,7 +75,7 @@ class Blueprint(flask.Blueprint):
         return self._repo
 
     @locked
-    def _update_sites(self):
+    def update_sites(self):
         with self.repo.connection() as con:
             for p in self.providers:
                 site = self.store.Site(
