@@ -136,3 +136,15 @@ def site_count():
 def update_sites():
     g.aip.update_sites()
     return ''
+
+
+def image_count():
+    with g.aip.connection() as con:
+        return str(con.image_count())
+
+
+def update_images(begin):
+    from datetime import datetime
+    begin = datetime.strptime(begin, '%Y%m%d')
+    g.aip.update_images(begin)
+    return ''

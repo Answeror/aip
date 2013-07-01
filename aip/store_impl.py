@@ -30,8 +30,13 @@ class Cache(store.Cache):
 
 class Repo(store.Repo):
 
+    def __init__(self):
+        self.images = []
+        self.sites = []
+        self.cache = []
+
     def connection(self):
-        return Connection()
+        return Connection(self)
 
 
 def _random_name():
@@ -41,12 +46,20 @@ def _random_name():
 
 class Connection(store.Connection):
 
-    images = []
-    sites = []
-    cache = []
+    @property
+    def images(self):
+        return self.repo.images
 
-    def __init__(self):
-        pass
+    @property
+    def sites(self):
+        return self.repo.sites
+
+    @property
+    def cache(self):
+        return self.repo.cache
+
+    def __init__(self, repo):
+        self.repo = repo
 
     def __enter__(self, *args, **kargs):
         return self
@@ -108,3 +121,6 @@ class Connection(store.Connection):
 
     def site_count(self):
         return len(self.sites)
+
+    def image_count(self):
+        return len(self.images)

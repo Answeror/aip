@@ -2,14 +2,16 @@
 # -*- coding: utf-8 -*-
 
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_in
 from bs4 import BeautifulSoup as Soup
 from flask import Flask
 from .. import make
-from .settings import CONFIG_FILE_PATH
+from .settings import CONFIG_FILE_PATH, RESPONSE_FILE_PATH
+from mock import patch
+from unittest import TestCase
 
 
-class TestBase(object):
+class TestBase(TestCase):
 
     def setUp(self):
         app = Flask(__name__)
@@ -18,7 +20,7 @@ class TestBase(object):
         self.app = app.test_client()
 
 
-class TestConfig(object):
+class TestConfig(TestBase):
 
     def setUp(self):
         TestBase.setUp(self)
@@ -28,9 +30,30 @@ class TestConfig(object):
         assert_equal(len(self.aip.providers), 2)
 
 
+class FakeResponse(object):
+    pass
+
+
+class FakePoolManager(object):
+
+    def request(self, method, url):
+        import pickle
+        with open(RESPONSE_FILE_PATH, 'rb') as f:
+            d = pickle.load(f)
+        r = FakeResponse()
+        assert_equal(method, 'GET')
+        assert_in(url, d)
+        r.data = d[url]
+        return r
+
+
 class TestConfigured(TestBase):
 
     def setUp(self):
+        patcher = patch('urllib3.PoolManager', FakePoolManager)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
         TestBase.setUp(self)
         self.aip.config(CONFIG_FILE_PATH)
 
@@ -46,3 +69,14 @@ class TestConfigured(TestBase):
         self.app.get('/update_sites')
         r = self.app.get('/site_count')
         assert_equal(r.data, b'2')
+
+    def test_update_images(self):
+        r = self.app.get('/image_count')
+        assert_equal(r.data, b'0')
+        self.app.get('/update_images')
+        r = self.app.get('/image_count')
+        assert_equal(r.data, b'0')
+        self.app.get('/update_sites')
+        self.app.get('/update_images/20130630')
+        r = self.app.get('/image_count')
+        assert_equal(r.data, b'270')

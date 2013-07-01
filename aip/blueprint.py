@@ -65,7 +65,7 @@ class Blueprint(flask.Blueprint):
     @locked
     def update(self, begin=None):
         self.update_sites()
-        self._update_images(begin)
+        self.update_images(begin)
 
     @property
     @locked
@@ -76,7 +76,7 @@ class Blueprint(flask.Blueprint):
 
     @locked
     def update_sites(self):
-        with self.repo.connection() as con:
+        with self.connection() as con:
             for p in self.providers:
                 site = self.store.Site(
                     id=p.shortname,
@@ -88,8 +88,8 @@ class Blueprint(flask.Blueprint):
             con.commit()
 
     @locked
-    def _update_images(self, begin=None, limit=65536):
-        with self.repo.connection() as con:
+    def update_images(self, begin=None, limit=65536):
+        with self.connection() as con:
             for p in self.providers:
                 site = con.get_site_bi_id(p.shortname)
                 if site is not None:
@@ -121,4 +121,4 @@ class Blueprint(flask.Blueprint):
         )
 
     def connection(self):
-        return self.store.Repo().connection()
+        return self.repo.connection()
