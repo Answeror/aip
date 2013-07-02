@@ -28,6 +28,10 @@ class Blueprint(flask.Blueprint):
     def __init__(self, *args, **kargs):
         super(Blueprint, self).__init__(*args, **kargs)
 
+    def local(self):
+        from .local import Local
+        return Local(self)
+
     @property
     def store(self):
         if not hasattr(self, '_store'):

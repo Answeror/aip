@@ -16,9 +16,7 @@ def make():
     from . import urls
     urls.make(aip)
 
-    @aip.before_request
-    def setup_context():
-        from flask import g
-        g.aip = aip
+    from .context import setup
+    setup(aip)
 
     return aip

@@ -2,20 +2,9 @@
 # -*- coding: utf-8 -*-
 
 
-from flask import (
-    g,
-    url_for,
-    request,
-    render_template
-)
-import urllib.request
-import urllib.parse
-import urllib.error
+from flask import g
 from functools import wraps
-from operator import attrgetter as attr
 import logging
-import pickle
-from .settings import PER, COLUMN_WIDTH, GUTTER
 
 
 def logged(f):
@@ -29,127 +18,41 @@ def logged(f):
     return inner
 
 
-def http():
-    if not 'http' in g:
-        import urllib3
-        g.http = urllib3.PoolManager()
-    return g.http
-
-
-def fetch_head(url):
-    return http().request('HEAD', url)
-
-
-def fetch_data(url):
-    return http().request('GET', url).data
-
-
-def fetch(url):
-    return http().request('GET', url)
-
-
-def fetch_redirect_url(url):
-    return fetch_head(url).get_redirect_location()
-
-
-def scale(images):
-    images = list(images)
-    if images:
-        for im in images:
-            im.scale = g.column_width
-        max(images, key=attr('score')).scale = g.gutter + 2 * g.column_width
-        for im in images:
-            im.preview_height = im.scale * im.height / im.width
-            im.preview_width = im.scale
-            if im.preview_width != g.column_width and hasattr(im, 'sample_url') and im.sample_url is not None:
-                im.preview_url = url_for('.image', src=urllib.parse.quote_plus(im.sample_url))
-    return images
-
-
 @logged
 def update(begin):
-    from datetime import datetime
-    begin = datetime.strptime(begin, '%Y%m%d')
-    g.aip.update(begin)
-    return 'updated from %s' % begin.strftime('%Y-%m-%d')
+    return g.aip.update(begin)
 
 
 @logged
 def posts(page):
-    with g.aip.connection() as con:
-        init_globals()
-        init_page_layout()
-        from .pagination import Infinite
-        pagination = Infinite(
-            page,
-            PER,
-            lambda page, per: scale(
-                con.get_images_order_bi_ctime(r=list(range((page - 1) * per, page * per)))
-            )
-        )
-        for it in pagination.items:
-            pass
-        return render_template('index.html', pagination=pagination)
+    return g.aip.posts_in_page(page)
 
 
 @logged
 def image(src):
-    src = urllib.parse.unquote_plus(src)
-    logging.debug('image: %s' % src)
-    with g.aip.connection() as con:
-        cache = con.get_cache_bi_id(src)
-        if cache is None:
-            logging.debug('cache miss %s' % src)
-            r = fetch(src)
-            cache = g.aip.store.Cache(
-                id=src,
-                data=r.data,
-                meta=pickle.dumps({'Content-Type': r.headers['content-type']})
-            )
-            con.add_or_update(cache)
-            con.commit()
-        else:
-            logging.debug('cache hit %s' % src)
-        return cache.data, 200, pickle.loads(cache.meta)
+    return g.aip.image(src)
 
 
-def init_page_layout():
-    g.column_width = COLUMN_WIDTH
-    g.gutter = GUTTER
-
-
-def url_for_page(page):
-    args = request.view_args.copy()
-    args['page'] = page
-    return url_for(request.endpoint, **args)
-
-
-def init_globals():
-    g.url_for_page = url_for_page
-
-
+@logged
 def site_count():
-    with g.aip.connection() as con:
-        return str(con.site_count())
+    return g.aip.site_count()
 
 
+@logged
 def update_sites():
-    g.aip.update_sites()
-    return ''
+    return g.aip.update_sites()
 
 
+@logged
 def image_count():
-    with g.aip.connection() as con:
-        return str(con.image_count())
+    return g.aip.image_count()
 
 
+@logged
 def update_images(begin):
-    from datetime import datetime
-    begin = datetime.strptime(begin, '%Y%m%d')
-    g.aip.update_images(begin)
-    return ''
+    return g.aip.update_images(begin)
 
 
+@logged
 def last_update_time():
-    t = g.aip.last_update_time
-    return '' if t is None else t.strftime('%Y-%m-%d %H:%M:%S')
+    return g.aip.last_update_time()

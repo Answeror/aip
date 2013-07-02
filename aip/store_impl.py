@@ -167,3 +167,10 @@ class Connection(store.Connection):
 
     def get_meta(self, id):
         return self.meta.get(id, None)
+
+    def cache_count(self):
+        return len(self.cache)
+
+    def cache_size(self):
+        import sys
+        return sys.getsizeof(self.cache)

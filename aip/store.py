@@ -118,3 +118,11 @@ class Connection(object, metaclass=StoreMeta):
     @abc.abstractmethod
     def get_meta(self, id):
         return
+
+    @abc.abstractmethod
+    def cache_count(self):
+        return
+
+    @abc.abstractmethod
+    def cache_size(self):
+        return
