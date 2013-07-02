@@ -44,11 +44,6 @@ def update_sites():
 
 
 @logged
-def cache_count():
-    return g.aip.cache_count()
-
-
-@logged
 def image_count():
     return g.aip.image_count()
 
@@ -61,3 +56,8 @@ def update_images(begin):
 @logged
 def last_update_time():
     return g.aip.last_update_time()
+
+
+@logged
+def style():
+    return g.aip.scss()

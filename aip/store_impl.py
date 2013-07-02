@@ -56,16 +56,11 @@ class Site(store.Site, metaclass=StoreMeta):
     pass
 
 
-class Cache(store.Cache, metaclass=StoreMeta):
-    pass
-
-
 class Repo(store.Repo):
 
     def __init__(self):
         self.images = []
         self.sites = []
-        self.cache = []
         self.meta = {}
 
     def connection(self):
@@ -86,10 +81,6 @@ class Connection(store.Connection):
     @property
     def sites(self):
         return self.repo.sites
-
-    @property
-    def cache(self):
-        return self.repo.cache
 
     @property
     def meta(self):
@@ -128,8 +119,6 @@ class Connection(store.Connection):
             self._add_or_update(o, self.images)
         elif type(o) is Site:
             self._add_or_update(o, self.sites)
-        elif type(o) is Cache:
-            self._add_or_update(o, self.cache)
         else:
             raise Exception('unknown model: {0}'.format(type(o)))
 
@@ -150,12 +139,6 @@ class Connection(store.Connection):
             return None
         return max([im.ctime for im in images])
 
-    def get_cache_bi_id(self, id):
-        for c in self.cache:
-            if c.id == id:
-                return c
-        return None
-
     def site_count(self):
         return len(self.sites)
 
@@ -167,10 +150,3 @@ class Connection(store.Connection):
 
     def get_meta(self, id):
         return self.meta.get(id, None)
-
-    def cache_count(self):
-        return len(self.cache)
-
-    def cache_size(self):
-        import sys
-        return sys.getsizeof(self.cache)

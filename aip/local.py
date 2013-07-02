@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-import pickle
 import logging
 import urllib3
 from flask import (
@@ -11,13 +10,14 @@ from flask import (
     render_template
 )
 from operator import attrgetter as attr
-from .cache import Pool as CachePool
 from .settings import PER
+import os
 
 
 def _scale(images):
     images = list(images)
     if images:
+        from urllib.parse import quote_plus
         for im in images:
             im.scale = g.column_width
         max(images, key=attr('score')).scale = g.gutter + 2 * g.column_width
@@ -25,8 +25,8 @@ def _scale(images):
             im.preview_height = im.scale * im.height / im.width
             im.preview_width = im.scale
             if im.preview_width != g.column_width and hasattr(im, 'sample_url') and im.sample_url is not None:
-                from urllib.parse import quote_plus
                 im.preview_url = url_for('.image', src=quote_plus(im.sample_url))
+            im.url = url_for('.image', src=quote_plus(im.url))
     return images
 
 
@@ -34,7 +34,6 @@ class Local(object):
 
     def __init__(self, blue):
         self.blue = blue
-        self.cache_pool = CachePool(blue)
         self.http = urllib3.PoolManager()
 
     @property
@@ -47,20 +46,9 @@ class Local(object):
     def image(self, url):
         from urllib.parse import unquote_plus
         url = unquote_plus(url)
-        logging.debug('get image: %s' % url)
-        cache = self.cache_pool.get(url)
-        if cache is None:
-            logging.debug('cache miss %s' % url)
-            r = self.fetch(url)
-            cache = self.store.Cache(
-                id=url,
-                data=r.data,
-                meta=pickle.dumps({'Content-Type': r.headers['content-type']})
-            )
-            self.cache_pool.put(cache)
-        else:
-            logging.debug('cache hit %s' % url)
-        return cache.data, 200, pickle.loads(cache.meta)
+        logging.debug('fetch image: %s' % url)
+        r = self.fetch(url)
+        return r.data, 200, {'Content-Type': r.headers['content-type']}
 
     def connection(self):
         return self.blue.connection()
@@ -107,5 +95,23 @@ class Local(object):
         self.blue.update(begin)
         return 'updated from %s' % begin.strftime('%Y-%m-%d')
 
-    def cache_count(self):
-        return self.cache_pool.count
+    def scss(self):
+        import scss
+        from collections import OrderedDict
+        root = os.path.join(self.blue.static_folder, 'scss')
+        c = scss.Scss(
+            scss_vars={},
+            scss_opts={
+                'compress': True,
+                'debug_info': True,
+                'load_paths': [root]
+            }
+        )
+        sources = []
+        for filename in os.listdir(root):
+            if filename.endswith('.scss'):
+                with open(os.path.join(root, filename), 'rb') as f:
+                    content = f.read().decode('utf-8')
+                sources.append((filename, content))
+        c._scss_files = OrderedDict(sources)
+        return c.compile(), 200, {'Content-Type': 'text/css'}

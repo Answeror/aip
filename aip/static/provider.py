@@ -24,7 +24,8 @@ providers = [
             'tags': lambda s: s.replace(' ', ';'),
             'width': int,
             'height': int,
-            'score': int
+            'score': int,
+            'post_url': ('id', lambda s: '/post/view/{}'.format(s))
         }
     },
     {
@@ -38,7 +39,9 @@ providers = [
             'tags': lambda s: s.replace(' ', ';'),
             'width': int,
             'height': int,
-            'score': int
+            'score': int,
+            'post_url': ('id', lambda s: '/posts/{}'.format(s))
+            #'sample_url': ('md5', lambda s: '/data/sample/sample-{}.jpg'.format(s))
         }
     }
 ]

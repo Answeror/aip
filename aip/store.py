@@ -40,7 +40,9 @@ class Image(object, metaclass=StoreMeta):
         ('tags', 'text'),
         ('ctime', datetime),
         ('mtime', datetime),
-        'site_id'
+        'site_id',
+        ('post_id', int),
+        'post_url'
     )
 
 
@@ -50,15 +52,6 @@ class Site(object, metaclass=StoreMeta):
         'id',
         'name',
         'url'
-    )
-
-
-class Cache(object, metaclass=StoreMeta):
-
-    FIELDS = (
-        'id',
-        ('data', bytes),
-        ('meta', bytes)
     )
 
 
@@ -100,10 +93,6 @@ class Connection(object, metaclass=StoreMeta):
         return
 
     @abc.abstractmethod
-    def get_cache_bi_id(self, id):
-        return
-
-    @abc.abstractmethod
     def site_count(self):
         return
 
@@ -117,12 +106,4 @@ class Connection(object, metaclass=StoreMeta):
 
     @abc.abstractmethod
     def get_meta(self, id):
-        return
-
-    @abc.abstractmethod
-    def cache_count(self):
-        return
-
-    @abc.abstractmethod
-    def cache_size(self):
         return

@@ -136,7 +136,9 @@ class Blueprint(flask.Blueprint):
             tags=source.tags,
             ctime=source.ctime,
             mtime=source.mtime if hasattr(source, 'mtime') else None,
-            site_id=site_id
+            site_id=site_id,
+            post_id=source.id,
+            post_url=source.post_url
         )
 
     def connection(self):

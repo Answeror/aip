@@ -2,60 +2,42 @@
 <html>
     <head>
         <title>AIP Instrumentality Project</title>
-        <link rel='stylesheet' href='{{ url_for('.static', filename='style.css') }}'>
+        <meta name="author" content="answeror">
+        <meta charset="utf-8">
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+        <!--[if lt IE 9]>
+        <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+        <!-- Le styles -->
+        <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap.min.css') }}" media='screen'>
+        <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap-responsive.min.css') }}" media='screen'>
+        <!--<link rel="stylesheet" href="{{ url_for('.static', filename='css/jquery.simple.lightbox.css') }}">-->
+        <link rel='stylesheet' href="{{ url_for('.style') }}" media='screen'>
     </head>
     <body>
         <div id='container'>
             <div id='items'>
                 {% for im in pagination.items %}
                 <div class='item'>
-                    <img width='{{ im.preview_width }}' height='{{ im.preview_height }}' data-original='{{ im.preview_url }}'>
+                    <a href='{{ im.post_url }}' target='_blank' class="thumbnail" data-lightbox>
+                        <img style='width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' src='{{ im.preview_url }}'>
+                    </a>
                 </div>
                 {% endfor %}
             </div>
         </div>
-        <div>
+        <div style='display:none'>
             {% if pagination.prev %}<a href='{{ g.url_for_page(pagination.prev) }}'>&laquo;</a>{% endif %}
             <span>...</span>
             {% if pagination.next %}<a class='more' href='{{ g.url_for_page(pagination.next) }}'>&raquo;</a>{% endif %}
         </div>
-        <footer>
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script src="{{ url_for('.static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
         <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
         <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
         <script src="{{ url_for('.static', filename='waypoints-infinite.js') }}"></script>
-        <script type="text/javascript" charset="utf-8">
-            $(function() {
-                $.fn.lazyload = function(){
-                    $this = $(this);
-                    $this.find('img').waypoint(function(){
-                        $this = $(this);
-                        $this.hide().attr("src", $this.data('original')).fadeIn(1000);
-                    }, {
-                        triggerOnce: true,
-                        offset: function() {
-                            return $.waypoints('viewportHeight') + $(this).height();
-                        }
-                    });
-                };
-                var $container = $('#items');
-                $container.masonry({
-                    itemSelector: '.item',
-                    columnWidth: {{ g.column_width }},
-                    gutter: {{ g.gutter }}
-                });
-                $container.lazyload();
-                $('#items').waypoint('infinite', {
-                    items: '.item',
-                    more: '.more',
-                    onAfterAppended: function($items) {
-                        // ensure that images load before adding to masonry layout
-                        $container.masonry('appended', $items, true);
-                        $items.lazyload();
-                    }
-                });
-            });
-        </script>
-        </footer>
+        <!--<script src="{{ url_for('.static', filename='js/jquery.bootstrap.simple.lightbox.js') }}"></script>-->
+        <script src="{{ url_for('.static', filename='js/base.js') }}"></script>
     </body>
 </html>
