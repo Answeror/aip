@@ -30,3 +30,13 @@ class Pool(object):
         con.add_or_update(cache)
         while con.cache_count() >= self.max_items or con.cache_size() >= self.max_size:
             con.delete_one_cache()
+
+    @property
+    @coned
+    def count(self, con):
+        return con.cache_count()
+
+    @property
+    @coned
+    def size(self, con):
+        return con.cache_size()

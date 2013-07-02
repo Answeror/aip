@@ -106,3 +106,6 @@ class Local(object):
         begin = datetime.strptime(begin, '%Y%m%d')
         self.blue.update(begin)
         return 'updated from %s' % begin.strftime('%Y-%m-%d')
+
+    def cache_count(self):
+        return self.cache_pool.count
