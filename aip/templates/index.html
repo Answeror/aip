@@ -21,7 +21,7 @@
                 {% for im in pagination.items %}
                 <div class='item'>
                     <a href='{{ im.post_url }}' target='_blank' class="thumbnail" data-lightbox>
-                        <img style='width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' src='{{ im.preview_url }}'>
+                        <img style='width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' src='{{ im.preview_url }}' data-proxy='{{ g.proxy(im.preview_url) }}'>
                     </a>
                 </div>
                 {% endfor %}
