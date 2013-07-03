@@ -23,6 +23,7 @@ $(function() {
         this.src = $(this).data('proxy');
     };
     $('img').one('error', proxy);
+    $container.lazyload();
     //$('[data-lightbox]').simpleLightbox();
     $container.masonry({
         itemSelector: '.item',
@@ -30,7 +31,6 @@ $(function() {
         isAnimated: true,
         columnWidth: min_width
     });
-    $container.lazyload();
     bootstrap_alert = function() {}
     bootstrap_alert.warning = function(message) {
         $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
@@ -38,13 +38,15 @@ $(function() {
     $('#items').waypoint('infinite', {
         items: '.item',
         more: '.more',
+        onBeforeAppended: function($items) {
+            $items.find('img').one('error', proxy);
+            $items.lazyload();
+        },
         onAfterAppended: function($items) {
             // ensure that images load before adding to masonry layout
             $items.width(fit);
-            $items.find('img').one('error', proxy);
             //$items.find('[data-lightbox]').simpleLightbox();
             $container.masonry('appended', $items, true);
-            $items.lazyload();
         },
         onBeforePageLoad: function() {
             $('#progress > .bar').css('width', '0%');

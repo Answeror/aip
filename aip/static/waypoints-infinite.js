@@ -26,6 +26,7 @@
             loadingClass: 'infinite-loading',
             onBeforePageLoad: $.noop,
             onAfterPageLoad: $.noop,
+            onBeforeAppended: $.noop,
             onAfterAppended: $.noop,
             progress: $.noop,
             error: $.noop
@@ -53,6 +54,7 @@
                             $more = $(options.more);
                             $newMore = $data.find(options.more);
                             $items = $data.find(options.items);
+                            options.onBeforeAppended($items);
                             $container.append($items);
                             $container.removeClass(options.loadingClass);
                             options.onAfterAppended($items);
