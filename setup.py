@@ -7,7 +7,7 @@ from setuptools import setup
 
 setup(
     name='aip.core',
-    version='0.1.8',
+    version='0.1.9',
     author='answeror',
     author_email='answeror@gmail.com',
     packages=['aip'],
