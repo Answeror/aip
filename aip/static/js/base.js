@@ -27,6 +27,10 @@ $(function() {
         columnWidth: min_width
     });
     $container.lazyload();
+    bootstrap_alert = function() {}
+    bootstrap_alert.warning = function(message) {
+        $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
+    }
     $('#items').waypoint('infinite', {
         items: '.item',
         more: '.more',
@@ -53,6 +57,9 @@ $(function() {
             } else {
                 console.warn('Content Length not reported!');
             }
+        },
+        error: function() {
+            bootstrap_alert.warning('Load more failed.');
         }
     });
 });
