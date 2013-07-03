@@ -4,6 +4,10 @@
 *.txt text eol=lf
 *.bib text eol=lf
 *.log text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.json text eol=lf
 
 # Custom for Visual Studio
 *.cs     diff=csharp
