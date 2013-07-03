@@ -52,6 +52,7 @@ $(function() {
         },
         onAfterPageLoad: function() {
             $('#progress').hide();
+            $('#alert_box').html('');
         },
         progress: function(e) {
             console.log('progress');
@@ -64,7 +65,9 @@ $(function() {
             }
         },
         error: function() {
-            bootstrap_alert.warning('Load more failed.');
+            $('#progress').hide();
+            bootstrap_alert.warning('Load more failed. Retrying...');
+            $.waypoints('refresh');
         }
     });
 });

@@ -18,7 +18,7 @@ def _url_for_page(page):
 
 def _proxy(url):
     from urllib.parse import quote_plus
-    return quote_plus(url)
+    return url_for('.image', src=quote_plus(url))
 
 
 def setup(aip):

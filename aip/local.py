@@ -25,8 +25,7 @@ def _scale(images):
             im.preview_height = im.scale * im.height / im.width
             im.preview_width = im.scale
             if im.preview_width != g.column_width and hasattr(im, 'sample_url') and im.sample_url is not None:
-                im.preview_url = url_for('.image', src=quote_plus(im.sample_url))
-            im.url = url_for('.image', src=quote_plus(im.url))
+                im.preview_url = im.sample_url
     return images
 
 
