@@ -36,6 +36,23 @@ $(function() {
             //$items.find('[data-lightbox]').simpleLightbox();
             $container.masonry('appended', $items, true);
             $items.lazyload();
+        },
+        onBeforePageLoad: function() {
+            $('#progress > .bar').css('width', '0%');
+            $('#progress').show();
+        },
+        onAfterPageLoad: function() {
+            $('#progress').hide();
+        },
+        progress: function(e) {
+            console.log('progress');
+            if (e.lengthComputable) {
+                var p = (e.loaded / e.total) * 100;
+                console.log(p);
+                $('#progress > .bar').css('width', p + '%');
+            } else {
+                console.warn('Content Length not reported!');
+            }
         }
     });
 });

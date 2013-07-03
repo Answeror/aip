@@ -27,6 +27,9 @@
                 {% endfor %}
             </div>
         </div>
+        <div id='progress' class='progress progress-striped active' style='display:none'>
+            <div class='bar' style='width: 0%;'></div>
+        </div>
         <div style='display:none'>
             {% if pagination.prev %}<a href='{{ g.url_for_page(pagination.prev) }}'>&laquo;</a>{% endif %}
             <span>...</span>
@@ -38,6 +41,7 @@
         <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
         <script src="{{ url_for('.static', filename='waypoints-infinite.js') }}"></script>
         <!--<script src="{{ url_for('.static', filename='js/jquery.bootstrap.simple.lightbox.js') }}"></script>-->
+        <script src="{{ url_for('.static', filename='js/jquery.ajax-progress.js') }}"></script>
         <script src="{{ url_for('.static', filename='js/base.js') }}"></script>
     </body>
 </html>
