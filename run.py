@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from aip.settings import LOG_FILE_PATH
 
 
 def setuplogging(level, stdout):
-    logging.basicConfig(filename='boorubox.log', level=level)
+    logging.basicConfig(filename=LOG_FILE_PATH, level=level)
     if stdout:
         import sys
         soh = logging.StreamHandler(sys.stdout)

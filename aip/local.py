@@ -10,7 +10,7 @@ from flask import (
     render_template
 )
 from operator import attrgetter as attr
-from .settings import PER
+from .settings import PER, LOG_FILE_PATH
 import os
 
 
@@ -115,3 +115,7 @@ class Local(object):
                 sources.append((filename, content))
         c._scss_files = OrderedDict(sources)
         return c.compile(), 200, {'Content-Type': 'text/css'}
+
+    def log(self):
+        with open(LOG_FILE_PATH, 'rb') as f:
+            return f.read()

@@ -61,3 +61,8 @@ def last_update_time():
 @logged
 def style():
     return g.aip.scss()
+
+
+@logged
+def log():
+    return g.aip.log()
