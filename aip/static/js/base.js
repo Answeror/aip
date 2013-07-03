@@ -19,6 +19,10 @@ $(function() {
         return cols * min_width + (cols - 1) * gutter;
     };
     $('.item').width(fit);
+    function proxy() {
+        this.src = $(this).data('proxy');
+    };
+    $('img').one('error', proxy);
     //$('[data-lightbox]').simpleLightbox();
     $container.masonry({
         itemSelector: '.item',
@@ -37,6 +41,7 @@ $(function() {
         onAfterAppended: function($items) {
             // ensure that images load before adding to masonry layout
             $items.width(fit);
+            $items.find('img').one('error', proxy);
             //$items.find('[data-lightbox]').simpleLightbox();
             $container.masonry('appended', $items, true);
             $items.lazyload();
