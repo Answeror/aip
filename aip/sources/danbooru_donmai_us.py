@@ -28,7 +28,7 @@ class Source(danbooru.Source):
             height=d['height'],
             rating=d['rating'],
             score=d['score'],
-            preview_url=d['preview_url'],
+            preview_url=urljoin(self.url, d['preview_url']),
             sample_url=None,
             tags=d['tags'].replace(' ', ';'),
             ctime=datetime.strptime(d['created_at'], '%Y-%m-%d %H:%M:%S'),
