@@ -6,7 +6,7 @@ from nose.tools import assert_equal, assert_in, with_setup
 from bs4 import BeautifulSoup as Soup
 from flask import Flask
 from .. import make
-from .settings import CONFIG_FILE_PATH, RESPONSE_FILE_PATH
+from .settings import RESPONSE_FILE_PATH
 from mock import patch, Mock
 
 
@@ -30,10 +30,6 @@ def teardown_app():
     del g.aip
 
 
-def setup_config():
-    g.aip.config(CONFIG_FILE_PATH)
-
-
 def patch_urllib3():
     def request(method, url):
         import pickle
@@ -55,15 +51,8 @@ def unpatch_urllib3():
     g.patcher.stop()
 
 
-@with_setup(setup_app, teardown_app)
-def test_config():
-    g.aip.config(CONFIG_FILE_PATH)
-    assert_equal(len(g.aip.providers), 2)
-
-
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
-@with_setup(setup_config)
 def test_index_empty():
     r = g.client.get('/')
     soup = Soup(r.data)
@@ -73,7 +62,6 @@ def test_index_empty():
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
-@with_setup(setup_config)
 def test_update_sites():
     r = g.client.get('/site_count')
     assert_equal(r.data, b'0')
@@ -84,7 +72,6 @@ def test_update_sites():
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
-@with_setup(setup_config)
 def test_update_images():
     r = g.client.get('/image_count')
     assert_equal(r.data, b'0')

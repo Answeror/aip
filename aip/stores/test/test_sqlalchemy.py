@@ -7,7 +7,6 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from ..sqlalchemy import make
 from ...test.test_aip import (
     g,
-    test_config,
     test_index_empty,
     test_update_sites,
     test_update_images
@@ -32,11 +31,6 @@ def setup_sqlalchemy():
 def teardown_sqlalchemy():
     del g.setup_store
     del g.teardown_store
-
-
-@with_setup(setup_sqlalchemy, teardown_sqlalchemy)
-def _test_config():
-    test_config()
 
 
 @with_setup(setup_sqlalchemy, teardown_sqlalchemy)

@@ -27,8 +27,7 @@ class StoreMeta(store.StoreMeta):
 
             # cannot use lambda here!
             def get(key, self):
-                assert hasattr(self, _data(key))
-                return getattr(self, _data(key))
+                return getattr(self, _data(key)) if hasattr(self, _data(key)) else None
 
             def set(key, self, value):
                 setattr(self, _data(key), value)
