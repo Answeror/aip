@@ -2,83 +2,98 @@
 # -*- coding: utf-8 -*-
 
 
-from nose.tools import assert_equal, assert_in
+from nose.tools import assert_equal, assert_in, with_setup
 from bs4 import BeautifulSoup as Soup
 from flask import Flask
 from .. import make
 from .settings import CONFIG_FILE_PATH, RESPONSE_FILE_PATH
-from mock import patch
-from unittest import TestCase
+from mock import patch, Mock
 
 
-class TestBase(TestCase):
-
-    def setUp(self):
-        app = Flask(__name__)
-        self.aip = make()
-        app.register_blueprint(self.aip)
-        self.app = app.test_client()
+g = type('g', (object,), {})()
 
 
-class TestConfig(TestBase):
-
-    def setUp(self):
-        TestBase.setUp(self)
-
-    def test_config(self):
-        self.aip.config(CONFIG_FILE_PATH)
-        assert_equal(len(self.aip.providers), 2)
-
-
-class FakeResponse(object):
-    pass
+def setup_app():
+    g.app = Flask(__name__)
+    g.aip = make()
+    g.app.register_blueprint(g.aip)
+    g.client = g.app.test_client()
+    if hasattr(g, 'setup_store'):
+        g.setup_store()
 
 
-class FakePoolManager(object):
+def teardown_app():
+    if hasattr(g, 'teardown_store'):
+        g.teardown_store()
+    del g.client
+    del g.app
+    del g.aip
 
-    def request(self, method, url):
+
+def setup_config():
+    g.aip.config(CONFIG_FILE_PATH)
+
+
+def patch_urllib3():
+    def request(method, url):
         import pickle
         with open(RESPONSE_FILE_PATH, 'rb') as f:
             d = pickle.load(f)
-        r = FakeResponse()
+        r = Mock()
         assert_equal(method, 'GET')
         assert_in(url, d)
         r.data = d[url]
         return r
 
+    fake = Mock()
+    fake.return_value.request = request
+    g.patcher = patch('urllib3.PoolManager', fake)
+    g.patcher.start()
 
-class TestConfigured(TestBase):
 
-    def setUp(self):
-        patcher = patch('urllib3.PoolManager', FakePoolManager)
-        patcher.start()
-        self.addCleanup(patcher.stop)
+def unpatch_urllib3():
+    g.patcher.stop()
 
-        TestBase.setUp(self)
-        self.aip.config(CONFIG_FILE_PATH)
 
-    def test_index_empty(self):
-        r = self.app.get('/')
-        soup = Soup(r.data)
-        content = soup.find(id='items').get_text().strip()
-        return assert_equal(content, '')
+@with_setup(setup_app, teardown_app)
+def test_config():
+    g.aip.config(CONFIG_FILE_PATH)
+    assert_equal(len(g.aip.providers), 2)
 
-    def test_update_sites(self):
-        r = self.app.get('/site_count')
-        assert_equal(r.data, b'0')
-        self.app.get('/update_sites')
-        r = self.app.get('/site_count')
-        assert_equal(r.data, b'2')
 
-    def test_update_images(self):
-        r = self.app.get('/image_count')
-        assert_equal(r.data, b'0')
-        self.app.get('/update_images')
-        r = self.app.get('/image_count')
-        assert_equal(r.data, b'0')
-        self.app.get('/update_sites')
-        r = self.app.get('/site_count')
-        assert_equal(r.data, b'2')
-        self.app.get('/update_images/20130630')
-        r = self.app.get('/image_count')
-        assert_equal(r.data, b'270')
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+@with_setup(setup_config)
+def test_index_empty():
+    r = g.client.get('/')
+    soup = Soup(r.data)
+    content = soup.find(id='items').get_text().strip()
+    return assert_equal(content, '')
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+@with_setup(setup_config)
+def test_update_sites():
+    r = g.client.get('/site_count')
+    assert_equal(r.data, b'0')
+    g.client.get('/update_sites')
+    r = g.client.get('/site_count')
+    assert_equal(r.data, b'2')
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+@with_setup(setup_config)
+def test_update_images():
+    r = g.client.get('/image_count')
+    assert_equal(r.data, b'0')
+    g.client.get('/update_images')
+    r = g.client.get('/image_count')
+    assert_equal(r.data, b'0')
+    g.client.get('/update_sites')
+    r = g.client.get('/site_count')
+    assert_equal(r.data, b'2')
+    g.client.get('/update_images/20130630')
+    r = g.client.get('/image_count')
+    assert_equal(r.data, b'270')
