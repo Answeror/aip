@@ -35,15 +35,6 @@ class Image(object, metaclass=StoreMeta):
     )
 
 
-class Site(object, metaclass=StoreMeta):
-
-    FIELDS = (
-        ('id', str, {'length': 128, 'primary_key': True}),
-        ('name', str, {'length': 128, 'unique': True}),
-        'url'
-    )
-
-
 class Repo(object, metaclass=StoreMeta):
 
     @abc.abstractmethod
@@ -74,15 +65,7 @@ class Connection(object, metaclass=StoreMeta):
         return
 
     @abc.abstractmethod
-    def get_site_bi_id(self, id):
-        return
-
-    @abc.abstractmethod
     def latest_ctime_bi_site_id(self, id):
-        return
-
-    @abc.abstractmethod
-    def site_count(self):
         return
 
     @abc.abstractmethod

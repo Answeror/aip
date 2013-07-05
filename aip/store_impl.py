@@ -53,15 +53,10 @@ class Image(store.Image, metaclass=StoreMeta):
     pass
 
 
-class Site(store.Site, metaclass=StoreMeta):
-    pass
-
-
 class Repo(store.Repo):
 
     def __init__(self):
         self.images = []
-        self.sites = []
         self.meta = {}
 
     def connection(self):
@@ -78,10 +73,6 @@ class Connection(store.Connection):
     @property
     def images(self):
         return self.repo.images
-
-    @property
-    def sites(self):
-        return self.repo.sites
 
     @property
     def meta(self):
@@ -118,8 +109,6 @@ class Connection(store.Connection):
     def add_or_update(self, o):
         if type(o) is Image:
             self._add_or_update(o, self.images)
-        elif type(o) is Site:
-            self._add_or_update(o, self.sites)
         else:
             raise Exception('unknown model: {0}'.format(type(o)))
 
@@ -128,20 +117,11 @@ class Connection(store.Connection):
             if i in r:
                 yield im
 
-    def get_site_bi_id(self, id):
-        for s in self.sites:
-            if s.id == id:
-                return s
-        return None
-
     def latest_ctime_bi_site_id(self, id):
         images = [im for im in self.images if im.site_id == id]
         if not images:
             return None
         return max([im.ctime for im in images])
-
-    def site_count(self):
-        return len(self.sites)
 
     def image_count(self):
         return len(self.images)

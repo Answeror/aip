@@ -62,7 +62,6 @@ class Blueprint(flask.Blueprint):
     @locked
     def update(self, begin=None):
         self.last_update_time = datetime.now()
-        self.update_sites()
         self.update_images(begin)
 
     @property
@@ -85,34 +84,18 @@ class Blueprint(flask.Blueprint):
         return self._repo
 
     @locked
-    def update_sites(self):
-        with self.connection() as con:
-            for make in self.sources:
-                source = make(self.store.Image)
-                site = self.store.Site(
-                    id=source.id,
-                    name=source.name,
-                    url=source.url
-                )
-                logging.debug('update site: %s' % site.name)
-                con.add_or_update(site)
-            con.commit()
-
-    @locked
     def update_images(self, begin=None, limit=65536):
         with self.connection() as con:
             for make in self.sources:
                 source = make(self.store.Image)
-                site = con.get_site_bi_id(source.id)
-                if site is not None:
-                    latest_ctime = con.latest_ctime_bi_site_id(site.id)
-                    tags = []
-                    for i, im in zip(list(range(limit)), source.get_images(tags)):
-                        if begin is not None and im.ctime <= begin:
-                            break
-                        if latest_ctime is not None and im.ctime <= latest_ctime:
-                            break
-                        con.add_or_update(im)
+                latest_ctime = con.latest_ctime_bi_site_id(source.id)
+                tags = []
+                for i, im in zip(list(range(limit)), source.get_images(tags)):
+                    if begin is not None and im.ctime <= begin:
+                        break
+                    if latest_ctime is not None and im.ctime <= latest_ctime:
+                        break
+                    con.add_or_update(im)
                 con.commit()
 
     def connection(self):
