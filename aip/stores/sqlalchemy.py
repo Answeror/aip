@@ -73,9 +73,6 @@ def make(db):
     class Image(store.Image, db.Model, metaclass=ModelMeta):
         pass
 
-    class Site(store.Site, db.Model, metaclass=ModelMeta):
-        pass
-
     class Repo(store.Repo):
 
         def connection(self):
@@ -104,14 +101,8 @@ def make(db):
         def get_images_order_bi_ctime(self, r):
             return Image.query.order_by(Image.ctime.desc())[r]
 
-        def get_site_bi_id(self, id):
-            return Site.query.filter_by(id=id).first()
-
         def latest_ctime_bi_site_id(self, id):
             return db.session.query(func.max(Image.ctime)).first()[0]
-
-        def site_count(self):
-            return db.session.query(func.count(Site.id)).first()[0]
 
         def image_count(self):
             return db.session.query(func.count(Image.id)).first()[0]
@@ -122,11 +113,10 @@ def make(db):
         def get_meta(self, id):
             return Meta.query.filter_by(id=id).first()
 
-    Store = namedtuple('Store', ('Meta', 'Image', 'Site', 'Repo', 'Connection'))
+    Store = namedtuple('Store', ('Meta', 'Image', 'Repo', 'Connection'))
     return Store(
         Meta=Meta,
         Image=Image,
-        Site=Site,
         Repo=Repo,
         Connection=Connection
     )
