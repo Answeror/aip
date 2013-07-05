@@ -21,19 +21,21 @@ class StoreMeta(store.StoreMeta):
                 break
         for field in fields:
             if type(field) is tuple:
-                field, _ = field
+                key = field[0]
+            else:
+                key = field
 
             # cannot use lambda here!
-            def get(field, self):
-                assert hasattr(self, _data(field))
-                return getattr(self, _data(field))
+            def get(key, self):
+                assert hasattr(self, _data(key))
+                return getattr(self, _data(key))
 
-            def set(field, self, value):
-                setattr(self, _data(field), value)
+            def set(key, self, value):
+                setattr(self, _data(key), value)
 
-            attr[field] = property(
-                partial(get, field),
-                partial(set, field)
+            attr[key] = property(
+                partial(get, key),
+                partial(set, key)
             )
         return store.StoreMeta.__new__(meta, name, bases, attr)
 

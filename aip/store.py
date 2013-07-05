@@ -13,15 +13,17 @@ class StoreMeta(abc.ABCMeta):
             fields = attr['FIELDS']
             for field in fields:
                 if type(field) is tuple:
-                    field, _ = field
-                attr[field] = abc.abstractproperty(lambda self: None)
+                    key = field[0]
+                else:
+                    key = field
+                attr[key] = abc.abstractproperty(lambda self: None)
         return abc.ABCMeta.__new__(meta, name, bases, attr)
 
 
 class Meta(object, metaclass=StoreMeta):
 
     FIELDS = (
-        'id',
+        ('id', str, {'length': 128, 'primary_key': True}),
         ('value', bytes)
     )
 
@@ -29,18 +31,18 @@ class Meta(object, metaclass=StoreMeta):
 class Image(object, metaclass=StoreMeta):
 
     FIELDS = (
-        'id',
+        ('id', str, {'length': 128, 'primary_key': True}),
         'url',
         ('width', int),
         ('height', int),
         'rating',
-        ('score', int),
+        ('score', float),
         'preview_url',
         'sample_url',
-        ('tags', 'text'),
+        'tags',
         ('ctime', datetime),
         ('mtime', datetime),
-        'site_id',
+        ('site_id', str, {'length': 128}),
         ('post_id', int),
         'post_url'
     )
@@ -49,8 +51,8 @@ class Image(object, metaclass=StoreMeta):
 class Site(object, metaclass=StoreMeta):
 
     FIELDS = (
-        'id',
-        'name',
+        ('id', str, {'length': 128, 'primary_key': True}),
+        ('name', str, {'length': 128, 'unique': True}),
         'url'
     )
 
@@ -85,7 +87,7 @@ class Connection(object, metaclass=StoreMeta):
         return
 
     @abc.abstractmethod
-    def get_site_bi_id(self):
+    def get_site_bi_id(self, id):
         return
 
     @abc.abstractmethod

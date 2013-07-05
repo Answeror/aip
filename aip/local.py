@@ -81,7 +81,7 @@ class Local(object):
                 page,
                 PER,
                 lambda page, per: _scale(
-                    con.get_images_order_bi_ctime(r=list(range((page - 1) * per, page * per)))
+                    con.get_images_order_bi_ctime(r=slice((page - 1) * per, page * per, 1))
                 )
             )
             for it in pagination.items:
