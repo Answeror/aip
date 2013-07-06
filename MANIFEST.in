@@ -1,1 +1,1 @@
-recursive-include aip *.py *.js *.json *.html *.css *.scss
+recursive-include aip *.py *.js *.json *.html *.css *.scss *.jpg *.gif *.png
