@@ -88,12 +88,9 @@ class Blueprint(flask.Blueprint):
         with self.connection() as con:
             for make in self.sources:
                 source = make(self.store.Image)
-                latest_ctime = con.latest_ctime_bi_site_id(source.id)
                 tags = []
                 for i, im in zip(list(range(limit)), source.get_images(tags)):
                     if begin is not None and im.ctime <= begin:
-                        break
-                    if latest_ctime is not None and im.ctime <= latest_ctime:
                         break
                     con.add_or_update(im)
                 con.commit()

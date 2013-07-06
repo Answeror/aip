@@ -43,10 +43,15 @@ $(function() {
             $items.lazyload();
         },
         onAfterAppended: function($items) {
-            // ensure that images load before adding to masonry layout
-            $items.width(fit);
-            //$items.find('[data-lightbox]').simpleLightbox();
-            $container.masonry('appended', $items, true);
+            console.log('append');
+            if ($items) {
+                // ensure that images load before adding to masonry layout
+                $items.width(fit);
+                //$items.find('[data-lightbox]').simpleLightbox();
+                try {
+                    $container.masonry('appended', $items, true);
+                } catch (e) {}
+            }
         },
         onBeforePageLoad: function() {
             $('#progress > .bar').css('width', '0%');
@@ -56,15 +61,9 @@ $(function() {
             $('#progress').hide();
             $('#alert_box').html('');
         },
-        progress: function(e) {
-            console.log('progress');
-            if (e.lengthComputable) {
-                var p = (e.loaded / e.total) * 100;
-                console.log(p);
-                $('#progress > .bar').css('width', p + '%');
-            } else {
-                console.warn('Content Length not reported!');
-            }
+        progress: function(p) {
+            console.log(p);
+            $('#progress > .bar').css('width', p + '%');
         },
         error: function() {
             $('#progress').hide();

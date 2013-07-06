@@ -72,8 +72,8 @@ class Local(object):
             pagination = Infinite(
                 page,
                 PER,
-                lambda page, per: _scale(
-                    con.get_images_order_bi_ctime(r=slice((page - 1) * per, page * per, 1))
+                lambda begin, end: _scale(
+                    con.get_images_order_bi_ctime(r=slice(begin, end, 1))
                 )
             )
             for it in pagination.items:
