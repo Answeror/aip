@@ -62,6 +62,10 @@ class Repo(store.Repo):
     def connection(self):
         return Connection(self)
 
+    def clear(self):
+        self.images = []
+        self.meta = {}
+
 
 def _random_name():
     import uuid

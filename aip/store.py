@@ -41,6 +41,10 @@ class Repo(object, metaclass=StoreMeta):
     def connection(self):
         return
 
+    @abc.abstractmethod
+    def clear(self):
+        return
+
 
 class Connection(object, metaclass=StoreMeta):
 

@@ -16,3 +16,4 @@ def make(aip):
     aip.route('/last_update_time')(views.last_update_time)
     aip.route('/style.css')(views.style)
     aip.route('/log')(views.log)
+    aip.route('/clear')(views.clear)
