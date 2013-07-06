@@ -29,6 +29,11 @@ def posts(page):
 
 
 @logged
+def stream(page):
+    return g.aip.stream(page)
+
+
+@logged
 def image(src):
     return g.aip.image(src)
 
