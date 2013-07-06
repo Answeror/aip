@@ -39,7 +39,9 @@ def _scale(images):
     if images:
         for im in images:
             im.scale = g.column_width
-        max(images, key=attr('score')).scale = g.gutter + 2 * g.column_width
+        sm = sorted(images, key=attr('score'), reverse=True)
+        for im in sm[:max(1, int(len(sm) / PER))]:
+            im.scale = g.gutter + 2 * g.column_width
         for im in images:
             sample_url = im.sample_url if im.sample_url else im.url
             preview_height = int(im.scale * im.height / im.width)
