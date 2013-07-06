@@ -7,46 +7,52 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from ..sqlalchemy import make
 from ...test.test_aip import (
     g,
-    test_index_empty,
-    test_update_images,
-    test_clear,
-    test_no_duplication
+    setup_app,
+    teardown_app,
+    patch_urllib3,
+    unpatch_urllib3,
+    _test_index_empty,
+    _test_update_images,
+    _test_clear,
+    _test_no_duplication
 )
 from ... import store_impl as memory
 
 
 def setup_sqlalchemy():
-    def setup_store():
-        g.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
-        db = SQLAlchemy(g.app)
-        g.aip.store = make(db)
-        db.create_all()
-
-    def teardown_store():
-        g.aip.store = memory
-
-    g.setup_store = setup_store
-    g.teardown_store = teardown_store
+    g.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
+    db = SQLAlchemy(g.app)
+    g.aip.store = make(db)
+    db.create_all()
 
 
 def teardown_sqlalchemy():
-    del g.setup_store
-    del g.teardown_store
+    g.aip.store = memory
 
 
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
 @with_setup(setup_sqlalchemy, teardown_sqlalchemy)
-def _test_index_emtpy():
-    test_index_empty()
+def test_index_emtpy():
+    _test_index_empty()
 
 
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
 @with_setup(setup_sqlalchemy, teardown_sqlalchemy)
-def _test_update_images():
-    test_update_images()
+def test_update_images():
+    _test_update_images()
 
-@with_setup(setup_sqlalchemy, teardown_sqlalchemy)
-def _test_no_duplication():
-    test_no_duplication()
 
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
 @with_setup(setup_sqlalchemy, teardown_sqlalchemy)
-def _test_clear():
-    test_clear()
+def test_no_duplication():
+    _test_no_duplication()
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+@with_setup(setup_sqlalchemy, teardown_sqlalchemy)
+def test_clear():
+    _test_clear()

@@ -92,7 +92,7 @@ class Blueprint(flask.Blueprint):
                 for i, im in zip(list(range(limit)), source.get_images(tags)):
                     if begin is not None and im.ctime <= begin:
                         break
-                    con.add_or_update(im)
+                    con.put_image(im)
                 con.commit()
 
     def connection(self):
