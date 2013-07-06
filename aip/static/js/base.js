@@ -1,36 +1,70 @@
 $(function() {
     $.fn.lazyload = function(){
-        $this = $(this);
-        $this.find('img').waypoint(function(){
-            $this = $(this);
-            $this.hide().attr("src", $this.data('original')).fadeIn(1000);
-        }, {
-            triggerOnce: true,
-            offset: function() {
-                return $.waypoints('viewportHeight') + $(this).height();
+        var $this = $(this);
+        $this.waypoint(
+            function(){
+                $this.hide().attr("src", $this.data('src')).fadeIn(1000);
+            }, {
+                triggerOnce: true,
+                offset: function() {
+                    return $.waypoints('viewportHeight') + $(this).height();
+                }
             }
-        });
+        );
     };
-    var $container = $('#items');
     var gutter = 10;
     var min_width = 200;
     function fit(index, width){
         var cols = Math.floor(width / min_width);
         return cols * min_width + (cols - 1) * gutter;
     };
-    function proxy() {
-        this.src = $(this).data('proxy');
+    function truesize(src, callback) {
+        var buf = new Image();
+        buf.onload = function() {
+            callback(this.width, this.height);
+        };
+        buf.src = src;
     };
-    $container.find('.item').width(fit).find('img').one('error', proxy);
-    $container.lazyload();
-    //$('[data-lightbox]').simpleLightbox();
+    function dealimage() {
+        var $this = $(this);
+        var $preview = $this.find('.preview');
+        var $sample = $this.find('.sample');
+        function proxy() {
+            this.src = $(this).data('proxy');
+        };
+        $preview.one('error', proxy);
+        truesize(
+            $preview.data('src'),
+            function(width, height) {
+                if ($preview.width() * $preview.height() > width * height * 2) {
+                    var done = function() {
+                        $preview.hide();
+                        $sample.show();
+                    };
+                    function proxy() {
+                        var $this = $(this);
+                        $this.attr('src', $this.data('proxy'));
+                        $this.imagesLoaded().done(done);
+                    };
+                    $sample.one('error', proxy);
+                    $sample.attr('src', $sample.data('src'));
+                    $sample.imagesLoaded().done(done);
+                }
+            }
+        );
+        $preview.lazyload();
+    };
+    var $container = $('#items');
+    var $items = $container.find('.item');
+    $items.each(dealimage);
+    $items.width(fit);
     $container.masonry({
         itemSelector: '.item',
         gutter: gutter,
         isAnimated: true,
         columnWidth: min_width
     });
-    bootstrap_alert = function() {}
+    var bootstrap_alert = function() {}
     bootstrap_alert.warning = function(message) {
         $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
     }
@@ -38,15 +72,12 @@ $(function() {
         items: '.item',
         more: '.more',
         onBeforeAppended: function($items) {
-            $items.find('img').one('error', proxy);
-            $items.lazyload();
+            $items.each(dealimage);
         },
         onAfterAppended: function($items) {
             console.log('append');
             if ($items) {
-                // ensure that images load before adding to masonry layout
                 $items.width(fit);
-                //$items.find('[data-lightbox]').simpleLightbox();
                 try {
                     $container.masonry('appended', $items, true);
                 } catch (e) {}

@@ -34,6 +34,11 @@ def stream(page):
 
 
 @logged
+def resized(src, width, height):
+    return g.aip.resized(src, width, height)
+
+
+@logged
 def image(src):
     return g.aip.image(src)
 

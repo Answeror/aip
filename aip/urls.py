@@ -8,6 +8,7 @@ def make(aip):
     aip.route('/', defaults={'page': 1})(views.posts)
     aip.route('/page/<int:page>')(views.posts)
     aip.route('/stream/<int:page>')(views.stream)
+    aip.route('/resized/<path:src>.<int:width>x<int:height>')(views.resized)
     aip.route('/image/<path:src>')(views.image)
     aip.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})(views.update)
     aip.route('/update/<begin>')(views.update)
