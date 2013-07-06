@@ -94,25 +94,30 @@ class Connection(store.Connection):
     def commit(self):
         pass
 
-    def _add_or_update(self, o, os):
-        if o.id is None:
-            o.id = _random_name()
-            os.append(o)
+    def put_image(self, im):
+        if im.id is None:
+            im.id = _random_name()
+
+        origin = None
+        for other in self.images:
+            if other.id == im.id:
+                origin = other
+            elif other.site_id == im.site_id and other.post_id == im.post_id:
+                origin = other
+            if origin is not None:
+                break
+
+        if not origin:
+            self.images.append(im)
         else:
-            append = True
-            for other in os:
-                if other.id == o.id:
-                    for key, value in list(o.__dict__.items()):
-                        if value is not None:
-                            setattr(other, key, value)
-                    append = False
-                    break
-            if append:
-                os.append(o)
+            im.id = origin.id
+            for key, value in list(im.__dict__.items()):
+                if value is not None:
+                    setattr(origin, key, value)
 
     def add_or_update(self, o):
         if type(o) is Image:
-            self._add_or_update(o, self.images)
+            self.put_image(o)
         else:
             raise Exception('unknown model: {0}'.format(type(o)))
 

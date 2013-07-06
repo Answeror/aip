@@ -65,6 +65,10 @@ class Connection(object, metaclass=StoreMeta):
         return
 
     @abc.abstractmethod
+    def put_image(self, im):
+        return
+
+    @abc.abstractmethod
     def get_images_order_bi_ctime(self, r):
         return
 
