@@ -7,7 +7,8 @@ import urllib3
 from flask import (
     g,
     url_for,
-    render_template
+    render_template,
+    make_response
 )
 from operator import attrgetter as attr
 from .settings import PER, LOG_FILE_PATH
@@ -81,7 +82,11 @@ class Local(object):
             return render_template('index.html', pagination=pagination)
 
     def stream(self, page):
-        return self.posts_in_page(page), 200, {'Content-Type': 'application/octet-stream'}
+        return make_response(
+            self.posts_in_page(page),
+            200,
+            {'Content-Type': 'application/octet-stream'}
+        )
 
     def update(self, begin):
         from datetime import datetime
