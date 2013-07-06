@@ -9,7 +9,8 @@ from ...test.test_aip import (
     g,
     test_index_empty,
     test_update_images,
-    test_clear
+    test_clear,
+    test_no_duplication
 )
 from ... import store_impl as memory
 
@@ -42,6 +43,9 @@ def _test_index_emtpy():
 def _test_update_images():
     test_update_images()
 
+@with_setup(setup_sqlalchemy, teardown_sqlalchemy)
+def _test_no_duplication():
+    test_no_duplication()
 
 @with_setup(setup_sqlalchemy, teardown_sqlalchemy)
 def _test_clear():
