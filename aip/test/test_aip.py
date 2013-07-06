@@ -72,6 +72,19 @@ def test_update_images():
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
+def test_no_duplication():
+    r = g.client.get('/image_count')
+    assert_equal(r.data, b'0')
+    g.client.get('/update_images/20130630')
+    r = g.client.get('/image_count')
+    assert_equal(r.data, b'270')
+    g.client.get('/update_images/20130630')
+    r = g.client.get('/image_count')
+    assert_equal(r.data, b'270')
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
 def test_clear():
     r = g.client.get('/image_count')
     assert_equal(r.data, b'0')

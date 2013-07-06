@@ -99,6 +99,18 @@ def make(db):
             o = db.session.merge(o)
             db.session.add(o)
 
+        def put_image(self, im):
+            if im.id is None:
+                im.id = _random_name()
+
+            origin = db.session.query.filter_by(site_id=im.site_id, post_id=im.post_id).first()
+
+            if origin is not None:
+                im.id = origin.id
+                im = db.session.merge(im)
+
+            db.session.add(im)
+
         def put(self, o):
             return self.add_or_update(o)
 
