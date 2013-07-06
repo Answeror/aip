@@ -5,9 +5,10 @@
 import os
 import flask
 import threading
-import logging
 import pickle
 from datetime import datetime
+from functools import wraps
+from flask import request
 
 
 def _ensure_exists(path):
@@ -25,7 +26,10 @@ class Blueprint(flask.Blueprint):
         return inner
 
     def __init__(self, *args, **kargs):
+        temp_path = kargs['temp_path']
+        del kargs['temp_path']
         super(Blueprint, self).__init__(*args, **kargs)
+        self.temp_path = temp_path
 
     def local(self):
         from .local import Local
@@ -101,3 +105,25 @@ class Blueprint(flask.Blueprint):
     @locked
     def clear(self):
         self.repo.clear()
+
+    @property
+    @locked
+    def cache(self):
+        if not hasattr(self, '_cache'):
+            from .cache import SqliteCache
+            self._cache = SqliteCache(os.path.join(self.temp_path, 'cache'))
+        return self._cache
+
+    def cached(self, timeout=5 * 60, key='view/%s'):
+        def decorator(f):
+            @wraps(f)
+            def decorated_function(*args, **kwargs):
+                cache_key = key % request.path
+                rv = self.cache.get(cache_key)
+                if rv is not None:
+                    return rv
+                rv = f(*args, **kwargs)
+                self.cache.set(cache_key, rv, timeout=timeout)
+                return rv
+            return decorated_function
+        return decorator

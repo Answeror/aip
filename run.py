@@ -26,7 +26,7 @@ if __name__ == "__main__":
     root = os.path.dirname(__file__)
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///%s' % os.path.join(root, 'temp', 'aip.db')
     db = SQLAlchemy(app)
-    aip = make()
+    aip = make(temp_path=os.path.join(root, 'temp'))
     aip.store = sqlalchemy.make(db)
     app.register_blueprint(aip)
     db.create_all()

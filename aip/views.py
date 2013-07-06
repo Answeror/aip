@@ -12,6 +12,8 @@ def logged(f):
     def inner(*args, **kargs):
         try:
             return f(*args, **kargs)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             logging.exception(e)
             raise
