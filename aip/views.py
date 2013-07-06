@@ -12,6 +12,8 @@ def logged(f):
     def inner(*args, **kargs):
         try:
             return f(*args, **kargs)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             logging.exception(e)
             raise
@@ -31,6 +33,11 @@ def posts(page):
 @logged
 def stream(page):
     return g.aip.stream(page)
+
+
+@logged
+def resized(src, width, height):
+    return g.aip.resized(src, width, height)
 
 
 @logged

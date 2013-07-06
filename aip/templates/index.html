@@ -12,37 +12,39 @@
         <!-- Le styles -->
         <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap.min.css') }}" media='screen'>
         <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap-responsive.min.css') }}" media='screen'>
-        <!--<link rel="stylesheet" href="{{ url_for('.static', filename='css/jquery.simple.lightbox.css') }}">-->
         <link rel='stylesheet' href="{{ url_for('.style') }}" media='screen'>
     </head>
     <body>
+        <header>
+            <h1>AIP Instrumentality Project</h1>
+        </header>
         <div id='container'>
             <div id='items'>
                 {% for im in pagination.items %}
                 <div class='item'>
-                    <a href='{{ im.post_url }}' target='_blank' class="thumbnail" data-lightbox>
-                        <img style='width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' src='{{ im.preview_url }}' data-proxy='{{ g.proxy(im.preview_url) }}'>
+                    <a href='{{ im.url }}' target='_blank' class="thumbnail">
+                        <img class='preview lazy' style='width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' data-src='{{ im.preview_url }}' data-proxy='{{ g.proxy(im.preview_url) }}'>
+                        <img class='sample' style='display:none;width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' data-src='{{ im.sample_url }}' data-proxy='{{ im.proxy_sample_url }}'>
                     </a>
                 </div>
                 {% endfor %}
             </div>
         </div>
         <div id='alert_box'></div>
-        <div id='progress' class='progress progress-striped active' style='display:none'>
-            <div class='bar' style='width: 0%;'></div>
+        <div id='loading' style='display:none'>
+            <img src='{{ url_for('.static', filename='images/inf.gif') }}'>
         </div>
         <div style='display:none'>
-            {% if pagination.prev %}<a href='{{ url_for('.stream', page=pagination.prev) }}'>&laquo;</a>{% endif %}
+            {% if pagination.prev %}<a href='{{ url_for('.posts', page=pagination.prev) }}'>&laquo;</a>{% endif %}
             <span>...</span>
-            {% if pagination.next %}<a class='more' href='{{ url_for('.stream', page=pagination.next) }}'>&raquo;</a>{% endif %}
+            {% if pagination.next %}<a class='more' href='{{ url_for('.posts', page=pagination.next) }}'>&raquo;</a>{% endif %}
         </div>
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
         <script src="{{ url_for('.static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
-        <script src="{{ url_for('.static', filename='js/masonry.pkgd.js') }}"></script>
+        <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
         <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
         <script src="{{ url_for('.static', filename='waypoints-infinite.js') }}"></script>
-        <!--<script src="{{ url_for('.static', filename='js/jquery.bootstrap.simple.lightbox.js') }}"></script>-->
-        <script src="{{ url_for('.static', filename='js/jquery.ajax-progress.js') }}"></script>
+        <script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
         <script src="{{ url_for('.static', filename='js/base.js') }}"></script>
     </body>
 </html>

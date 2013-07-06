@@ -1,65 +1,25 @@
+@import url(http://fonts.googleapis.com/css?family=Julee);
+
 body {
-    color: #393939;
-    font-size: 16px;
-    padding: 10px;
+    margin: 2em;
 }
-img {
-    max-width: 100%;
+header {
+    margin-bottom: 2em;
 }
-a {
-    white-space: nowrap;
-}
-h1, h2, h3, h4, h5, h6 {
-    font-weight: normal;
-    letter-spacing: 0;
-}
-
-.page-header {
-    padding-bottom: 0;
-    color: #393939;
-}
-
-.page-header h1 {
-    /*font: 38px/57px Arial, sans-serif;*/
-}
-.page-header a {
-    color: #393939;
-}
-.page-header a:hover {
-    color: #333333;
-    text-decoration: none;
-}
-
-.navbar div.brand{
+h1 {
+    font-family: 'Julee', cursive;
     text-align: center;
-    width: 100%;
-    margin: 36px 0 42px 0;
-    float: none;
 }
-
-.navbar .nav > li > a {
-    float: none;
-    color: #393939;
-    font-size: 18px;
-    line-height: 19px;
-    padding: 10px 0px 12px 0;
-    text-decoration: none;
-    text-shadow: none;
-    margin-right: 32px;
-}
-
 .item {
-    /*float: left;*/
-    /*width: 150px;*/
     display: inline-block;
     vertical-align: top;
     margin-bottom: 10px;
 }
-
-footer {
-    border-top: 1px solid #ddd;
-    margin-top: 35px;
-    padding-top: 6px;
-    text-align: center;
-    font-size: 12px;
+img {
+    max-width: 100%;
+}
+#loading {
+    width: 128px;
+    height: 96px;
+    margin: 0 auto;
 }

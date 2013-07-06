@@ -2,13 +2,17 @@
 # -*- coding: utf-8 -*-
 
 
+from .settings import IMAGE_CACHE_TIMEOUT
+
+
 def make(aip):
     from datetime import datetime
     from . import views
     aip.route('/', defaults={'page': 1})(views.posts)
     aip.route('/page/<int:page>')(views.posts)
     aip.route('/stream/<int:page>')(views.stream)
-    aip.route('/image/<path:src>')(views.image)
+    aip.route('/resized/<path:src>.<int:width>x<int:height>')(aip.cached(IMAGE_CACHE_TIMEOUT)(views.resized))
+    aip.route('/image/<path:src>')(aip.cached(IMAGE_CACHE_TIMEOUT)(views.image))
     aip.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})(views.update)
     aip.route('/update/<begin>')(views.update)
     aip.route('/image_count')(views.image_count)

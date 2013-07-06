@@ -6,28 +6,55 @@ import logging
 import urllib3
 from flask import (
     g,
-    url_for,
     render_template,
-    make_response
+    make_response,
+    url_for
 )
 from operator import attrgetter as attr
 from .settings import PER, LOG_FILE_PATH
 import os
+from io import BytesIO
+from PIL import Image
+from collections import namedtuple
+
+
+Post = namedtuple('Post', (
+    'url',
+    'preview_url',
+    'preview_width',
+    'preview_height',
+    'sample_url',
+    'proxy_sample_url'
+))
+
+
+def url_for_resized(url, width, height):
+    from urllib.parse import quote_plus
+    return url_for('.resized', src=quote_plus(url), width=width, height=height)
 
 
 def _scale(images):
     images = list(images)
+    posts = []
     if images:
-        from urllib.parse import quote_plus
         for im in images:
             im.scale = g.column_width
-        max(images, key=attr('score')).scale = g.gutter + 2 * g.column_width
+        sm = sorted(images, key=attr('score'), reverse=True)
+        for im in sm[:max(1, int(len(sm) / PER))]:
+            im.scale = g.gutter + 2 * g.column_width
         for im in images:
-            im.preview_height = im.scale * im.height / im.width
-            im.preview_width = im.scale
-            if im.preview_width != g.column_width and hasattr(im, 'sample_url') and im.sample_url is not None:
-                im.preview_url = im.sample_url
-    return images
+            sample_url = im.sample_url if im.sample_url else im.url
+            preview_height = int(im.scale * im.height / im.width)
+            preview_width = int(im.scale)
+            posts.append(Post(
+                url=im.post_url,
+                preview_url=im.preview_url,
+                preview_height=preview_height,
+                preview_width=preview_width,
+                sample_url=sample_url,
+                proxy_sample_url=url_for_resized(sample_url, preview_width, preview_height)
+            ))
+    return posts
 
 
 class Local(object):
@@ -49,6 +76,18 @@ class Local(object):
         logging.debug('fetch image: %s' % url)
         r = self.fetch(url)
         return r.data, 200, {'Content-Type': r.headers['content-type']}
+
+    def resized(self, url, width, height):
+        from urllib.parse import unquote_plus
+        url = unquote_plus(url)
+        logging.debug('fetch image: %s' % url)
+        r = self.fetch(url)
+        input_stream = BytesIO(r.data)
+        im = Image.open(input_stream)
+        im = im.resize((width, height), Image.ANTIALIAS)
+        output_stream = BytesIO()
+        im.save(output_stream, format='JPEG')
+        return output_stream.getvalue(), 200, {'Content-Type': r.headers['content-type']}
 
     def connection(self):
         return self.blue.connection()
