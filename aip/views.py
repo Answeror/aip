@@ -56,3 +56,8 @@ def style():
 @logged
 def log():
     return g.aip.log()
+
+
+@logged
+def clear():
+    return g.aip.clear()

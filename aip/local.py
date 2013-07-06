@@ -110,3 +110,7 @@ class Local(object):
     def log(self):
         with open(LOG_FILE_PATH, 'rb') as f:
             return f.read()
+
+    def clear(self):
+        self.blue.clear()
+        return ''

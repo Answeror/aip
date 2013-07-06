@@ -78,6 +78,10 @@ def make(db):
         def connection(self):
             return Connection()
 
+        def clear(self):
+            db.drop_all()
+            db.create_all()
+
     class Connection(store.Connection):
 
         def __enter__(self, *args, **kargs):

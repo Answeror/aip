@@ -65,5 +65,5 @@ class Source(booru.Source):
             mtime=None,
             site_id=self.id,
             post_id=d['id'],
-            post_url=urljoin(self.url, '/post/view/{}'.format(d['id']))
+            post_url=urljoin(self.url, '/index.php?page=post&s=view&id={}'.format(d['id']))
         )

@@ -8,7 +8,8 @@ from ..sqlalchemy import make
 from ...test.test_aip import (
     g,
     test_index_empty,
-    test_update_images
+    test_update_images,
+    test_clear
 )
 from ... import store_impl as memory
 
@@ -40,3 +41,8 @@ def _test_index_emtpy():
 @with_setup(setup_sqlalchemy, teardown_sqlalchemy)
 def _test_update_images():
     test_update_images()
+
+
+@with_setup(setup_sqlalchemy, teardown_sqlalchemy)
+def _test_clear():
+    test_clear()

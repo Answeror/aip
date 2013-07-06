@@ -97,3 +97,7 @@ class Blueprint(flask.Blueprint):
 
     def connection(self):
         return self.repo.connection()
+
+    @locked
+    def clear(self):
+        self.repo.clear()
