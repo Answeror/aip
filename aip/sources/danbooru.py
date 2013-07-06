@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
+import json
 from urllib.parse import urljoin
 from . import booru
 
@@ -32,3 +33,6 @@ class Source(booru.Source):
             self.url,
             "/tags/index.json?limit=%s&page=%s"
         )
+
+    def parse(self, response):
+        return json.loads(response.data.decode('utf-8'))

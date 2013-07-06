@@ -113,9 +113,7 @@ class Connection(store.Connection):
             raise Exception('unknown model: {0}'.format(type(o)))
 
     def get_images_order_bi_ctime(self, r):
-        for i, im in enumerate(sorted(self.images, key=attr('ctime'), reverse=True)):
-            if i in r:
-                yield im
+        return sorted(self.images, key=attr('ctime'), reverse=True)[r]
 
     def latest_ctime_bi_site_id(self, id):
         images = [im for im in self.images if im.site_id == id]

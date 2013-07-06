@@ -4,7 +4,6 @@
 
 import abc
 import logging
-import json
 from ..abc import MetaWithFields
 from . import base
 
@@ -26,10 +25,20 @@ class Source(base.Source, metaclass=MetaWithFields):
         return True
 
     def _fetch(self, request_url):
-        return self._http.request('GET', request_url).data
+        try:
+            return self._http.request('GET', request_url)
+        except Exception as e:
+            logging.info('fetch failed: %s' % request_url)
+            logging.exception(e)
+            return None
 
     def _get(self, request_url):
-        return json.loads(self._fetch(request_url).decode('utf-8'))
+        r = self._fetch(request_url)
+        return self.parse(r) if r is not None else []
+
+    @abc.abstractmethod
+    def parse(self, response):
+        return
 
     @abc.abstractmethod
     def image_from_dict(self, d):
