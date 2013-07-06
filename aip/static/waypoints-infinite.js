@@ -42,12 +42,12 @@
                     options.onBeforePageLoad();
                     $this.waypoint('disable');
                     $container.addClass(options.loadingClass);
+                    var trigger;
                     return $.ajax({
                         method: 'GET',
                         url: $(options.more).attr('href'),
                         dataType: 'html',
                         error: options.error,
-                        progress: options.progress,
                         success: function(data) {
                             var $data, $more, $newMore;
                             $data = $(data);
@@ -65,6 +65,22 @@
                                 $this.waypoint('destroy');
                             }
                             return options.onAfterPageLoad();
+                        },
+                        xhr: function() {
+                            var xhr = jQuery.ajaxSettings.xhr();
+                            trigger = window.setInterval(function() {
+                                if (xhr.readyState > 2) {
+                                    var totalBytes = xhr.getResponseHeader('Content-length');
+                                    if (totalBytes > 0) {
+                                        var dlBytes = xhr.responseText.length;
+                                        options.progress(dlBytes / totalBytes * 100);
+                                    }
+                                }
+                            }, 100);
+                            return xhr;
+                        },
+                        complete: function() {
+                            window.clearInterval(trigger);
                         }
                     });
                 }

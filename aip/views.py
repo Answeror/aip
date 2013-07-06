@@ -34,16 +34,6 @@ def image(src):
 
 
 @logged
-def site_count():
-    return g.aip.site_count()
-
-
-@logged
-def update_sites():
-    return g.aip.update_sites()
-
-
-@logged
 def image_count():
     return g.aip.image_count()
 

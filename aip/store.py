@@ -4,24 +4,13 @@
 
 from datetime import datetime
 import abc
-
-
-class StoreMeta(abc.ABCMeta):
-
-    def __new__(meta, name, bases, attr):
-        if 'FIELDS' in attr:
-            fields = attr['FIELDS']
-            for field in fields:
-                if type(field) is tuple:
-                    field, _ = field
-                attr[field] = abc.abstractproperty(lambda self: None)
-        return abc.ABCMeta.__new__(meta, name, bases, attr)
+from .abc import MetaWithFields as StoreMeta
 
 
 class Meta(object, metaclass=StoreMeta):
 
     FIELDS = (
-        'id',
+        ('id', str, {'length': 128, 'primary_key': True}),
         ('value', bytes)
     )
 
@@ -29,29 +18,20 @@ class Meta(object, metaclass=StoreMeta):
 class Image(object, metaclass=StoreMeta):
 
     FIELDS = (
-        'id',
+        ('id', str, {'length': 128, 'primary_key': True}),
         'url',
         ('width', int),
         ('height', int),
         'rating',
-        ('score', int),
+        ('score', float),
         'preview_url',
         'sample_url',
-        ('tags', 'text'),
+        'tags',
         ('ctime', datetime),
         ('mtime', datetime),
-        'site_id',
+        ('site_id', str, {'length': 128}),
         ('post_id', int),
         'post_url'
-    )
-
-
-class Site(object, metaclass=StoreMeta):
-
-    FIELDS = (
-        'id',
-        'name',
-        'url'
     )
 
 
@@ -85,15 +65,7 @@ class Connection(object, metaclass=StoreMeta):
         return
 
     @abc.abstractmethod
-    def get_site_bi_id(self):
-        return
-
-    @abc.abstractmethod
     def latest_ctime_bi_site_id(self, id):
-        return
-
-    @abc.abstractmethod
-    def site_count(self):
         return
 
     @abc.abstractmethod

@@ -12,7 +12,10 @@ class Infinite(object):
     @property
     def items(self):
         if not hasattr(self, '_items'):
-            self._items = list(self.fetch(self.page, self.per))
+            self._items = list(self.fetch(
+                self.per * (2 ** (self.page - 1) - 1),
+                self.per * (2 ** self.page - 1)
+            ))
         return self._items
 
     @property

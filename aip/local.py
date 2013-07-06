@@ -52,17 +52,9 @@ class Local(object):
     def connection(self):
         return self.blue.connection()
 
-    def site_count(self):
-        with self.connection() as con:
-            return str(con.site_count())
-
     def image_count(self):
         with self.connection() as con:
             return str(con.image_count())
-
-    def update_sites(self):
-        self.blue.update_sites()
-        return ''
 
     def update_images(self, begin):
         from datetime import datetime
@@ -80,8 +72,8 @@ class Local(object):
             pagination = Infinite(
                 page,
                 PER,
-                lambda page, per: _scale(
-                    con.get_images_order_bi_ctime(r=list(range((page - 1) * per, page * per)))
+                lambda begin, end: _scale(
+                    con.get_images_order_bi_ctime(r=slice(begin, end, 1))
                 )
             )
             for it in pagination.items:

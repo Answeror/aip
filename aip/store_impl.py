@@ -21,19 +21,20 @@ class StoreMeta(store.StoreMeta):
                 break
         for field in fields:
             if type(field) is tuple:
-                field, _ = field
+                key = field[0]
+            else:
+                key = field
 
             # cannot use lambda here!
-            def get(field, self):
-                assert hasattr(self, _data(field))
-                return getattr(self, _data(field))
+            def get(key, self):
+                return getattr(self, _data(key)) if hasattr(self, _data(key)) else None
 
-            def set(field, self, value):
-                setattr(self, _data(field), value)
+            def set(key, self, value):
+                setattr(self, _data(key), value)
 
-            attr[field] = property(
-                partial(get, field),
-                partial(set, field)
+            attr[key] = property(
+                partial(get, key),
+                partial(set, key)
             )
         return store.StoreMeta.__new__(meta, name, bases, attr)
 
@@ -52,15 +53,10 @@ class Image(store.Image, metaclass=StoreMeta):
     pass
 
 
-class Site(store.Site, metaclass=StoreMeta):
-    pass
-
-
 class Repo(store.Repo):
 
     def __init__(self):
         self.images = []
-        self.sites = []
         self.meta = {}
 
     def connection(self):
@@ -77,10 +73,6 @@ class Connection(store.Connection):
     @property
     def images(self):
         return self.repo.images
-
-    @property
-    def sites(self):
-        return self.repo.sites
 
     @property
     def meta(self):
@@ -117,30 +109,17 @@ class Connection(store.Connection):
     def add_or_update(self, o):
         if type(o) is Image:
             self._add_or_update(o, self.images)
-        elif type(o) is Site:
-            self._add_or_update(o, self.sites)
         else:
             raise Exception('unknown model: {0}'.format(type(o)))
 
     def get_images_order_bi_ctime(self, r):
-        for i, im in enumerate(sorted(self.images, key=attr('ctime'), reverse=True)):
-            if i in r:
-                yield im
-
-    def get_site_bi_id(self, id):
-        for s in self.sites:
-            if s.id == id:
-                return s
-        return None
+        return sorted(self.images, key=attr('ctime'), reverse=True)[r]
 
     def latest_ctime_bi_site_id(self, id):
         images = [im for im in self.images if im.site_id == id]
         if not images:
             return None
         return max([im.ctime for im in images])
-
-    def site_count(self):
-        return len(self.sites)
 
     def image_count(self):
         return len(self.images)
