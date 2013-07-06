@@ -10,9 +10,6 @@ from . import booru
 
 class Source(booru.Source):
 
-    def __init__(self, make_image):
-        super(Source, self).__init__(make_image)
-
     @property
     def start_page(self):
         return 0

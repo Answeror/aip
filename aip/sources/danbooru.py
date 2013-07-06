@@ -3,14 +3,12 @@
 
 
 import json
+from datetime import datetime
 from urllib.parse import urljoin
 from . import booru
 
 
 class Source(booru.Source):
-
-    def __init__(self, make_image):
-        super(Source, self).__init__(make_image)
 
     @property
     def start_page(self):
@@ -36,3 +34,20 @@ class Source(booru.Source):
 
     def parse(self, response):
         return json.loads(response.data.decode('utf-8'))
+
+    def image_from_dict(self, d):
+        return self.make_image(
+            url=urljoin(self.url, d['file_url']),
+            width=int(d['width']),
+            height=int(d['height']),
+            rating=d['rating'],
+            score=float(d['score']),
+            preview_url=urljoin(self.url, d['preview_url']),
+            sample_url=d['sample_url'],
+            tags=d['tags'].replace(' ', ';'),
+            ctime=datetime.utcfromtimestamp(int(d['created_at'])),
+            mtime=None,
+            site_id=self.id,
+            post_id=d['id'],
+            post_url=urljoin(self.url, '/post/view/{}'.format(d['id']))
+        )
