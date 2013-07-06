@@ -18,13 +18,9 @@ def setup_app():
     g.aip = make()
     g.app.register_blueprint(g.aip)
     g.client = g.app.test_client()
-    if hasattr(g, 'setup_store'):
-        g.setup_store()
 
 
 def teardown_app():
-    if hasattr(g, 'teardown_store'):
-        g.teardown_store()
     del g.client
     del g.app
     del g.aip
@@ -51,9 +47,7 @@ def unpatch_urllib3():
     g.patcher.stop()
 
 
-@with_setup(patch_urllib3, unpatch_urllib3)
-@with_setup(setup_app, teardown_app)
-def test_index_empty():
+def _test_index_empty():
     r = g.client.get('/')
     soup = Soup(r.data)
     content = soup.find(id='items').get_text().strip()
@@ -62,9 +56,30 @@ def test_index_empty():
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
-def test_update_images():
+def test_index_empty():
+    _test_index_empty()
+
+
+def _test_update_images():
     r = g.client.get('/image_count')
     assert_equal(r.data, b'0')
+    g.client.get('/update_images/20130630')
+    r = g.client.get('/image_count')
+    assert_equal(r.data, b'270')
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+def test_update_images():
+    _test_update_images()
+
+
+def _test_no_duplication():
+    r = g.client.get('/image_count')
+    assert_equal(r.data, b'0')
+    g.client.get('/update_images/20130630')
+    r = g.client.get('/image_count')
+    assert_equal(r.data, b'270')
     g.client.get('/update_images/20130630')
     r = g.client.get('/image_count')
     assert_equal(r.data, b'270')
@@ -73,19 +88,10 @@ def test_update_images():
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
 def test_no_duplication():
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'0')
-    g.client.get('/update_images/20130630')
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'270')
-    g.client.get('/update_images/20130630')
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'270')
+    _test_no_duplication()
 
 
-@with_setup(patch_urllib3, unpatch_urllib3)
-@with_setup(setup_app, teardown_app)
-def test_clear():
+def _test_clear():
     r = g.client.get('/image_count')
     assert_equal(r.data, b'0')
     g.client.get('/update_images/20130630')
@@ -94,3 +100,9 @@ def test_clear():
     g.client.get('/clear')
     r = g.client.get('/image_count')
     assert_equal(r.data, b'0')
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+def test_clear():
+    _test_clear()

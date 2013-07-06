@@ -103,7 +103,7 @@ def make(db):
             if im.id is None:
                 im.id = _random_name()
 
-            origin = db.session.query.filter_by(site_id=im.site_id, post_id=im.post_id).first()
+            origin = Image.query.filter_by(site_id=im.site_id, post_id=im.post_id).first()
 
             if origin is not None:
                 im.id = origin.id
