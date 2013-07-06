@@ -18,11 +18,10 @@ $(function() {
         var cols = Math.floor(width / min_width);
         return cols * min_width + (cols - 1) * gutter;
     };
-    $('.item').width(fit);
     function proxy() {
         this.src = $(this).data('proxy');
     };
-    $('img').one('error', proxy);
+    $container.find('.item').width(fit).find('img').one('error', proxy);
     $container.lazyload();
     //$('[data-lightbox]').simpleLightbox();
     $container.masonry({
@@ -54,21 +53,15 @@ $(function() {
             }
         },
         onBeforePageLoad: function() {
-            $('#progress > .bar').css('width', '0%');
-            $('#progress').show();
+            $('#loading').show();
         },
         onAfterPageLoad: function() {
-            $('#progress').hide();
+            $('#loading').hide();
             $('#alert_box').html('');
         },
-        progress: function(p) {
-            console.log(p);
-            $('#progress > .bar').css('width', p + '%');
-        },
         error: function() {
-            $('#progress').hide();
-            bootstrap_alert.warning('Load more failed. Retrying...');
-            $.waypoints('refresh');
+            $('#loading').hide();
+            bootstrap_alert.warning('Load more failed.');
         }
     });
 });
