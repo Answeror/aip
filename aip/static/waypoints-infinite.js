@@ -46,7 +46,8 @@
                     return $.ajax({
                         method: 'GET',
                         url: $(options.more).attr('href'),
-                        dataType: 'html',
+                        dataType: 'text',
+                        contentType: 'application/octet-stream',
                         error: options.error,
                         success: function(data) {
                             var $data, $more, $newMore;
