@@ -3,7 +3,7 @@
 
 
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, and_
 from flask.ext.sqlalchemy import DeclarativeMeta
 from collections import namedtuple
 from .. import store
@@ -114,8 +114,20 @@ def make(db):
         def put(self, o):
             return self.add_or_update(o)
 
-        def get_images_order_bi_ctime(self, r):
-            return Image.query.order_by(Image.ctime.desc())[r]
+        def get_images_order_bi_ctime(self, r=None):
+            q = Image.query.order_by(Image.ctime.desc())
+            return q if r is None else q[r]
+
+        def get_unique_images_order_bi_ctime(self, r=None):
+            sub = db.session.query(
+                func.max(Image.score),
+                Image.id.label('best_id')
+            ).group_by(Image.md5).subquery()
+            q = Image.query.join(
+                sub,
+                and_(Image.id == sub.c.best_id)
+            ).order_by(Image.ctime.desc())
+            return q if r is None else q[r]
 
         def latest_ctime_bi_site_id(self, id):
             return db.session.query(func.max(Image.ctime)).first()[0]
@@ -123,11 +135,17 @@ def make(db):
         def image_count(self):
             return db.session.query(func.count(Image.id)).first()[0]
 
+        def unique_image_count(self):
+            return Image.query.group_by(Image.md5).count()
+
         def set_meta(self, id, value):
             self.put(Meta(id=id, value=value))
 
         def get_meta(self, id):
             return Meta.query.filter_by(id=id).first()
+
+        def get_image_bi_md5(self, md5):
+            return Image.query.filter_by(md5=md5).first()
 
     Store = namedtuple('Store', ('Meta', 'Image', 'Repo', 'Connection'))
     return Store(

@@ -16,11 +16,6 @@ def _url_for_page(page):
     return url_for(request.endpoint, **args)
 
 
-def _proxy(url):
-    from urllib.parse import quote_plus
-    return url_for('.image', src=quote_plus(url))
-
-
 def setup(aip):
     @aip.before_request
     def before_request():
@@ -29,4 +24,3 @@ def setup(aip):
         g.column_width = COLUMN_WIDTH
         g.gutter = GUTTER
         g.per = PER
-        g.proxy = _proxy

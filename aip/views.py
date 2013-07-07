@@ -36,18 +36,23 @@ def stream(page):
 
 
 @logged
-def resized(src, width, height):
-    return g.aip.resized(src, width, height)
-
-
-@logged
-def image(src):
-    return g.aip.image(src)
+def sample(md5):
+    return g.aip.sample(md5)
 
 
 @logged
 def image_count():
     return g.aip.image_count()
+
+
+@logged
+def unique_image_count():
+    return g.aip.unique_image_count()
+
+
+@logged
+def unique_image_md5():
+    return g.aip.unique_image_md5()
 
 
 @logged

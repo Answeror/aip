@@ -31,7 +31,8 @@ class Image(object, metaclass=StoreMeta):
         ('mtime', datetime),
         ('site_id', str, {'length': 128}),
         ('post_id', int),
-        'post_url'
+        'post_url',
+        ('md5', bytes, {'length': 128})
     )
 
 
@@ -69,7 +70,15 @@ class Connection(object, metaclass=StoreMeta):
         return
 
     @abc.abstractmethod
+    def get_image_bi_md5(self, md5):
+        return
+
+    @abc.abstractmethod
     def get_images_order_bi_ctime(self, r):
+        return
+
+    @abc.abstractmethod
+    def get_unique_images_order_bi_ctime(self, r):
         return
 
     @abc.abstractmethod
@@ -78,6 +87,10 @@ class Connection(object, metaclass=StoreMeta):
 
     @abc.abstractmethod
     def image_count(self):
+        return
+
+    @abc.abstractmethod
+    def unique_image_count(self):
         return
 
     @abc.abstractmethod

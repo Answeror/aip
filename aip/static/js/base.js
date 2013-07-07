@@ -3,7 +3,7 @@ $(function() {
         var $this = $(this);
         $this.waypoint(
             function(){
-                $this.hide().attr("src", $this.data('src')).fadeIn(1000);
+                $this.hide().attr("src", $this.data('src')).fadeIn('slow');
             }, {
                 triggerOnce: true,
                 offset: function() {
@@ -29,26 +29,24 @@ $(function() {
         var $this = $(this);
         var $preview = $this.find('.preview');
         var $sample = $this.find('.sample');
-        function proxy() {
-            this.src = $(this).data('proxy');
+        function usesample() {
+            console.log('use sample');
+            $sample.attr('src', $sample.data('src'));
+            $sample.imagesLoaded().done(function() {
+                console.log('use sample done');
+                $preview.fadeOut('slow', function() {
+                    $sample.fadeIn('slow');
+                });
+            }).error(function() {
+                console.log('use sample error');
+            });
         };
-        $preview.one('error', proxy);
+        $preview.one('error', usesample);
         truesize(
             $preview.data('src'),
             function(width, height) {
-                if ($preview.width() * $preview.height() > width * height * 2) {
-                    var done = function() {
-                        $preview.hide();
-                        $sample.show();
-                    };
-                    function proxy() {
-                        var $this = $(this);
-                        $this.attr('src', $this.data('proxy'));
-                        $this.imagesLoaded().done(done);
-                    };
-                    $sample.one('error', proxy);
-                    $sample.attr('src', $sample.data('src'));
-                    $sample.imagesLoaded().done(done);
+                if ($preview.width() * $preview.height() > width * height * 3) {
+                    usesample();
                 }
             }
         );

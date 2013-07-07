@@ -65,7 +65,7 @@ def _test_update_images():
     assert_equal(r.data, b'0')
     g.client.get('/update_images/20130630')
     r = g.client.get('/image_count')
-    assert_equal(r.data, b'270')
+    assert_equal(r.data, b'712')
 
 
 @with_setup(patch_urllib3, unpatch_urllib3)
@@ -74,15 +74,29 @@ def test_update_images():
     _test_update_images()
 
 
+def _test_unique_images():
+    g.client.get('/update_images/20130630')
+    r = g.client.get('/unique_image_count')
+    assert_equal(r.data, b'504')
+    r = g.client.get('/unique_image_md5')
+    assert_equal(len(r.data.split(b'\n')), 504)
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+def test_unique_images():
+    _test_unique_images()
+
+
 def _test_no_duplication():
     r = g.client.get('/image_count')
     assert_equal(r.data, b'0')
     g.client.get('/update_images/20130630')
     r = g.client.get('/image_count')
-    assert_equal(r.data, b'270')
+    assert_equal(r.data, b'712')
     g.client.get('/update_images/20130630')
     r = g.client.get('/image_count')
-    assert_equal(r.data, b'270')
+    assert_equal(r.data, b'712')
 
 
 @with_setup(patch_urllib3, unpatch_urllib3)
@@ -96,7 +110,7 @@ def _test_clear():
     assert_equal(r.data, b'0')
     g.client.get('/update_images/20130630')
     r = g.client.get('/image_count')
-    assert_equal(r.data, b'270')
+    assert_equal(r.data, b'712')
     g.client.get('/clear')
     r = g.client.get('/image_count')
     assert_equal(r.data, b'0')
