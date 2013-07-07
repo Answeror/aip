@@ -10,6 +10,20 @@ from aip.stores import sqlalchemy
 from flask.ext.sqlalchemy import SQLAlchemy
 
 
+if False:
+    from aip.sources.booru import Source
+    fetch = Source._fetch
+    memo = {}
+    def wrap(self, url):
+        r = fetch(self, url)
+        memo[url] = r.data
+        import pickle
+        with open('requests.pkl', 'wb') as f:
+            pickle.dump(memo, f)
+        return r
+    Source._fetch = wrap
+
+
 def setuplogging(level, stdout):
     logging.basicConfig(filename=LOG_FILE_PATH, level=level)
     if stdout:

@@ -4,7 +4,11 @@
 from .blueprint import Blueprint
 
 
-def make(temp_path):
+def make(temp_path=None):
+    if temp_path is None:
+        import tempfile
+        temp_path = tempfile.mkdtemp()
+
     aip = Blueprint(
         'aip',
         __name__,

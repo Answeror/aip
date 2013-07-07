@@ -51,6 +51,16 @@ def image_count():
 
 
 @logged
+def unique_image_count():
+    return g.aip.unique_image_count()
+
+
+@logged
+def unique_image_md5():
+    return g.aip.unique_image_md5()
+
+
+@logged
 def update_images(begin):
     return g.aip.update_images(begin)
 

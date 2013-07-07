@@ -72,6 +72,17 @@ def _random_name():
     return uuid.uuid4()
 
 
+def unique(a, key):
+    '''http://www.peterbe.com/plog/uniqifiers-benchmark'''
+    seen = {}
+    result = []
+    for e in a:
+        if not key(e) in seen:
+            seen[key(e)] = 1
+            result.append(e)
+    return result
+
+
 class Connection(store.Connection):
 
     @property
@@ -121,8 +132,12 @@ class Connection(store.Connection):
         else:
             raise Exception('unknown model: {0}'.format(type(o)))
 
-    def get_images_order_bi_ctime(self, r):
-        return sorted(self.images, key=attr('ctime'), reverse=True)[r]
+    def get_images_order_bi_ctime(self, r=None):
+        ims = sorted(self.images, key=attr('ctime'), reverse=True)
+        return ims if r is None else ims[r]
+
+    def get_unique_images_order_bi_ctime(self, r=None):
+        return unique(self.get_images_order_bi_ctime(r), key=lambda im: im.md5)
 
     def latest_ctime_bi_site_id(self, id):
         images = [im for im in self.images if im.site_id == id]
@@ -132,6 +147,9 @@ class Connection(store.Connection):
 
     def image_count(self):
         return len(self.images)
+
+    def unique_image_count(self):
+        return len(unique(self.images, key=lambda im: im.md5))
 
     def set_meta(self, id, value):
         self.meta[id] = value

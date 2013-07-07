@@ -96,6 +96,14 @@ class Local(object):
         with self.connection() as con:
             return str(con.image_count())
 
+    def unique_image_count(self):
+        with self.connection() as con:
+            return str(con.unique_image_count())
+
+    def unique_image_md5(self):
+        with self.connection() as con:
+            return b'\n'.join([im.md5 for im in con.get_unique_images_order_bi_ctime()])
+
     def update_images(self, begin):
         from datetime import datetime
         begin = datetime.strptime(begin, '%Y%m%d')
@@ -113,7 +121,7 @@ class Local(object):
                 page,
                 PER,
                 lambda begin, end: _scale(
-                    con.get_images_order_bi_ctime(r=slice(begin, end, 1))
+                    con.get_unique_images_order_bi_ctime(r=slice(begin, end, 1))
                 )
             )
             for it in pagination.items:
