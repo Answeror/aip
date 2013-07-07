@@ -156,3 +156,9 @@ class Connection(store.Connection):
 
     def get_meta(self, id):
         return self.meta.get(id, None)
+
+    def get_image_bi_md5(self, md5):
+        for im in self.images:
+            if im.md5 == md5:
+                return im
+        return None

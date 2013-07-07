@@ -99,6 +99,11 @@ class Blueprint(flask.Blueprint):
                     con.put_image(im)
                 con.commit()
 
+    @property
+    def sample_width(self):
+        from .settings import SAMPLE_WIDTH
+        return SAMPLE_WIDTH
+
     def connection(self):
         return self.repo.connection()
 

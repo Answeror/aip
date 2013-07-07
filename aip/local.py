@@ -8,7 +8,7 @@ from flask import (
     g,
     render_template,
     make_response,
-    url_for
+    send_file
 )
 from operator import attrgetter as attr
 from .settings import PER, LOG_FILE_PATH
@@ -23,14 +23,8 @@ Post = namedtuple('Post', (
     'preview_url',
     'preview_width',
     'preview_height',
-    'sample_url',
-    'proxy_sample_url'
+    'md5'
 ))
-
-
-def url_for_resized(url, width, height):
-    from urllib.parse import quote_plus
-    return url_for('.resized', src=quote_plus(url), width=width, height=height)
 
 
 def _scale(images):
@@ -43,7 +37,6 @@ def _scale(images):
         for im in sm[:max(1, int(len(sm) / PER))]:
             im.scale = g.gutter + 2 * g.column_width
         for im in images:
-            sample_url = im.sample_url if im.sample_url else im.url
             preview_height = int(im.scale * im.height / im.width)
             preview_width = int(im.scale)
             posts.append(Post(
@@ -51,8 +44,7 @@ def _scale(images):
                 preview_url=im.preview_url,
                 preview_height=preview_height,
                 preview_width=preview_width,
-                sample_url=sample_url,
-                proxy_sample_url=url_for_resized(sample_url, preview_width, preview_height)
+                md5=im.md5
             ))
     return posts
 
@@ -70,24 +62,35 @@ class Local(object):
     def fetch(self, url):
         return self.http.request('GET', url)
 
-    def image(self, url):
-        from urllib.parse import unquote_plus
-        url = unquote_plus(url)
-        logging.debug('fetch image: %s' % url)
-        r = self.fetch(url)
-        return r.data, 200, {'Content-Type': r.headers['content-type']}
+    def _fetch_image(self, url):
+        try:
+            logging.info('fetch image: %s' % url)
+            r = self.fetch(url)
+            return r.data
+        except Exception as e:
+            logging.error('fetch image failed: %s' % url)
+            logging.exception(e)
+            return None
 
-    def resized(self, url, width, height):
-        from urllib.parse import unquote_plus
-        url = unquote_plus(url)
-        logging.debug('fetch image: %s' % url)
-        r = self.fetch(url)
-        input_stream = BytesIO(r.data)
+    def sample(self, md5):
+        md5 = md5.encode('ascii')
+
+        with self.connection() as con:
+            im = con.get_image_bi_md5(md5)
+            url = im.sample_url if im.sample_url else im.url
+            height = im.height
+
+        input_stream = BytesIO(self._fetch_image(url))
         im = Image.open(input_stream)
-        im = im.resize((width, height), Image.ANTIALIAS)
+        im.thumbnail((self.sample_width, height), Image.ANTIALIAS)
         output_stream = BytesIO()
         im.save(output_stream, format='JPEG')
-        return output_stream.getvalue(), 200, {'Content-Type': r.headers['content-type']}
+        #return send_file(output_stream, mimetype='image/jpeg')
+        return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
+
+    @property
+    def sample_width(self):
+        return self.blue.sample_width
 
     def connection(self):
         return self.blue.connection()

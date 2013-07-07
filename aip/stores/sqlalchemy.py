@@ -144,6 +144,9 @@ def make(db):
         def get_meta(self, id):
             return Meta.query.filter_by(id=id).first()
 
+        def get_image_bi_md5(self, md5):
+            return Image.query.filter_by(md5=md5).first()
+
     Store = namedtuple('Store', ('Meta', 'Image', 'Repo', 'Connection'))
     return Store(
         Meta=Meta,

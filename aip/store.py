@@ -70,6 +70,10 @@ class Connection(object, metaclass=StoreMeta):
         return
 
     @abc.abstractmethod
+    def get_image_bi_md5(self, md5):
+        return
+
+    @abc.abstractmethod
     def get_images_order_bi_ctime(self, r):
         return
 
