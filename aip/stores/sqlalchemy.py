@@ -70,6 +70,9 @@ def make(db):
     class Meta(store.Meta, db.Model, metaclass=ModelMeta):
         pass
 
+    class User(store.User, db.Model, metaclass=ModelMeta):
+        pass
+
     class Image(store.Image, db.Model, metaclass=ModelMeta):
         pass
 
@@ -146,6 +149,9 @@ def make(db):
 
         def get_image_bi_md5(self, md5):
             return Image.query.filter_by(md5=md5).first()
+
+        def get_user_bi_id(self, id):
+            return User.query.filter_by(id=id).first()
 
     Store = namedtuple('Store', ('Meta', 'Image', 'Repo', 'Connection'))
     return Store(

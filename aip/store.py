@@ -3,6 +3,7 @@
 
 
 from datetime import datetime
+from hashlib import md5
 import abc
 from .abc import MetaWithFields as StoreMeta
 
@@ -12,6 +13,16 @@ class Meta(object, metaclass=StoreMeta):
     FIELDS = (
         ('id', str, {'length': 128, 'primary_key': True}),
         ('value', bytes)
+    )
+
+
+class User(object, metaclass=StoreMeta):
+
+    FIELDS = (
+        ('id', bytes, {'length': 128, 'primary_key': True}),
+        ('openid', str),
+        ('name', str, {'length': 128}),
+        ('email', str, {'length': 256})
     )
 
 
@@ -62,6 +73,16 @@ class Connection(object, metaclass=StoreMeta):
         return
 
     @abc.abstractmethod
+    def put(self, o):
+        return
+
+    def put_user(self, user):
+        if user.id is None:
+            assert user.openid is not None
+            user.id = md5().update(user.openid).hexdigest()
+        return self.put(user)
+
+    @abc.abstractmethod
     def add_or_update(self, o):
         return
 
@@ -100,3 +121,10 @@ class Connection(object, metaclass=StoreMeta):
     @abc.abstractmethod
     def get_meta(self, id):
         return
+
+    @abc.abstractmethod
+    def get_user_bi_id(self, id):
+        return
+
+    def get_user_bi_openid(self, openid):
+        return self.get_user_bi_id(md5().update(openid).hexdigest())

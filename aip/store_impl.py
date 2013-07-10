@@ -49,6 +49,10 @@ class Meta(store.Meta, metaclass=StoreMeta):
     pass
 
 
+class User(store.User, metaclass=StoreMeta):
+    pass
+
+
 class Image(store.Image, metaclass=StoreMeta):
     pass
 
@@ -58,6 +62,7 @@ class Repo(store.Repo):
     def __init__(self):
         self.images = []
         self.meta = {}
+        self.users = []
 
     def connection(self):
         return Connection(self)
@@ -93,6 +98,10 @@ class Connection(store.Connection):
     def meta(self):
         return self.repo.meta
 
+    @property
+    def users(self):
+        return self.repo.users
+
     def __init__(self, repo):
         self.repo = repo
 
@@ -125,6 +134,9 @@ class Connection(store.Connection):
             for key, value in list(im.__dict__.items()):
                 if value is not None:
                     setattr(origin, key, value)
+
+    def put(self, o):
+        return self.add_or_update(o)
 
     def add_or_update(self, o):
         if type(o) is Image:
@@ -161,4 +173,10 @@ class Connection(store.Connection):
         for im in self.images:
             if im.md5 == md5:
                 return im
+        return None
+
+    def get_user_bi_id(self, id):
+        for user in self.users:
+            if im.id == id:
+                return user
         return None

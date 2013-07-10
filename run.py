@@ -8,6 +8,7 @@ from aip import make
 from aip.settings import LOG_FILE_PATH
 from aip.stores import sqlalchemy
 from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.openid import OpenID
 
 
 if False:
@@ -44,4 +45,5 @@ if __name__ == "__main__":
     aip.store = sqlalchemy.make(db)
     app.register_blueprint(aip)
     db.create_all()
+    oid = OpenID(app, 'temp/openid')
     app.run(debug=True)
