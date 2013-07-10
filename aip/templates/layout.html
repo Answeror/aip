@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{% block title %}AIP Instrumentality Project{% endblock %}</title>
+        <meta name="author" content="answeror">
+        <meta charset="utf-8">
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+        <!--[if lt IE 9]>
+        <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+        <!-- Le styles -->
+        <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap.min.css') }}" media='screen'>
+        <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap-responsive.min.css') }}" media='screen'>
+        <link rel='stylesheet' href="{{ url_for('.style') }}" media='screen'>
+    </head>
+    <body>
+        {% block body %}
+        {% endblock %}
+    </body>
+</html>

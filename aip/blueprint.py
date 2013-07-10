@@ -26,10 +26,11 @@ class Blueprint(flask.Blueprint):
         return inner
 
     def __init__(self, *args, **kargs):
-        temp_path = kargs['temp_path']
+        self.temp_path = kargs['temp_path']
         del kargs['temp_path']
+        self.oid = kargs['oid']
+        del kargs['oid']
         super(Blueprint, self).__init__(*args, **kargs)
-        self.temp_path = temp_path
 
     def local(self):
         from .local import Local

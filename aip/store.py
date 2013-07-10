@@ -79,7 +79,9 @@ class Connection(object, metaclass=StoreMeta):
     def put_user(self, user):
         if user.id is None:
             assert user.openid is not None
-            user.id = md5().update(user.openid).hexdigest()
+            m = md5()
+            m.update(user.openid.encode('utf-8'))
+            user.id = m.hexdigest().encode('ascii')
         return self.put(user)
 
     @abc.abstractmethod
@@ -111,6 +113,10 @@ class Connection(object, metaclass=StoreMeta):
         return
 
     @abc.abstractmethod
+    def user_count(self):
+        return
+
+    @abc.abstractmethod
     def unique_image_count(self):
         return
 
@@ -127,4 +133,6 @@ class Connection(object, metaclass=StoreMeta):
         return
 
     def get_user_bi_openid(self, openid):
-        return self.get_user_bi_id(md5().update(openid).hexdigest())
+        m = md5()
+        m.update(openid.encode('utf-8'))
+        return self.get_user_bi_id(m.hexdigest().encode('ascii'))

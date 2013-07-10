@@ -160,6 +160,9 @@ class Connection(store.Connection):
     def image_count(self):
         return len(self.images)
 
+    def user_count(self):
+        return len(self.users)
+
     def unique_image_count(self):
         return len(unique(self.images, key=lambda im: im.md5))
 

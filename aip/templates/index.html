@@ -1,59 +1,43 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>AIP Instrumentality Project</title>
-        <meta name="author" content="answeror">
-        <meta charset="utf-8">
-        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
-        <!--[if lt IE 9]>
-        <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-        <![endif]-->
-        <!-- Le styles -->
-        <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap.min.css') }}" media='screen'>
-        <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap-responsive.min.css') }}" media='screen'>
-        <link rel='stylesheet' href="{{ url_for('.style') }}" media='screen'>
-    </head>
-    <body>
-        <header>
-            <h1>AIP Instrumentality Project</h1>
-        </header>
-        <div id='container'>
-            <div id='items'>
-                {% for im in pagination.items %}
-                <div class='item'>
-                    <a href='{{ im.url }}' target='_blank' class="thumbnail">
-                        <img class='preview lazy' style='width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' data-src='{{ im.preview_url }}'>
-                        <img class='sample' style='display:none;width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' data-src='{{ url_for('.sample', md5=im.md5) }}'>
-                    </a>
-                </div>
-                {% endfor %}
+{% extends "layout.html" %}
+{% block body %}
+    <header>
+        <h1>AIP Instrumentality Project</h1>
+    </header>
+    <div id='container'>
+        <div id='items'>
+            {% for im in pagination.items %}
+            <div class='item'>
+                <a href='{{ im.url }}' target='_blank' class="thumbnail">
+                    <img class='preview lazy' style='width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' data-src='{{ im.preview_url }}'>
+                    <img class='sample' style='display:none;width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' data-src='{{ url_for('.sample', md5=im.md5) }}'>
+                </a>
             </div>
+            {% endfor %}
         </div>
-        <div id='alert_box'></div>
-        <div id='loading' style='display:none'>
-            <img src='{{ url_for('.static', filename='images/inf.gif') }}'>
-        </div>
-        <div style='display:none'>
-            {% if pagination.prev %}<a href='{{ url_for('.posts', page=pagination.prev) }}'>&laquo;</a>{% endif %}
-            <span>...</span>
-            {% if pagination.next %}<a class='more' href='{{ url_for('.posts', page=pagination.next) }}'>&raquo;</a>{% endif %}
-        </div>
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-        <script src="{{ url_for('.static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
-        <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
-        <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
-        <script src="{{ url_for('.static', filename='waypoints-infinite.js') }}"></script>
-        <script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
-        <script src="{{ url_for('.static', filename='js/base.js') }}"></script>
-        <script>
-            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-            })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+    </div>
+    <div id='alert_box'></div>
+    <div id='loading' style='display:none'>
+        <img src='{{ url_for('.static', filename='images/inf.gif') }}'>
+    </div>
+    <div style='display:none'>
+        {% if pagination.prev %}<a href='{{ url_for('.posts', page=pagination.prev) }}'>&laquo;</a>{% endif %}
+        <span>...</span>
+        {% if pagination.next %}<a class='more' href='{{ url_for('.posts', page=pagination.next) }}'>&raquo;</a>{% endif %}
+    </div>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="{{ url_for('.static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
+    <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
+    <script src="{{ url_for('.static', filename='waypoints-infinite.js') }}"></script>
+    <script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
+    <script src="{{ url_for('.static', filename='js/base.js') }}"></script>
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-            ga('create', 'UA-10313309-5', 'answeror.com');
-            ga('send', 'pageview');
-        </script>
-    </body>
-</html>
+        ga('create', 'UA-10313309-5', 'answeror.com');
+        ga('send', 'pageview');
+    </script>
+{% endblock %}

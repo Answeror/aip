@@ -40,10 +40,10 @@ if __name__ == "__main__":
     app = Flask(__name__)
     root = os.path.dirname(__file__)
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///%s' % os.path.join(root, 'temp', 'aip.db')
+    app.secret_key = 'why would I tell you my secret key?'
     db = SQLAlchemy(app)
-    aip = make(temp_path=os.path.join(root, 'temp'))
+    aip = make(app, temp_path=os.path.join(root, 'temp'))
     aip.store = sqlalchemy.make(db)
-    app.register_blueprint(aip)
     db.create_all()
     oid = OpenID(app, 'temp/openid')
     app.run(debug=True)

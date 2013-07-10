@@ -138,6 +138,9 @@ def make(db):
         def image_count(self):
             return db.session.query(func.count(Image.id)).first()[0]
 
+        def user_count(self):
+            return db.session.query(func.count(User.id)).first()[0]
+
         def unique_image_count(self):
             return Image.query.group_by(Image.md5).count()
 
@@ -153,9 +156,10 @@ def make(db):
         def get_user_bi_id(self, id):
             return User.query.filter_by(id=id).first()
 
-    Store = namedtuple('Store', ('Meta', 'Image', 'Repo', 'Connection'))
+    Store = namedtuple('Store', ('Meta', 'User', 'Image', 'Repo', 'Connection'))
     return Store(
         Meta=Meta,
+        User=User,
         Image=Image,
         Repo=Repo,
         Connection=Connection

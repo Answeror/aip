@@ -8,7 +8,11 @@ from flask import (
     g,
     render_template,
     make_response,
-    send_file
+    session,
+    redirect,
+    request,
+    url_for,
+    flash
 )
 from operator import attrgetter as attr
 from .settings import PER, LOG_FILE_PATH
@@ -99,6 +103,9 @@ class Local(object):
         with self.connection() as con:
             return str(con.image_count())
 
+    def user_count(self):
+        return str(self.session.user_count())
+
     def unique_image_count(self):
         with self.connection() as con:
             return str(con.unique_image_count())
@@ -172,3 +179,69 @@ class Local(object):
     def clear(self):
         self.blue.clear()
         return ''
+
+    @property
+    def session(self):
+        return self.connection()
+
+    @property
+    def user(self):
+        if not hasattr(self, '_user'):
+            self._user = None
+            if 'openid' in session:
+                self._user = self.session.get_user_bi_openid(session['openid'])
+        return self._user
+
+    @property
+    def oid(self):
+        return self.blue.oid
+
+    def login(self):
+        if self.user is not None:
+            return redirect(self.oid.get_next_url())
+        if request.method == 'POST':
+            openid = request.form.get('openid')
+            if openid:
+                return self.oid.try_login(
+                    openid,
+                    ask_for=['email', 'fullname', 'nickname']
+                )
+        return render_template(
+            'login.html',
+            next=self.oid.get_next_url(),
+            error=self.oid.fetch_error()
+        )
+
+    def create_or_login(self, resp):
+        session['openid'] = resp.identity_url
+        if self.user is not None:
+            flash(u'Successfully signed in')
+            return redirect(self.oid.get_next_url())
+        return redirect(url_for(
+            '.create_profile',
+            next=self.oid.get_next_url(),
+            name=resp.fullname or resp.nickname,
+            email=resp.email
+        ))
+
+    def create_profile(self):
+        if self.user is not None or 'openid' not in session:
+            return redirect(url_for('index'))
+        if request.method == 'POST':
+            name = request.form['name']
+            email = request.form['email']
+            if not name:
+                flash(u'Error: you have to provide a name')
+            elif '@' not in email:
+                flash(u'Error: you have to enter a valid email address')
+            else:
+                flash(u'Profile successfully created')
+                self.session.put_user(self.store.User(name=name, email=email, openid=session['openid']))
+                self.session.commit()
+                return redirect(self.oid.get_next_url())
+        return render_template('create_profile.html', next_url=self.oid.get_next_url())
+
+    def logout(self):
+        session.pop('openid', None)
+        flash(u'You were signed out')
+        return redirect(self.oid.get_next_url())

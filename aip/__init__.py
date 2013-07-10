@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+
+from flask.ext.openid import OpenID
 from .blueprint import Blueprint
 
 
-def make(temp_path=None):
+def make(app, temp_path=None):
     if temp_path is None:
         import tempfile
         temp_path = tempfile.mkdtemp()
@@ -15,7 +17,8 @@ def make(temp_path=None):
         template_folder='templates',
         static_folder='static',
         static_url_path='/aip/static',
-        temp_path=temp_path
+        temp_path=temp_path,
+        oid=OpenID(app, 'temp/openid')
     )
 
     from . import urls
@@ -23,5 +26,7 @@ def make(temp_path=None):
 
     from .context import setup
     setup(aip)
+
+    app.register_blueprint(aip)
 
     return aip

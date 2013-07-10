@@ -78,3 +78,28 @@ def log():
 @logged
 def clear():
     return g.aip.clear()
+
+
+@logged
+def login():
+    return g.aip.login()
+
+
+@logged
+def create_or_login(resp):
+    return g.aip.create_or_login(resp)
+
+
+@logged
+def create_profile():
+    return g.aip.create_profile()
+
+
+@logged
+def logout():
+    return g.aip.logout()
+
+
+@logged
+def user_count():
+    return g.aip.user_count()
