@@ -2,19 +2,17 @@
 # -*- coding: utf-8 -*-
 
 import os
-from flask import Flask
 import logging
-from aip import make
 from aip.settings import LOG_FILE_PATH
 from aip.stores import sqlalchemy
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.openid import OpenID
 
 
 if False:
     from aip.sources.booru import Source
     fetch = Source._fetch
     memo = {}
+
     def wrap(self, url):
         r = fetch(self, url)
         memo[url] = r.data
@@ -22,6 +20,7 @@ if False:
         with open('requests.pkl', 'wb') as f:
             pickle.dump(memo, f)
         return r
+
     Source._fetch = wrap
 
 
@@ -37,13 +36,11 @@ def setuplogging(level, stdout):
 
 if __name__ == "__main__":
     setuplogging(logging.DEBUG, True)
-    app = Flask(__name__)
-    root = os.path.dirname(__file__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///%s' % os.path.join(root, 'temp', 'aip.db')
+    from aip import app
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///%s' % os.path.abspath(os.path.join('temp', 'aip.db'))
+    app.config['aip.temp_path'] = os.path.abspath('temp')
     app.secret_key = 'why would I tell you my secret key?'
     db = SQLAlchemy(app)
-    aip = make(app, temp_path=os.path.join(root, 'temp'))
-    aip.store = sqlalchemy.make(db)
+    app.config['aip.store'] = sqlalchemy.make(db)
     db.create_all()
-    oid = OpenID(app, 'temp/openid')
     app.run(debug=True)
