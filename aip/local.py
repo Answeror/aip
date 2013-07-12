@@ -199,17 +199,11 @@ class Local(object):
     def login(self):
         if self.user is not None:
             return redirect(self.oid.get_next_url())
-        if request.method == 'POST':
-            openid = request.form.get('openid')
-            if openid:
-                return self.oid.try_login(
-                    openid,
-                    ask_for=['email', 'fullname', 'nickname']
-                )
-        return render_template(
-            'login.html',
-            next=self.oid.get_next_url(),
-            error=self.oid.fetch_error()
+
+        openid = 'https://www.google.com/accounts/o8/id'
+        return self.oid.try_login(
+            openid,
+            ask_for=['email', 'fullname', 'nickname']
         )
 
     def create_or_login(self, resp):
