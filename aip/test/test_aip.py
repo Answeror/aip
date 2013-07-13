@@ -17,8 +17,7 @@ g = type('g', (object,), {})()
 
 def setup_app():
     from .. import make
-    from .. import config
-    g.app = make(config=config)
+    g.app = make()
     g.app.config.from_object(__name__)
     g.client = g.app.test_client()
 

@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 
-def make(config):
+from . import config
+
+
+def make(config=config):
     from flask import Flask
     app = Flask(
         __name__,
