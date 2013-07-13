@@ -4,6 +4,7 @@
 
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func, and_
+from hashlib import md5
 
 
 db = SQLAlchemy()
@@ -120,6 +121,21 @@ def get_image_bi_md5(md5):
 
 def get_user_bi_id(id):
     return User.query.filter_by(id=id).first()
+
+
+def put_user(user):
+    if user.id is None:
+        assert user.openid is not None
+        m = md5()
+        m.update(user.openid.encode('utf-8'))
+        user.id = m.hexdigest().encode('ascii')
+    return put(user)
+
+
+def get_user_bi_openid(openid):
+    m = md5()
+    m.update(openid.encode('utf-8'))
+    return get_user_bi_id(m.hexdigest().encode('ascii'))
 
 
 def clear():

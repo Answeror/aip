@@ -3,9 +3,7 @@
 
 import os
 import logging
-from aip.settings import LOG_FILE_PATH
-from aip.stores import sqlalchemy
-from flask.ext.sqlalchemy import SQLAlchemy
+from aip.config import AIP_LOG_FILE_PATH
 
 
 if False:
@@ -25,7 +23,7 @@ if False:
 
 
 def setuplogging(level, stdout):
-    logging.basicConfig(filename=LOG_FILE_PATH, level=level)
+    logging.basicConfig(filename=AIP_LOG_FILE_PATH, level=level)
     if stdout:
         import sys
         soh = logging.StreamHandler(sys.stdout)
@@ -34,13 +32,13 @@ def setuplogging(level, stdout):
         logger.addHandler(soh)
 
 
+AIP_TEMP_PATH = os.path.abspath('temp')
+SQLALCHEMY_DATABASE_URI = 'sqlite:///%s' % os.path.abspath(os.path.join('temp', 'aip.db'))
+
+
 if __name__ == "__main__":
     setuplogging(logging.DEBUG, True)
-    from aip import app
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///%s' % os.path.abspath(os.path.join('temp', 'aip.db'))
-    app.config['aip.temp_path'] = os.path.abspath('temp')
+    from aip import make
+    app = make(__name__)
     app.secret_key = 'why would I tell you my secret key?'
-    db = SQLAlchemy(app)
-    app.config['aip.store'] = sqlalchemy.make(db)
-    db.create_all()
     app.run(debug=True)

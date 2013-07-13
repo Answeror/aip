@@ -241,7 +241,7 @@ def make(app, oid):
     def sample(md5):
         md5 = md5.encode('ascii')
         im = store.get_image_bi_md5(md5)
-        url = im.sample_url if im.sample_url else im.url
+        url = im.sample_url if im.sample_url else im.image_url
         height = im.height
         input_stream = BytesIO(_fetch_image(url))
         im = Image.open(input_stream)
