@@ -108,7 +108,7 @@ def sources(self):
 @prop
 def repo(self):
     if not hasattr(g, '_repo'):
-        g._repo = g.store.Repo()
+        g._repo = g.store.repo
     return g._repo
 
 

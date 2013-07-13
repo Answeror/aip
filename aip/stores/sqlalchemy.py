@@ -156,11 +156,11 @@ def make(db):
         def get_user_bi_id(self, id):
             return User.query.filter_by(id=id).first()
 
-    Store = namedtuple('Store', ('Meta', 'User', 'Image', 'Repo', 'Connection'))
+    Store = namedtuple('Store', ('Meta', 'User', 'Image', 'repo', 'Connection'))
     return Store(
         Meta=Meta,
         User=User,
         Image=Image,
-        Repo=Repo,
+        repo=Repo(),
         Connection=Connection
     )

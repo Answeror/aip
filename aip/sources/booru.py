@@ -50,7 +50,7 @@ class Source(base.Source, metaclass=MetaWithFields):
         end = False
         fetched = 0
         while not end:
-            logging.debug('limit %d' % limit)
+            logging.debug('fetch list, limit %d' % limit)
             page_link = self.image_url_template % ('+'.join(tags), limit, page)
             images = list(self._get(page_link))
             if len(images) < limit:

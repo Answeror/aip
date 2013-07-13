@@ -5,6 +5,7 @@
 from operator import attrgetter as attr
 import abc
 from functools import partial
+from collections import namedtuple
 from . import store
 
 
@@ -183,3 +184,14 @@ class Connection(store.Connection):
             if im.id == id:
                 return user
         return None
+
+
+def make():
+    Store = namedtuple('Store', ('Meta', 'User', 'Image', 'repo', 'Connection'))
+    return Store(
+        Meta=Meta,
+        User=User,
+        Image=Image,
+        repo=Repo(),
+        Connection=Connection
+    )

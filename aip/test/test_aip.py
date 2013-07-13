@@ -5,25 +5,24 @@
 from nose.tools import assert_equal, assert_in, with_setup
 from bs4 import BeautifulSoup as Soup
 from flask import Flask
-from .. import make
+from .. import app
 from .settings import RESPONSE_FILE_PATH
 from mock import patch, Mock
+from .. import store_impl as memory
 
 
 g = type('g', (object,), {})()
 
 
 def setup_app():
-    g.app = Flask(__name__)
-    g.aip = make()
-    g.app.register_blueprint(g.aip)
+    g.app = app
+    g.app.config['aip.store'] = memory.make()
     g.client = g.app.test_client()
 
 
 def teardown_app():
     del g.client
     del g.app
-    del g.aip
 
 
 def patch_urllib3():
@@ -63,7 +62,7 @@ def test_index_empty():
 def _test_update_images():
     r = g.client.get('/image_count')
     assert_equal(r.data, b'0')
-    g.client.get('/update_images/20130630')
+    g.client.get('/update/20130630')
     r = g.client.get('/image_count')
     assert_equal(r.data, b'712')
 
@@ -75,7 +74,7 @@ def test_update_images():
 
 
 def _test_unique_images():
-    g.client.get('/update_images/20130630')
+    g.client.get('/update/20130630')
     r = g.client.get('/unique_image_count')
     assert_equal(r.data, b'504')
     r = g.client.get('/unique_image_md5')
@@ -91,10 +90,10 @@ def test_unique_images():
 def _test_no_duplication():
     r = g.client.get('/image_count')
     assert_equal(r.data, b'0')
-    g.client.get('/update_images/20130630')
+    g.client.get('/update/20130630')
     r = g.client.get('/image_count')
     assert_equal(r.data, b'712')
-    g.client.get('/update_images/20130630')
+    g.client.get('/update/20130630')
     r = g.client.get('/image_count')
     assert_equal(r.data, b'712')
 
@@ -108,7 +107,7 @@ def test_no_duplication():
 def _test_clear():
     r = g.client.get('/image_count')
     assert_equal(r.data, b'0')
-    g.client.get('/update_images/20130630')
+    g.client.get('/update/20130630')
     r = g.client.get('/image_count')
     assert_equal(r.data, b'712')
     g.client.get('/clear')
