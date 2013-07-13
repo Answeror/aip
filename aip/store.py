@@ -1,138 +1,134 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
-from datetime import datetime
-from hashlib import md5
-import abc
-from .abc import MetaWithFields as StoreMeta
+from flask.ext.sqlalchemy import SQLAlchemy
+from sqlalchemy import func, and_
 
 
-class Meta(object, metaclass=StoreMeta):
-
-    FIELDS = (
-        ('id', str, {'length': 128, 'primary_key': True}),
-        ('value', bytes)
-    )
+db = SQLAlchemy()
 
 
-class User(object, metaclass=StoreMeta):
+class Meta(db.Model):
 
-    FIELDS = (
-        ('id', bytes, {'length': 128, 'primary_key': True}),
-        ('openid', str),
-        ('name', str, {'length': 128}),
-        ('email', str, {'length': 256})
-    )
+    id = db.Column(db.String(128), primary_key=True)
+    value = db.Column(db.LargeBinary)
 
 
-class Image(object, metaclass=StoreMeta):
+class User(db.Model):
 
-    FIELDS = (
-        ('id', str, {'length': 128, 'primary_key': True}),
-        'url',
-        ('width', int),
-        ('height', int),
-        'rating',
-        ('score', float),
-        'preview_url',
-        'sample_url',
-        'tags',
-        ('ctime', datetime),
-        ('mtime', datetime),
-        ('site_id', str, {'length': 128}),
-        ('post_id', int),
-        'post_url',
-        ('md5', bytes, {'length': 128})
-    )
+    id = db.Column(db.LargeBinary(128), primary_key=True)
+    openid = db.Column(db.Text, unique=True)
+    name = db.Column(db.String(128), unique=True)
+    email = db.Column(db.String(256), unique=True)
 
 
-class Repo(object, metaclass=StoreMeta):
+class Entry(db.Model):
 
-    @abc.abstractmethod
-    def connection(self):
-        return
-
-    @abc.abstractmethod
-    def clear(self):
-        return
+    id = db.Column(db.LargeBinary(128), primary_key=True)
+    posts = db.relationship('Post')
 
 
-class Connection(object, metaclass=StoreMeta):
+class Post(db.Model):
 
-    @abc.abstractmethod
-    def __enter__(self, *args, **kargs):
-        return
+    id = db.Column(db.String(128), primary_key=True)
+    image_url = db.Column(db.Text)
+    width = db.Column(db.Integer)
+    height = db.Column(db.Integer)
+    rating = db.Column(db.String(128))
+    score = db.Column(db.Float)
+    preview_url = db.Column(db.Text)
+    sample_url = db.Column(db.Text)
+    tags = db.Column(db.Text)
+    ctime = db.Column(db.DateTime)
+    mtime = db.Column(db.DateTime)
+    site_id = db.Column(db.String(128))
+    post_id = db.Column(db.String(128))
+    post_url = db.Column(db.Text)
+    md5 = db.Column(db.LargeBinary(128), db.ForeignKey('entry.id'))
 
-    @abc.abstractmethod
-    def __exit__(self, *args, **kargs):
-        return
 
-    @abc.abstractmethod
-    def commit(self):
-        return
+def _random_name():
+    import uuid
+    return str(uuid.uuid4())
 
-    @abc.abstractmethod
-    def put(self, o):
-        return
 
-    def put_user(self, user):
-        if user.id is None:
-            assert user.openid is not None
-            m = md5()
-            m.update(user.openid.encode('utf-8'))
-            user.id = m.hexdigest().encode('ascii')
-        return self.put(user)
+def put(o):
+    if o.id is None:
+        o.id = _random_name()
+    o = db.session.merge(o)
+    db.session.add(o)
 
-    @abc.abstractmethod
-    def add_or_update(self, o):
-        return
 
-    @abc.abstractmethod
-    def put_image(self, im):
-        return
+def put_image(im):
+    if im.id is None:
+        im.id = _random_name()
 
-    @abc.abstractmethod
-    def get_image_bi_md5(self, md5):
-        return
+    origin = Post.query.filter_by(site_id=im.site_id, post_id=im.post_id).first()
 
-    @abc.abstractmethod
-    def get_images_order_bi_ctime(self, r):
-        return
+    if origin is not None:
+        im.id = origin.id
+        im = db.session.merge(im)
 
-    @abc.abstractmethod
-    def get_unique_images_order_bi_ctime(self, r):
-        return
+    db.session.add(im)
 
-    @abc.abstractmethod
-    def latest_ctime_bi_site_id(self, id):
-        return
 
-    @abc.abstractmethod
-    def image_count(self):
-        return
+def get_images_order_bi_ctime(r=None):
+    q = Post.query.order_by(Post.ctime.desc())
+    return q if r is None else q[r]
 
-    @abc.abstractmethod
-    def user_count(self):
-        return
 
-    @abc.abstractmethod
-    def unique_image_count(self):
-        return
+def get_unique_images_order_bi_ctime(r=None):
+    sub = db.session.query(
+        func.max(Post.score),
+        Post.id.label('best_id')
+    ).group_by(Post.md5).subquery()
+    q = Post.query.join(
+        sub,
+        and_(Post.id == sub.c.best_id)
+    ).order_by(Post.ctime.desc())
+    return q if r is None else q[r]
 
-    @abc.abstractmethod
-    def set_meta(self, id, value):
-        return
 
-    @abc.abstractmethod
-    def get_meta(self, id):
-        return
+def latest_ctime_bi_site_id(id):
+    return db.session.query(func.max(Post.ctime)).first()[0]
 
-    @abc.abstractmethod
-    def get_user_bi_id(self, id):
-        return
 
-    def get_user_bi_openid(self, openid):
-        m = md5()
-        m.update(openid.encode('utf-8'))
-        return self.get_user_bi_id(m.hexdigest().encode('ascii'))
+def image_count():
+    return db.session.query(func.count(Post.id)).first()[0]
+
+
+def user_count():
+    return db.session.query(func.count(User.id)).first()[0]
+
+
+def unique_image_count():
+    return Post.query.group_by(Post.md5).count()
+
+
+def set_meta(id, value):
+    put(Meta(id=id, value=value))
+
+
+def get_meta(id):
+    return Meta.query.filter_by(id=id).first()
+
+
+def get_image_bi_md5(md5):
+    return Post.query.filter_by(md5=md5).first()
+
+
+def get_user_bi_id(id):
+    return User.query.filter_by(id=id).first()
+
+
+def clear():
+    db.drop_all()
+    db.create_all()
+
+
+def make(app):
+    db.app = app
+    db.init_app(app)
+    db.create_all()
+    return db

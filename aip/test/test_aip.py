@@ -4,19 +4,22 @@
 
 from nose.tools import assert_equal, assert_in, with_setup
 from bs4 import BeautifulSoup as Soup
-from flask import Flask
-from .. import app
-from .settings import RESPONSE_FILE_PATH
 from mock import patch, Mock
-from .. import store_impl as memory
+import os
+
+
+RESPONSE_FILE_PATH = os.path.join(os.path.dirname(__file__), 'response.pkl')
+SQLALCHEMY_DATABASE_URI = 'sqlite://'
 
 
 g = type('g', (object,), {})()
 
 
 def setup_app():
-    g.app = app
-    g.app.config['aip.store'] = memory.make()
+    from .. import make
+    from .. import config
+    g.app = make(config=config)
+    g.app.config.from_object(__name__)
     g.client = g.app.test_client()
 
 
