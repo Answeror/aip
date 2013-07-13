@@ -4,6 +4,7 @@
 
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func, and_
+from sqlalchemy.ext.hybrid import hybrid_property
 from hashlib import md5
 
 
@@ -28,6 +29,22 @@ class Entry(db.Model):
 
     id = db.Column(db.LargeBinary(128), primary_key=True)
     posts = db.relationship('Post')
+
+    @hybrid_property
+    def ctime(self):
+        return min(self.posts, key=lambda p: p.ctime)
+
+    @ctime.expression
+    def ctime(cls):
+        return db.session.query(func.min(Post.ctime)).filter(Post.md5 == cls.id)
+
+    @hybrid_property
+    def best_post(self):
+        return max(self.posts, key=lambda p: p.score)
+
+    @best_post.expression
+    def best_post(cls):
+        return Post.query.filter_by(and_(md5=cls.id, score=func.max(Post.score).select()))
 
 
 class Post(db.Model):
@@ -61,22 +78,34 @@ def put(o):
     db.session.add(o)
 
 
+def get_entry_bi_id(id):
+    return Entry.query.filter_by(id=id).first()
+
+
 def put_image(im):
     if im.id is None:
         im.id = _random_name()
 
     origin = Post.query.filter_by(site_id=im.site_id, post_id=im.post_id).first()
-
     if origin is not None:
         im.id = origin.id
         im = db.session.merge(im)
-
     db.session.add(im)
+
+    # add entry
+    entry = get_entry_bi_id(im.md5)
+    if entry is None:
+        entry = Entry(id=im.md5)
+        db.session.add(entry)
 
 
 def get_images_order_bi_ctime(r=None):
     q = Post.query.order_by(Post.ctime.desc())
     return q if r is None else q[r]
+
+
+def get_entries_order_bi_ctime(r=None):
+    return Entry.query.order_by(Entry.ctime)
 
 
 def get_unique_images_order_bi_ctime(r=None):
@@ -105,6 +134,10 @@ def user_count():
 
 def unique_image_count():
     return Post.query.group_by(Post.md5).count()
+
+
+def entry_count():
+    return db.session.query(func.count(Entry.id)).first()[0]
 
 
 def set_meta(id, value):

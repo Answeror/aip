@@ -15,7 +15,8 @@ from flask import (
     redirect,
     url_for,
     flash,
-    current_app
+    current_app,
+    jsonify
 )
 from operator import attrgetter as attr
 from io import BytesIO
@@ -34,8 +35,12 @@ Post = namedtuple('Post', (
 ))
 
 
-def _scale(images):
-    images = list(images)
+def _tod(entry):
+    return {'id': entry.id.decode('ascii')}
+
+
+def _scale(entries):
+    images = [e.best_post for e in entries]
     posts = []
     if images:
         for im in images:
@@ -262,9 +267,17 @@ def make(app, oid):
     def unique_image_count():
         return str(store.unique_image_count())
 
+    @app.route('/entry_count')
+    def entry_count():
+        return str(store.entry_count())
+
     @app.route('/unique_image_md5')
     def unique_image_md5():
         return b'\n'.join([im.md5 for im in store.get_unique_images_order_bi_ctime()])
+
+    @app.route('/entries')
+    def entries():
+        return jsonify(results=[_tod(im) for im in store.get_entries_order_bi_ctime()])
 
     @app.route('/', defaults={'page': 1})
     @app.route('/page/<int:page>')
@@ -274,7 +287,7 @@ def make(app, oid):
             page,
             app.config['AIP_PER'],
             lambda begin, end: _scale(
-                store.get_unique_images_order_bi_ctime(r=slice(begin, end, 1))
+                store.get_entries_order_bi_ctime(r=slice(begin, end, 1))
             )
         )
         return render_template('index.html', pagination=pagination)

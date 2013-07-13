@@ -1,17 +1,17 @@
 $(function() {
-    $.fn.lazyload = function(){
-        var $this = $(this);
-        $this.waypoint(
-            function(){
-                $this.hide().attr("src", $this.data('src')).fadeIn('slow');
-            }, {
-                triggerOnce: true,
-                offset: function() {
-                    return $.waypoints('viewportHeight') + $(this).height();
-                }
-            }
-        );
-    };
+    //$.fn.lazyload = function(){
+        //var $this = $(this);
+        //$this.waypoint(
+            //function(){
+                //$this.hide().attr("src", $this.data('src')).fadeIn('slow');
+            //}, {
+                //triggerOnce: true,
+                //offset: function() {
+                    //return $.waypoints('viewportHeight') + $(this).height();
+                //}
+            //}
+        //);
+    //};
     var gutter = 10;
     var min_width = 200;
     function fit(index, width){
@@ -41,16 +41,16 @@ $(function() {
                 console.log('use sample error');
             });
         };
-        $preview.one('error', usesample);
+        //$preview.one('error', usesample);
         truesize(
             $preview.data('src'),
             function(width, height) {
                 if ($preview.width() * $preview.height() > width * height * 3) {
-                    usesample();
+                    //usesample();
                 }
             }
         );
-        $preview.lazyload();
+        //$preview.lazyload();
     };
     var $container = $('#items');
     var $items = $container.find('.item');

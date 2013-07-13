@@ -6,6 +6,7 @@ from nose.tools import assert_equal, assert_in, with_setup
 from bs4 import BeautifulSoup as Soup
 from mock import patch, Mock
 import os
+import json
 
 
 RESPONSE_FILE_PATH = os.path.join(os.path.dirname(__file__), 'response.pkl')
@@ -18,7 +19,7 @@ g = type('g', (object,), {})()
 def setup_app():
     from .. import make
     g.app = make(__name__)
-
+    g.client = g.app.test_client()
 
 
 def teardown_app():
@@ -86,6 +87,16 @@ def _test_unique_images():
 @with_setup(setup_app, teardown_app)
 def test_unique_images():
     _test_unique_images()
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+def test_entries():
+    g.client.get('/update/20130630')
+    r = g.client.get('/entry_count')
+    assert_equal(r.data, b'504')
+    r = g.client.get('/entries')
+    assert_equal(len(json.loads(r.data.decode('utf-8'))['results']), 504)
 
 
 def _test_no_duplication():

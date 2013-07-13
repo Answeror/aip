@@ -8,7 +8,7 @@
             {% for im in pagination.items %}
             <div class='item'>
                 <a href='{{ im.url }}' target='_blank' class="thumbnail">
-                    <img class='preview lazy' style='width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' data-src='{{ im.preview_url }}'>
+                    <img class='preview lazy' style='width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' src='{{ im.preview_url }}'>
                     <img class='sample' style='display:none;width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' data-src='{{ url_for('.sample', md5=im.md5) }}'>
                 </a>
             </div>
