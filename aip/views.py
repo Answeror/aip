@@ -2,12 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
-from functools import wraps
 import logging
 import os
-import threading
-import pickle
-from flask import request
 from flask import (
     g,
     render_template,
@@ -15,14 +11,13 @@ from flask import (
     redirect,
     url_for,
     flash,
-    current_app,
-    jsonify
+    request,
+    current_app
 )
 from operator import attrgetter as attr
 from io import BytesIO
 from PIL import Image
 from collections import namedtuple
-from datetime import datetime
 from . import store
 
 
@@ -33,10 +28,6 @@ Post = namedtuple('Post', (
     'preview_height',
     'md5'
 ))
-
-
-def _tod(entry):
-    return {'id': entry.id.decode('ascii')}
 
 
 def _scale(entries):
@@ -63,17 +54,6 @@ def _scale(entries):
 
 def _ensure_exists(path):
     assert os.path.exists(path), 'file not exist: %s' % path
-
-
-lock = threading.RLock()
-
-
-def locked(f):
-    @wraps(f)
-    def inner(*args, **kargs):
-        with lock:
-            return f(*args, **kargs)
-    return inner
 
 
 def prop(f):
@@ -133,22 +113,6 @@ def gutter(self):
 @prop
 def per(self):
     return current_app.config['AIP_PER']
-
-
-def _set_last_update_time(value):
-    store.set_meta('last_update_time', pickle.dumps(value))
-    store.db.session.commit()
-
-
-def _update_images(begin=None, limit=65536):
-    for make in g.sources:
-        source = make(store.Post)
-        tags = []
-        for i, im in zip(list(range(limit)), source.get_images(tags)):
-            if begin is not None and im.ctime <= begin:
-                break
-            store.put_image(im)
-        store.db.session.commit()
 
 
 def _fetch(url):
@@ -222,26 +186,6 @@ def make(app, oid):
         flash(u'You were signed out')
         return redirect(oid.get_next_url())
 
-    @app.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
-    @app.route('/update/<begin>')
-    @locked
-    def update(begin=None):
-        from datetime import datetime
-        begin = datetime.strptime(begin, '%Y%m%d')
-        _set_last_update_time(datetime.now())
-        _update_images(begin)
-        return 'updated from %s' % begin.strftime('%Y-%m-%d')
-
-    @app.route('/last_update_time')
-    def last_update_time():
-        value = store.get_meta('last_update_time')
-        return '' if value is None else pickle.loads(value).strftime('%Y-%m-%d %H:%M:%S')
-
-    @app.route('/clear')
-    def clear():
-        store.clear()
-        return ''
-
     @app.route('/sample/<md5>')
     def sample(md5):
         md5 = md5.encode('ascii')
@@ -254,30 +198,6 @@ def make(app, oid):
         output_stream = BytesIO()
         im.save(output_stream, format='JPEG')
         return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
-
-    @app.route('/image_count')
-    def image_count():
-        return str(store.image_count())
-
-    @app.route('/admin/user_count')
-    def user_count():
-        return str(store.user_count())
-
-    @app.route('/unique_image_count')
-    def unique_image_count():
-        return str(store.unique_image_count())
-
-    @app.route('/entry_count')
-    def entry_count():
-        return str(store.entry_count())
-
-    @app.route('/unique_image_md5')
-    def unique_image_md5():
-        return b'\n'.join([im.md5 for im in store.get_unique_images_order_bi_ctime()])
-
-    @app.route('/entries')
-    def entries():
-        return jsonify(results=[_tod(im) for im in store.get_entries_order_bi_ctime()])
 
     @app.route('/', defaults={'page': 1})
     @app.route('/page/<int:page>')
@@ -318,22 +238,3 @@ def make(app, oid):
     def log():
         with open(app.config['AIP_LOG_FILE_PATH'], 'rb') as f:
             return f.read()
-
-
-    @app.route('/admin/add_user', methods=['POST'])
-    def add_user():
-        try:
-            store.add_user(store.User(
-                openid=request.form['openid'],
-                name=request.form['name'],
-                email=request.form['email']
-            ))
-            return '0'
-        except Exception as e:
-            logging.info('add user failed: {}'.format(dict(
-                openid=request.form['openid'],
-                name=request.form['name'],
-                email=request.form['email']
-            )))
-            logging.exception(e)
-            return '1'
