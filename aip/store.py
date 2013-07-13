@@ -17,12 +17,21 @@ class Meta(db.Model):
     value = db.Column(db.LargeBinary)
 
 
+plus_table = db.Table(
+    'plus',
+    db.Model.metadata,
+    db.Column('user_id', db.LargeBinary(128), db.ForeignKey('user.id')),
+    db.Column('entry_id', db.LargeBinary(128), db.ForeignKey('entry.id'))
+)
+
+
 class User(db.Model):
 
     id = db.Column(db.LargeBinary(128), primary_key=True)
     openid = db.Column(db.Text, unique=True)
     name = db.Column(db.String(128), unique=True)
     email = db.Column(db.String(256), unique=True)
+    plused = db.relationship('Entry', secondary=plus_table, backref='plused')
 
 
 class Entry(db.Model):
@@ -156,13 +165,14 @@ def get_user_bi_id(id):
     return User.query.filter_by(id=id).first()
 
 
-def put_user(user):
+def add_user(user):
     if user.id is None:
         assert user.openid is not None
         m = md5()
         m.update(user.openid.encode('utf-8'))
         user.id = m.hexdigest().encode('ascii')
-    return put(user)
+    db.session.add(user)
+    db.session.commit()
 
 
 def get_user_bi_openid(openid):

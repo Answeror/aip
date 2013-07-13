@@ -131,3 +131,18 @@ def _test_clear():
 @with_setup(setup_app, teardown_app)
 def test_clear():
     _test_clear()
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+def test_add_user():
+    r = g.client.get('/admin/user_count')
+    assert_equal(r.data, b'0')
+    r = g.client.post('/admin/add_user', data=dict(
+        openid='openid',
+        name='Cosmo Du',
+        email='answeror@gmail.com'
+    ))
+    assert_equal(r.data, b'0')
+    r = g.client.get('/admin/user_count')
+    assert_equal(r.data, b'1')

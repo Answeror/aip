@@ -211,7 +211,7 @@ def make(app, oid):
                 flash(u'Error: you have to enter a valid email address')
             else:
                 flash(u'Profile successfully created')
-                store.put_user(store.User(name=name, email=email, openid=session['openid']))
+                store.add_user(store.User(name=name, email=email, openid=session['openid']))
                 store.db.session.commit()
                 return redirect(oid.get_next_url())
         return render_template('create_profile.html', next_url=oid.get_next_url())
@@ -259,7 +259,7 @@ def make(app, oid):
     def image_count():
         return str(store.image_count())
 
-    @app.route('/user_count')
+    @app.route('/admin/user_count')
     def user_count():
         return str(store.user_count())
 
@@ -318,3 +318,22 @@ def make(app, oid):
     def log():
         with open(app.config['AIP_LOG_FILE_PATH'], 'rb') as f:
             return f.read()
+
+
+    @app.route('/admin/add_user', methods=['POST'])
+    def add_user():
+        try:
+            store.add_user(store.User(
+                openid=request.form['openid'],
+                name=request.form['name'],
+                email=request.form['email']
+            ))
+            return '0'
+        except Exception as e:
+            logging.info('add user failed: {}'.format(dict(
+                openid=request.form['openid'],
+                name=request.form['name'],
+                email=request.form['email']
+            )))
+            logging.exception(e)
+            return '1'
