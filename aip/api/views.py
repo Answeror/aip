@@ -168,3 +168,12 @@ def make(app, api):
     def plused():
         user = get_user_bi_someid()
         return jsonify(result=[tod(e, ('id',)) for e in user.plused])
+
+    @api.route('/minus', methods=['POST'])
+    @guarded
+    def minus():
+        user = get_user_bi_someid()
+        entry = store.get_entry_bi_id(request.json['entry_id'])
+        user.minus(entry)
+        store.db.session.commit()
+        return jsonify({})

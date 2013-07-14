@@ -36,6 +36,9 @@ class User(db.Model):
     def plus(self, entry):
         self.plused.append(entry)
 
+    def minus(self, entry):
+        self.plused.remove(entry)
+
 
 class Entry(db.Model):
 

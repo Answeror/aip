@@ -181,3 +181,18 @@ def test_plus():
         data=json.dumps(dict(user_openid='openid'))
     )
     assert_equal(len(result(r)), 1)
+    r = g.client.post(
+        api('/minus'),
+        content_type='application/json',
+        data=json.dumps(dict(
+            user_openid='openid',
+            entry_id=entry_id
+        ))
+    )
+    assert_success(r)
+    r = g.client.get(
+        api('/plused'),
+        content_type='application/json',
+        data=json.dumps(dict(user_openid='openid'))
+    )
+    assert_equal(len(result(r)), 0)
