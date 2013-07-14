@@ -3,7 +3,7 @@
 
 
 from flask.ext.sqlalchemy import SQLAlchemy
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, desc
 from sqlalchemy.ext.hybrid import hybrid_property
 from hashlib import md5
 
@@ -122,7 +122,8 @@ def get_images_order_bi_ctime(r=None):
 
 
 def get_entries_order_bi_ctime(r=None):
-    return Entry.query.order_by(Entry.ctime)
+    q = Entry.query.order_by(desc(Entry.ctime))
+    return q if r is None else q[r]
 
 
 def get_unique_images_order_bi_ctime(r=None):

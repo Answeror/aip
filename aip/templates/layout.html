@@ -10,12 +10,16 @@
         <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
         <![endif]-->
         <!-- Le styles -->
-        <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap.min.css') }}" media='screen'>
-        <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap-responsive.min.css') }}" media='screen'>
+        <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css">
         <link rel='stylesheet' href="{{ url_for('.style') }}" media='screen'>
+        {% block head %}{% endblock %}
     </head>
     <body>
-        {% block body %}
-        {% endblock %}
+        <div class="navbar">
+            <div class="navbar-inner">
+                <a class="brand" href="#">AIP</a>
+            </div>
+        </div>
+        {% block body %}{% endblock %}
     </body>
 </html>

@@ -26,10 +26,8 @@ def api(path):
 
 
 def setup_app():
-    from ... import make as make_app
-    from .. import make as make_api
-    g.app = make_app(__name__)
-    make_api(g.app)
+    from ... import make
+    g.app = make(__name__)
     g.client = g.app.test_client()
 
 
@@ -120,6 +118,12 @@ def test_entries():
     assert_equal(result(r), 504)
     r = g.client.get(api('/entries'))
     assert_equal(len(result(r)), 504)
+    r = g.client.get(
+        api('/entries'),
+        content_type='application/json',
+        data=json.dumps(dict(begin=100, end=200))
+    )
+    assert_equal(len(result(r)), 100)
 
 
 @with_setup(patch_urllib3, unpatch_urllib3)

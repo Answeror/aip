@@ -28,4 +28,7 @@ def make(config=None):
     from . import store
     db = store.make(app=app)
 
+    from . import api
+    api.make(app)
+
     return app

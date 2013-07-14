@@ -50,7 +50,8 @@ def guarded(f):
                 f.__name__,
                 args=request.args,
                 form=request.form,
-                json=request.json
+                json=request.json,
+                e=e
             )
             return jsonify(dict(error=dict(message=str(e))))
     return inner
@@ -128,7 +129,11 @@ def make(app, api):
     @api.route('/entries')
     @guarded
     def entries():
-        return jsonify(result=[tod(im, ('id',)) for im in store.get_entries_order_bi_ctime()])
+        if request.json and 'begin' in request.json and 'end' in request.json:
+            r = slice(request.json['begin'], request.json['end'], 1)
+        else:
+            r = None
+        return jsonify(result=[tod(im, ('id',)) for im in store.get_entries_order_bi_ctime(r)])
 
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
