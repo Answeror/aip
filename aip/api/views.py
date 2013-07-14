@@ -27,15 +27,33 @@ def locked(f):
     return inner
 
 
-def _failed(args=None, form=None, e=None):
-    lines = ['{} failed'.format(inspect.stack()[1][3])]
+def failed(name, args=None, form=None, json=None, e=None):
+    lines = ['{} failed'.format(name)]
     if args:
         lines.append('args: {}'.format(args))
     if form:
         lines.append('form: {}'.format(form))
+    if json:
+        lines.append('json: {}'.format(json))
     logging.error('\n'.join(lines))
     if e:
         logging.exception(e)
+
+
+def guarded(f):
+    @wraps(f)
+    def inner(*args, **kargs):
+        try:
+            return f(*args, **kargs)
+        except Exception as e:
+            failed(
+                f.__name__,
+                args=response.args,
+                form=response.form,
+                json=response.json
+            )
+            return jsonify(dict(error=dict(message=str(e))))
+    return inner
 
 
 def _tod(entry):
@@ -61,89 +79,60 @@ def _update_images(begin=None, limit=65536):
 def make(app, api):
 
     @api.route('/add_user', methods=['POST'])
+    @guarded
     def add_user():
-        try:
-            store.add_user(store.User(
-                openid=request.json['openid'],
-                name=request.json['name'],
-                email=request.json['email']
-            ))
-            return jsonify(dict(result=True))
-        except Exception as e:
-            _failed(e=e, form=request.form)
-            return jsonify(dict(result=False))
+        store.add_user(store.User(
+            openid=request.json['openid'],
+            name=request.json['name'],
+            email=request.json['email']
+        ))
+        return jsonify(dict())
 
     @api.route('/user_count')
+    @guarded
     def user_count():
-        try:
-            return jsonify(dict(result=store.user_count()))
-        except Exception as e:
-            _failed(e=e)
-            return jsonify(dict(error=dict(message=str(e))))
+        return jsonify(dict(result=store.user_count()))
 
     @api.route('/image_count')
+    @guarded
     def image_count():
-        try:
-            return jsonify(dict(result=store.image_count()))
-        except Exception as e:
-            _failed(e=e)
-            return jsonify(dict(error=dict(message=str(e))))
+        return jsonify(dict(result=store.image_count()))
 
     @api.route('/unique_image_count')
+    @guarded
     def unique_image_count():
-        try:
-            return jsonify(dict(result=store.unique_image_count()))
-        except Exception as e:
-            _failed(e=e)
-            return jsonify(dict(error=dict(message=str(e))))
+        return jsonify(dict(result=store.unique_image_count()))
 
     @api.route('/entry_count')
+    @guarded
     def entry_count():
-        try:
-            return jsonify(dict(result=store.entry_count()))
-        except Exception as e:
-            _failed(e=e)
-            return jsonify(dict(error=dict(message=str(e))))
+        return jsonify(dict(result=store.entry_count()))
 
     @api.route('/entries')
+    @guarded
     def entries():
-        try:
-            return jsonify(result=[
-                _tod(im) for im in store.get_entries_order_bi_ctime()
-            ])
-        except Exception as e:
-            _failed(e=e)
-            return jsonify(dict(error=dict(message=str(e))))
+        return jsonify(result=[_tod(im) for im in store.get_entries_order_bi_ctime()])
 
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
+    @guarded
     @locked
     def update(begin=None):
-        try:
-            from datetime import datetime
-            begin = datetime.strptime(begin, '%Y%m%d')
-            _set_last_update_time(datetime.now())
-            _update_images(begin)
-            return jsonify(dict(result=True))
-        except Exception as e:
-            _failed(e=e)
-            return jsonify(dict(result=False))
+        from datetime import datetime
+        begin = datetime.strptime(begin, '%Y%m%d')
+        _set_last_update_time(datetime.now())
+        _update_images(begin)
+        return jsonify(dict())
 
     @api.route('/last_update_time')
+    @guarded
     def last_update_time():
-        try:
-            value = store.get_meta('last_update_time')
-            value = '' if value is None else pickle.loads(value).strftime('%Y-%m-%d %H:%M:%S')
-            return jsonify(dict(result=value))
-        except Exception as e:
-            _failed(e=e)
-            return jsonify(dict(error=dict(message=str(e))))
+        value = store.get_meta('last_update_time')
+        value = '' if value is None else pickle.loads(value).strftime('%Y-%m-%d %H:%M:%S')
+        return jsonify(dict(result=value))
 
     @api.route('/clear')
+    @guarded
     def clear():
-        try:
-            store.clear()
-            return jsonify(dict(result=True))
-        except Exception as e:
-            _failed(e=e)
-            return jsonify(dict(result=False))
+        store.clear()
+        return jsonify(dict())

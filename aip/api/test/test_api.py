@@ -2,7 +2,13 @@
 # -*- coding: utf-8 -*-
 
 
-from nose.tools import assert_true, assert_equal, assert_in, with_setup
+from nose.tools import (
+    assert_true,
+    assert_equal,
+    assert_in,
+    assert_not_in,
+    with_setup
+)
 from mock import patch, Mock
 import os
 import json
@@ -54,7 +60,7 @@ def unpatch_urllib3():
 
 
 def assert_success(r):
-    assert_true(json.loads(r.data.decode('utf-8'))['result'])
+    assert_not_in('error', json.loads(r.data.decode('utf-8')))
 
 
 def result(r):
