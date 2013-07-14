@@ -15,13 +15,16 @@ SQLALCHEMY_DATABASE_URI = 'sqlite://'
 g = type('g', (object,), {})()
 
 
+def api(path):
+    return g.app.config['AIP_API_URL_PREFIX'] + path
+
+
 def setup_app():
     from ... import make as make_app
     from .. import make as make_api
     g.app = make_app(__name__)
     make_api(g.app)
     g.client = g.app.test_client()
-    g.prefix = g.app.config['AIP_API_URL_PREFIX']
 
 
 def teardown_app():
@@ -61,66 +64,66 @@ def result(r):
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
 def test_add_user():
-    r = g.client.get(g.prefix + '/user_count')
+    r = g.client.get(api('/user_count'))
     print(r.data)
     assert_equal(result(r), 0)
-    r = g.client.post(g.prefix + '/add_user', data=dict(
+    r = g.client.post(api('/add_user'), content_type='application/json', data=json.dumps(dict(
         openid='openid',
         name='Cosmo Du',
         email='answeror@gmail.com'
-    ))
+    )))
     assert_success(r)
-    r = g.client.get(g.prefix + '/user_count')
+    r = g.client.get(api('/user_count'))
     assert_equal(result(r), 1)
 
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
 def test_update_images():
-    r = g.client.get(g.prefix + '/image_count')
+    r = g.client.get(api('/image_count'))
     assert_equal(result(r), 0)
-    r = g.client.get(g.prefix + '/update/20130630')
+    r = g.client.get(api('/update/20130630'))
     assert_success(r)
-    r = g.client.get(g.prefix + '/image_count')
+    r = g.client.get(api('/image_count'))
     assert_equal(result(r), 712)
 
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
 def test_entries():
-    r = g.client.get(g.prefix + '/update/20130630')
+    r = g.client.get(api('/update/20130630'))
     assert_success(r)
-    r = g.client.get(g.prefix + '/entry_count')
+    r = g.client.get(api('/entry_count'))
     assert_equal(result(r), 504)
-    r = g.client.get(g.prefix + '/entries')
+    r = g.client.get(api('/entries'))
     assert_equal(len(result(r)), 504)
 
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
 def test_no_duplication():
-    r = g.client.get(g.prefix + '/image_count')
+    r = g.client.get(api('/image_count'))
     assert_equal(result(r), 0)
-    r = g.client.get(g.prefix + '/update/20130630')
+    r = g.client.get(api('/update/20130630'))
     assert_success(r)
-    r = g.client.get(g.prefix + '/image_count')
+    r = g.client.get(api('/image_count'))
     assert_equal(result(r), 712)
-    r = g.client.get(g.prefix + '/update/20130630')
+    r = g.client.get(api('/update/20130630'))
     assert_success(r)
-    r = g.client.get(g.prefix + '/image_count')
+    r = g.client.get(api('/image_count'))
     assert_equal(result(r), 712)
 
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
 def test_clear():
-    r = g.client.get(g.prefix + '/image_count')
+    r = g.client.get(api('/image_count'))
     assert_equal(result(r), 0)
-    r = g.client.get(g.prefix + '/update/20130630')
+    r = g.client.get(api('/update/20130630'))
     assert_success(r)
-    r = g.client.get(g.prefix + '/image_count')
+    r = g.client.get(api('/image_count'))
     assert_equal(result(r), 712)
-    r = g.client.get(g.prefix + '/clear')
+    r = g.client.get(api('/clear'))
     assert_success(r)
-    r = g.client.get(g.prefix + '/image_count')
+    r = g.client.get(api('/image_count'))
     assert_equal(result(r), 0)

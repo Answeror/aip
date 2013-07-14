@@ -64,9 +64,9 @@ def make(app, api):
     def add_user():
         try:
             store.add_user(store.User(
-                openid=request.form['openid'],
-                name=request.form['name'],
-                email=request.form['email']
+                openid=request.json['openid'],
+                name=request.json['name'],
+                email=request.json['email']
             ))
             return jsonify(dict(result=True))
         except Exception as e:
