@@ -5,25 +5,11 @@
             <h1>AIP Instrumentality Project</h1>
         </header>
         <div id='container'>
-            <div id='items'>
-                {% for im in pagination.items %}
-                <div class='item'>
-                    <a href='{{ im.url }}' target='_blank' class="thumbnail">
-                        <img class='preview lazy' style='width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' src='{{ im.preview_url }}'>
-                        <img class='sample' style='display:none;width:{{ im.preview_width }}px;height:{{ im.preview_height }}px' data-src='{{ url_for('.sample', md5=im.md5) }}'>
-                    </a>
-                </div>
-                {% endfor %}
-            </div>
+            <div id='items'></div>
         </div>
         <div id='alert_box'></div>
         <div id='loading' style='display:none'>
             <img src='{{ url_for('.static', filename='images/inf.gif') }}'>
-        </div>
-        <div style='display:none'>
-            {% if pagination.prev %}<a href='{{ url_for('.posts', page=pagination.prev) }}'>&laquo;</a>{% endif %}
-            <span>...</span>
-            {% if pagination.next %}<a class='more' href='{{ url_for('.posts', page=pagination.next) }}'>&raquo;</a>{% endif %}
         </div>
     </div>
     <script src="//ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>

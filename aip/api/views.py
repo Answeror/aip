@@ -187,12 +187,11 @@ def make(app, api):
     def entries():
         return jsonify(result=[tod(im, ('id',)) for im in store.get_entries_order_bi_ctime(get_slice())])
 
-    @api.route('/page', methods=['GET'])
+    @api.route('/page/<int:id>', methods=['GET'])
     @guarded
-    def page():
-        id = request.json['id']
+    def page(id):
         r = slice(g.per * (2 ** id - 1), g.per * (2 ** (id + 1)), 1)
-        return render_template('page.html', entries=wrap(store.get_entries_order_bi_ctime(r)))
+        return jsonify(result=render_template('page.html', entries=wrap(store.get_entries_order_bi_ctime(r))))
 
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
