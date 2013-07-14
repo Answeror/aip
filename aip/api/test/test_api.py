@@ -59,6 +59,24 @@ def unpatch_urllib3():
     g.patcher.stop()
 
 
+def add_user():
+    r = g.client.get(api('/user_count'))
+    assert_equal(result(r), 0)
+    r = g.client.post(api('/add_user'), content_type='application/json', data=json.dumps(dict(
+        openid='openid',
+        name='Cosmo Du',
+        email='answeror@gmail.com'
+    )))
+    assert_success(r)
+    r = g.client.get(api('/user_count'))
+    assert_equal(result(r), 1)
+
+
+def update():
+    r = g.client.get(api('/update/20130630'))
+    assert_success(r)
+
+
 def assert_success(r):
     assert_not_in('error', json.loads(r.data.decode('utf-8')))
 
@@ -71,7 +89,6 @@ def result(r):
 @with_setup(setup_app, teardown_app)
 def test_add_user():
     r = g.client.get(api('/user_count'))
-    print(r.data)
     assert_equal(result(r), 0)
     r = g.client.post(api('/add_user'), content_type='application/json', data=json.dumps(dict(
         openid='openid',
@@ -133,3 +150,34 @@ def test_clear():
     assert_success(r)
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 0)
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+@with_setup(add_user)
+@with_setup(update)
+def test_plus():
+    r = g.client.get(
+        api('/plused'),
+        content_type='application/json',
+        data=json.dumps(dict(user_openid='openid'))
+    )
+    assert_equal(len(result(r)), 0)
+    r = g.client.get(api('/entries'))
+    assert_success(r)
+    entry_id = result(r)[0]['id']
+    r = g.client.post(
+        api('/plus'),
+        content_type='application/json',
+        data=json.dumps(dict(
+            user_openid='openid',
+            entry_id=entry_id
+        ))
+    )
+    assert_success(r)
+    r = g.client.get(
+        api('/plused'),
+        content_type='application/json',
+        data=json.dumps(dict(user_openid='openid'))
+    )
+    assert_equal(len(result(r)), 1)

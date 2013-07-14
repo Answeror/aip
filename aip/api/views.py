@@ -48,16 +48,33 @@ def guarded(f):
         except Exception as e:
             failed(
                 f.__name__,
-                args=response.args,
-                form=response.form,
-                json=response.json
+                args=request.args,
+                form=request.form,
+                json=request.json
             )
             return jsonify(dict(error=dict(message=str(e))))
     return inner
 
 
-def _tod(entry):
-    return {'id': entry.id.decode('ascii')}
+def cast(value):
+    if type(value) is bytes:
+        return value.decode('utf-8')
+    else:
+        return value
+
+
+def tod(o, keys):
+    return {k: cast(getattr(o, k)) for k in keys}
+
+
+def get_user_bi_someid():
+    if 'user_id' in request.json:
+        user = store.get_user_bi_id(request.json['user_id'])
+    elif 'user_openid' in request.json:
+        user = store.get_user_bi_openid(request.json['user_openid'])
+    else:
+        raise Exception('must provider user id or openid')
+    return user
 
 
 def _set_last_update_time(value):
@@ -111,7 +128,7 @@ def make(app, api):
     @api.route('/entries')
     @guarded
     def entries():
-        return jsonify(result=[_tod(im) for im in store.get_entries_order_bi_ctime()])
+        return jsonify(result=[tod(im, ('id',)) for im in store.get_entries_order_bi_ctime()])
 
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
@@ -136,3 +153,18 @@ def make(app, api):
     def clear():
         store.clear()
         return jsonify(dict())
+
+    @api.route('/plus', methods=['POST'])
+    @guarded
+    def plus():
+        user = get_user_bi_someid()
+        entry = store.get_entry_bi_id(request.json['entry_id'])
+        user.plus(entry)
+        store.db.session.commit()
+        return jsonify({})
+
+    @api.route('/plused', methods=['GET'])
+    @guarded
+    def plused():
+        user = get_user_bi_someid()
+        return jsonify(result=[tod(e, ('id',)) for e in user.plused])

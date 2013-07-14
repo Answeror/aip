@@ -33,6 +33,9 @@ class User(db.Model):
     email = db.Column(db.String(256), unique=True)
     plused = db.relationship('Entry', secondary=plus_table, backref='plused')
 
+    def plus(self, entry):
+        self.plused.append(entry)
+
 
 class Entry(db.Model):
 
@@ -88,6 +91,8 @@ def put(o):
 
 
 def get_entry_bi_id(id):
+    if type(id) is str:
+        id = id.encode('utf-8')
     return Entry.query.filter_by(id=id).first()
 
 
@@ -162,6 +167,8 @@ def get_image_bi_md5(md5):
 
 
 def get_user_bi_id(id):
+    if type(id) is str:
+        id = id.encode('utf-8')
     return User.query.filter_by(id=id).first()
 
 
