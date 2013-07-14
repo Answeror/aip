@@ -3,10 +3,12 @@
 
 
 import logging
-import inspect
+from collections import namedtuple
+from operator import attrgetter as attr
 from flask import (
     jsonify,
     request,
+    render_template,
     g
 )
 from datetime import datetime
@@ -66,6 +68,60 @@ def cast(value):
 
 def tod(o, keys):
     return {k: cast(getattr(o, k)) for k in keys}
+
+
+def get_slice():
+    if request.json and 'begin' in request.json and 'end' in request.json:
+        r = slice(request.json['begin'], request.json['end'], 1)
+    else:
+        r = None
+    return r
+
+
+def _fetch(url):
+    return g.http.request('GET', url)
+
+
+def _fetch_image(url):
+    try:
+        logging.info('fetch image: %s' % url)
+        r = _fetch(url)
+        return r.data
+    except Exception as e:
+        logging.error('fetch image failed: %s' % url)
+        logging.exception(e)
+        return None
+
+
+Post = namedtuple('Post', (
+    'url',
+    'preview_url',
+    'preview_width',
+    'preview_height',
+    'md5'
+))
+
+
+def wrap(entries):
+    images = [e.best_post for e in entries]
+    posts = []
+    if images:
+        for im in images:
+            im.scale = g.column_width
+        sm = sorted(images, key=attr('score'), reverse=True)
+        for im in sm[:max(1, int(len(sm) / g.per))]:
+            im.scale = g.gutter + 2 * g.column_width
+        for im in images:
+            preview_height = int(im.scale * im.height / im.width)
+            preview_width = int(im.scale)
+            posts.append(Post(
+                url=im.post_url,
+                preview_url=im.preview_url,
+                preview_height=preview_height,
+                preview_width=preview_width,
+                md5=im.md5
+            ))
+    return posts
 
 
 def get_user_bi_someid():
@@ -129,11 +185,14 @@ def make(app, api):
     @api.route('/entries')
     @guarded
     def entries():
-        if request.json and 'begin' in request.json and 'end' in request.json:
-            r = slice(request.json['begin'], request.json['end'], 1)
-        else:
-            r = None
-        return jsonify(result=[tod(im, ('id',)) for im in store.get_entries_order_bi_ctime(r)])
+        return jsonify(result=[tod(im, ('id',)) for im in store.get_entries_order_bi_ctime(get_slice())])
+
+    @api.route('/page', methods=['GET'])
+    @guarded
+    def page():
+        id = request.json['id']
+        r = slice(g.per * (2 ** id - 1), g.per * (2 ** (id + 1)), 1)
+        return render_template('page.html', entries=wrap(store.get_entries_order_bi_ctime(r)))
 
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
@@ -182,3 +241,18 @@ def make(app, api):
         user.minus(entry)
         store.db.session.commit()
         return jsonify({})
+
+    @api.route('/sample/<md5>')
+    def sample(md5):
+        md5 = md5.encode('ascii')
+        im = store.get_image_bi_md5(md5)
+        url = im.sample_url if im.sample_url else im.image_url
+        height = im.height
+        from io import BytesIO
+        input_stream = BytesIO(_fetch_image(url))
+        from PIL import Image
+        im = Image.open(input_stream)
+        im.thumbnail((g.sample_width, height), Image.ANTIALIAS)
+        output_stream = BytesIO()
+        im.save(output_stream, format='JPEG')
+        return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
