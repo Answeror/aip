@@ -75,11 +75,10 @@ $(function() {
                     accepts: "application/json",
                     cache: false,
                     success: function(data) {
-                        var $data = $(data.result);
-                        var $items = $data.find('.item');
-                        $items.each(dealimage);
-                        $container.append($items);
-                        if ($items) {
+                        var $items = $(data.result).find('.item');
+                        if ($items.length) {
+                            $items.each(dealimage);
+                            $container.append($items);
                             $items.width(fit);
                             try {
                                 if (page == 0) {
@@ -96,7 +95,12 @@ $(function() {
                                 console.log(e);
                             }
                         }
-                        $this.waypoint('enable');
+                        if ($items.length) {
+                            $this.waypoint('enable');
+                        } else {
+                            console.log('destroy waypoint');
+                            $this.waypoint('destroy');
+                        }
                         $('#loading').hide();
                         $('#alert_box').html('');
                         page += 1;
