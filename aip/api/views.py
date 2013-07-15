@@ -190,7 +190,7 @@ def make(app, api):
     @api.route('/page/<int:id>', methods=['GET'])
     @guarded
     def page(id):
-        r = slice(g.per * (2 ** id - 1), g.per * (2 ** (id + 1)), 1)
+        r = slice(g.per * (2 ** id - 1), g.per * (2 ** (id + 1) - 1), 1)
         return jsonify(result=render_template('page.html', entries=wrap(store.get_entries_order_bi_ctime(r))))
 
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
