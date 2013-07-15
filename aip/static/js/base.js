@@ -54,6 +54,62 @@ $(function() {
             );
         }
         //$preview.lazyload();
+        $this.find('.plus').each(function() {
+            var $plus = $(this);
+            var user = $plus.data('user');
+            var entry = $plus.data('entry');
+            $plus.update = function() {
+                $plus.text('+' + $plus.data('count'));
+                if ($plus.data('plused')) {
+                    $plus.addClass('btn-primary');
+                    $plus.click(function() {
+                        $.ajax({
+                            method: 'POST',
+                            url: '/api/minus',
+                            contentType: "application/json",
+                            accepts: "application/json",
+                            cache: false,
+                            dataType: 'json',
+                            data: JSON.stringify({ user_id: user, entry_id: entry }),
+                            success: function(data) {
+                                if (!('error' in data)) {
+                                    $plus.data('count', data.count);
+                                    $plus.data('plused', false);
+                                    $plus.update();
+                                }
+                            },
+                            error: function() {
+                                console.log('plus failed');
+                            }
+                        })
+                    });
+                } else {
+                    $plus.removeClass('btn-primary');
+                    $plus.click(function() {
+                        $.ajax({
+                            method: 'POST',
+                            url: '/api/plus',
+                            contentType: "application/json",
+                            accepts: "application/json",
+                            cache: false,
+                            dataType: 'json',
+                            data: JSON.stringify({ user_id: user, entry_id: entry }),
+                            success: function(data) {
+                                if (!('error' in data)) {
+                                    $plus.data('count', data.count);
+                                    $plus.data('plused', true);
+                                    $plus.update();
+                                }
+                            },
+                            error: function() {
+                                console.log('plus failed');
+                            }
+                        })
+                    });
+                }
+            };
+            $plus.update();
+        });
     };
     var $container = $('#items');
     var $items = $container.find('.item');

@@ -39,6 +39,9 @@ class User(db.Model):
     def minus(self, entry):
         self.plused.remove(entry)
 
+    def has_plused(self, entry):
+        return Entry.query.filter_by(id=entry.id).with_parent(self, 'plused').count() > 0
+
 
 class Entry(db.Model):
 
@@ -60,6 +63,34 @@ class Entry(db.Model):
     @best_post.expression
     def best_post(cls):
         return Post.query.filter_by(and_(md5=cls.id, score=func.max(Post.score).select()))
+
+    @property
+    def plus_count(self):
+        return db.session.query(User).with_parent(self, 'plused').count()
+
+    @property
+    def post_url(self):
+        return self.best_post.post_url
+
+    @property
+    def preview_url(self):
+        return self.best_post.preview_url
+
+    @property
+    def preview_width(self):
+        return self.ideal_width
+
+    @property
+    def preview_height(self):
+        return int(self.ideal_width * self.best_post.height / self.best_post.width)
+
+    @property
+    def md5(self):
+        return self.id
+
+    @property
+    def score(self):
+        return self.best_post.score
 
 
 class Post(db.Model):

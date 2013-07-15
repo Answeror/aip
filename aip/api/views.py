@@ -93,35 +93,15 @@ def _fetch_image(url):
         return None
 
 
-Post = namedtuple('Post', (
-    'url',
-    'preview_url',
-    'preview_width',
-    'preview_height',
-    'md5'
-))
-
-
 def wrap(entries):
-    images = [e.best_post for e in entries]
-    posts = []
-    if images:
-        for im in images:
-            im.scale = g.column_width
-        sm = sorted(images, key=attr('score'), reverse=True)
-        for im in sm[:max(1, int(len(sm) / g.per))]:
-            im.scale = g.gutter + 2 * g.column_width
-        for im in images:
-            preview_height = int(im.scale * im.height / im.width)
-            preview_width = int(im.scale)
-            posts.append(Post(
-                url=im.post_url,
-                preview_url=im.preview_url,
-                preview_height=preview_height,
-                preview_width=preview_width,
-                md5=im.md5
-            ))
-    return posts
+    entries = list(entries)
+    if entries:
+        for e in entries:
+            e.ideal_width = g.column_width
+        sm = sorted(entries, key=lambda e: e.score, reverse=True)
+        for e in sm[:max(1, int(len(sm) / g.per))]:
+            e.ideal_width = g.gutter + 2 * g.column_width
+    return entries
 
 
 def get_user_bi_someid():
@@ -224,7 +204,7 @@ def make(app, api):
         entry = store.get_entry_bi_id(request.json['entry_id'])
         user.plus(entry)
         store.db.session.commit()
-        return jsonify({})
+        return jsonify(dict(count=entry.plus_count))
 
     @api.route('/plused', methods=['GET'])
     @guarded
@@ -239,7 +219,7 @@ def make(app, api):
         entry = store.get_entry_bi_id(request.json['entry_id'])
         user.minus(entry)
         store.db.session.commit()
-        return jsonify({})
+        return jsonify(dict(count=entry.plus_count))
 
     @api.route('/sample/<md5>')
     def sample(md5):
