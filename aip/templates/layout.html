@@ -10,14 +10,16 @@
         <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
         <![endif]-->
         <!-- Le styles -->
-        <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css">
-        <link rel='stylesheet' href="{{ url_for('.style') }}" media='screen'>
+        <link rel="stylesheet" href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css">
+        <link rel='stylesheet' href="{{ url_for('.style') }}">
         {% block head %}{% endblock %}
     </head>
     <body>
-        <div class="navbar">
+        <div class="navbar navbar-fixed-top">
             <div class="navbar-inner">
-                <a class="brand" href="#">AIP</a>
+                <div class='container'>
+                    <a class="brand" href="/">AIP Instrumentality Project</a>
+                </div>
             </div>
         </div>
         {% block body %}{% endblock %}

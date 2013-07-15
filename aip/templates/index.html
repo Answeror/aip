@@ -1,9 +1,6 @@
 {% extends "layout.html" %}
 {% block body %}
     <div id='main' class='container'>
-        <header>
-            <h1>AIP Instrumentality Project</h1>
-        </header>
         <div id='container'>
             <div id='items'></div>
         </div>
@@ -12,9 +9,9 @@
             <img src='{{ url_for('.static', filename='images/inf.gif') }}'>
         </div>
     </div>
-    <script src="//ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>
-    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+    <script src="//ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.1.min.js"></script>
     <script src="//ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
+    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
     <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
     <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
     <script src="{{ url_for('.static', filename='waypoints-infinite.js') }}"></script>

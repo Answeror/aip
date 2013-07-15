@@ -7,6 +7,10 @@
     /*font-family: 'Julee', cursive;*/
     /*text-align: center;*/
 /*}*/
+body {
+    position: relative;
+    padding-top: 40px;
+}
 .item {
     display: inline-block;
     vertical-align: top;
