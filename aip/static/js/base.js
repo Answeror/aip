@@ -1,17 +1,17 @@
 $(function() {
-    $.fn.lazyload = function(){
-        var $this = $(this);
-        $this.waypoint(
-            function(){
-                $this.hide().attr("src", $this.data('src')).fadeIn('slow');
-            }, {
-                triggerOnce: true,
-                offset: function() {
-                    return $.waypoints('viewportHeight') + $(this).height();
-                }
-            }
-        );
-    };
+    //$.fn.lazyload = function(){
+        //var $this = $(this);
+        //$this.waypoint(
+            //function(){
+                //$this.hide().attr("src", $this.data('src')).fadeIn('slow');
+            //}, {
+                //triggerOnce: true,
+                //offset: function() {
+                    //return $.waypoints('viewportHeight') + $(this).height();
+                //}
+            //}
+        //);
+    //};
     var gutter = 10;
     var min_width = 200;
     function fit(index, width){
@@ -27,8 +27,8 @@ $(function() {
     };
     function dealimage() {
         var $this = $(this);
-        var $preview = $this.find('.preview');
-        var $sample = $this.find('.sample');
+        var $preview = $this.find('img.preview');
+        var $sample = $this.find('img.sample');
         function usesample() {
             console.log('use sample');
             $sample.attr('src', $sample.data('src'));
@@ -41,56 +41,135 @@ $(function() {
                 console.log('use sample error');
             });
         };
-        $preview.one('error', usesample);
-        truesize(
-            $preview.data('src'),
-            function(width, height) {
-                if ($preview.width() * $preview.height() > width * height * 3) {
-                    usesample();
+        $src = $preview.attr('src');
+        if ($src) {
+            truesize(
+                $src,
+                function(width, height) {
+                    if ($preview.width() * $preview.height() > width * height * 3) {
+                        usesample();
+                    }
                 }
-            }
-        );
-        $preview.lazyload();
+            );
+        }
+        //$preview.lazyload();
+        $this.find('.plus').each(function() {
+            var $plus = $(this);
+            var user = $plus.data('user');
+            var entry = $plus.data('entry');
+            $plus.update = function() {
+                $plus.text('+' + $plus.data('count'));
+                if ($plus.data('plused')) {
+                    $plus.addClass('btn-primary');
+                    $plus.click(function() {
+                        $.ajax({
+                            method: 'POST',
+                            url: '/api/minus',
+                            contentType: "application/json",
+                            accepts: "application/json",
+                            cache: false,
+                            dataType: 'json',
+                            data: JSON.stringify({ user_id: user, entry_id: entry }),
+                            success: function(data) {
+                                if (!('error' in data)) {
+                                    $plus.data('count', data.count);
+                                    $plus.data('plused', false);
+                                    $plus.update();
+                                }
+                            },
+                            error: function() {
+                                console.log('plus failed');
+                            }
+                        })
+                    });
+                } else {
+                    $plus.removeClass('btn-primary');
+                    $plus.click(function() {
+                        $.ajax({
+                            method: 'POST',
+                            url: '/api/plus',
+                            contentType: "application/json",
+                            accepts: "application/json",
+                            cache: false,
+                            dataType: 'json',
+                            data: JSON.stringify({ user_id: user, entry_id: entry }),
+                            success: function(data) {
+                                if (!('error' in data)) {
+                                    $plus.data('count', data.count);
+                                    $plus.data('plused', true);
+                                    $plus.update();
+                                }
+                            },
+                            error: function() {
+                                console.log('plus failed');
+                            }
+                        })
+                    });
+                }
+            };
+            $plus.update();
+        });
     };
     var $container = $('#items');
-    var $items = $container.find('.item');
-    $items.each(dealimage);
-    $items.width(fit);
-    $container.masonry({
-        itemSelector: '.item',
-        gutter: gutter,
-        isAnimated: true,
-        columnWidth: min_width
-    });
     var bootstrap_alert = function() {}
     bootstrap_alert.warning = function(message) {
         $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
     }
-    $('#items').waypoint('infinite', {
-        items: '.item',
-        more: '.more',
-        onBeforeAppended: function($items) {
-            $items.each(dealimage);
-        },
-        onAfterAppended: function($items) {
-            console.log('append');
-            if ($items) {
-                $items.width(fit);
-                try {
-                    $container.masonry('appended', $items, true);
-                } catch (e) {}
+    var page = 0;
+    $container.waypoint(
+        function(direction){
+            if (direction === 'down' || direction === 'right') {
+                $this = $(this);
+                $('#loading').show();
+                $this.waypoint('disable');
+                $.ajax({
+                    method: 'GET',
+                    url: '/api/page/' + page,
+                    accepts: "application/json",
+                    cache: false,
+                    success: function(data) {
+                        var $items = $(data.result).find('.item');
+                        $items.hide();
+                        $container.append($items);
+                        //$items.width(fit);
+                        $container.imagesLoaded(function() {
+                            if ($items.length) {
+                                $items.show();
+                                $items.each(dealimage);
+                                try {
+                                    if (page == 0) {
+                                        $container.masonry({
+                                            itemSelector: '.item',
+                                            isAnimated: true,
+                                            columnWidth: '.span2',
+                                            transitionDuration: '0.4s'
+                                        });
+                                    } else {
+                                        $container.masonry('appended', $items, true);
+                                    }
+                                } catch (e) {
+                                    console.log(e);
+                                }
+                            }
+                            if ($items.length) {
+                                $this.waypoint('enable');
+                            } else {
+                                console.log('destroy waypoint');
+                                $this.waypoint('destroy');
+                            }
+                            $('#loading').hide();
+                            $('#alert_box').html('');
+                            page += 1;
+                        });
+                    },
+                    error: function() {
+                        $('#loading').hide();
+                        bootstrap_alert.warning('Load more failed.');
+                    }
+                });
             }
-        },
-        onBeforePageLoad: function() {
-            $('#loading').show();
-        },
-        onAfterPageLoad: function() {
-            $('#loading').hide();
-            $('#alert_box').html('');
-        },
-        error: function() {
-            $('#loading').hide();
-            bootstrap_alert.warning('Load more failed.');
+        }, {
+            offset: 'bottom-in-view'
         }
-    });
+    );
 });

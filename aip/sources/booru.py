@@ -15,8 +15,8 @@ class Source(base.Source, metaclass=MetaWithFields):
 
     FIELDS = ('url', 'start_page', 'nsfw_tag')
 
-    def __init__(self, make_image):
-        super(Source, self).__init__(make_image)
+    def __init__(self, make_post):
+        super(Source, self).__init__(make_post)
         import urllib3
         self._http = urllib3.PoolManager()
 
@@ -50,7 +50,7 @@ class Source(base.Source, metaclass=MetaWithFields):
         end = False
         fetched = 0
         while not end:
-            logging.debug('limit %d' % limit)
+            logging.debug('fetch list, limit %d' % limit)
             page_link = self.image_url_template % ('+'.join(tags), limit, page)
             images = list(self._get(page_link))
             if len(images) < limit:

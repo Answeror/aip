@@ -49,8 +49,8 @@ class Source(booru.Source):
 
     def image_from_dict(self, d):
         d = d.attrib
-        return self.make_image(
-            url=urljoin(self.url, d['file_url']),
+        return self.make_post(
+            image_url=urljoin(self.url, d['file_url']),
             width=int(d['width']),
             height=int(d['height']),
             rating=d['rating'],

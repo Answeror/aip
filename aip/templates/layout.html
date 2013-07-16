@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{% block title %}AIP Instrumentality Project{% endblock %}</title>
+        <meta name="author" content="answeror">
+        <meta charset="utf-8">
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+        <!--[if lt IE 9]>
+        <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+        <!-- Le styles -->
+        <!--<link rel="stylesheet" href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css">-->
+        <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap.min.css') }}" media='screen'>
+        <link rel='stylesheet' href="{{ url_for('.style') }}">
+        {% block head %}{% endblock %}
+    </head>
+    <body>
+        <div class="navbar navbar-fixed-top">
+            <div class="navbar-inner">
+                <div class='container'>
+                    <a class="brand" href="/">AIP Instrumentality Project</a>
+                </div>
+            </div>
+        </div>
+        {% block body %}{% endblock %}
+    </body>
+</html>

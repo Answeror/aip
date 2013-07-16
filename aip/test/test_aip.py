@@ -4,26 +4,27 @@
 
 from nose.tools import assert_equal, assert_in, with_setup
 from bs4 import BeautifulSoup as Soup
-from flask import Flask
-from .. import make
-from .settings import RESPONSE_FILE_PATH
 from mock import patch, Mock
+import os
+import json
+
+
+RESPONSE_FILE_PATH = os.path.join(os.path.dirname(__file__), 'response.pkl')
+SQLALCHEMY_DATABASE_URI = 'sqlite://'
 
 
 g = type('g', (object,), {})()
 
 
 def setup_app():
-    g.app = Flask(__name__)
-    g.aip = make()
-    g.app.register_blueprint(g.aip)
+    from .. import make
+    g.app = make(__name__)
     g.client = g.app.test_client()
 
 
 def teardown_app():
     del g.client
     del g.app
-    del g.aip
 
 
 def patch_urllib3():
@@ -60,63 +61,3 @@ def test_index_empty():
     _test_index_empty()
 
 
-def _test_update_images():
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'0')
-    g.client.get('/update_images/20130630')
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'712')
-
-
-@with_setup(patch_urllib3, unpatch_urllib3)
-@with_setup(setup_app, teardown_app)
-def test_update_images():
-    _test_update_images()
-
-
-def _test_unique_images():
-    g.client.get('/update_images/20130630')
-    r = g.client.get('/unique_image_count')
-    assert_equal(r.data, b'504')
-    r = g.client.get('/unique_image_md5')
-    assert_equal(len(r.data.split(b'\n')), 504)
-
-
-@with_setup(patch_urllib3, unpatch_urllib3)
-@with_setup(setup_app, teardown_app)
-def test_unique_images():
-    _test_unique_images()
-
-
-def _test_no_duplication():
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'0')
-    g.client.get('/update_images/20130630')
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'712')
-    g.client.get('/update_images/20130630')
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'712')
-
-
-@with_setup(patch_urllib3, unpatch_urllib3)
-@with_setup(setup_app, teardown_app)
-def test_no_duplication():
-    _test_no_duplication()
-
-
-def _test_clear():
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'0')
-    g.client.get('/update_images/20130630')
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'712')
-    g.client.get('/clear')
-    r = g.client.get('/image_count')
-    assert_equal(r.data, b'0')
-
-
-@with_setup(patch_urllib3, unpatch_urllib3)
-@with_setup(setup_app, teardown_app)
-def test_clear():
-    _test_clear()

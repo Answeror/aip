@@ -10,8 +10,8 @@ from . import danbooru
 class Source(danbooru.Source):
 
     def image_from_dict(self, d):
-        return self.make_image(
-            url=urljoin(self.url, d['file_url']),
+        return self.make_post(
+            image_url=urljoin(self.url, d['file_url']),
             width=int(d['width']),
             height=int(d['height']),
             rating=d['rating'],
