@@ -30,7 +30,7 @@ class SqliteCache(BaseCache):
     def __init__(self, path, default_timeout=300):
         self.path = os.path.abspath(path)
         try:
-            os.mkdir(self.path)
+            os.makedirs(self.path)
         except OSError as e:
             if e.errno != errno.EEXIST or not os.path.isdir(self.path):
                 raise
