@@ -11,13 +11,13 @@ body {
     position: relative;
     padding-top: 40px;
 }
+#main {
+    margin-top: 5px;
+}
 .item {
     display: inline-block;
     vertical-align: top;
-    margin-bottom: 10px;
-}
-img {
-    max-width: 100%;
+    margin-bottom: 5px;
 }
 #loading {
     width: 128px;
@@ -27,8 +27,12 @@ img {
 p:last-child {
     margin-bottom: 0;
 }
-.preview, .sample {
+img.preview, img.sample {
     width: 100%;
+    height: 100%;
+}
+img.sample {
+    display: none;
 }
 
 /* Responsive
@@ -37,6 +41,12 @@ p:last-child {
 /* Desktop large
 ------------------------- */
 @media (min-width: 1200px) {
+    .item {
+        margin-bottom: 10px;
+    }
+    #main {
+        margin-top: 10px;
+    }
 }
 
 /* Desktop

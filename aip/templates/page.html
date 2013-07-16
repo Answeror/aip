@@ -3,7 +3,7 @@
     <div class='item span2'>
         <div class='thumbnail'>
             <p>
-                <a href='{{ e.url }}' target='_blank'>
+                <a class='preview' href='{{ e.url }}' target='_blank'>
                     <img class='preview lazy' src='{{ e.preview_url }}'>
                     <img class='sample' data-src='{{ url_for('.sample', md5=e.md5) }}'>
                 </a>

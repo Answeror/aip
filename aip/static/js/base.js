@@ -27,8 +27,8 @@ $(function() {
     };
     function dealimage() {
         var $this = $(this);
-        var $preview = $this.find('.preview');
-        var $sample = $this.find('.sample');
+        var $preview = $this.find('img.preview');
+        var $sample = $this.find('img.sample');
         function usesample() {
             console.log('use sample');
             $sample.attr('src', $sample.data('src'));
@@ -41,14 +41,13 @@ $(function() {
                 console.log('use sample error');
             });
         };
-        //$preview.one('error', usesample);
-        $src = $preview.data('src');
+        $src = $preview.attr('src');
         if ($src) {
             truesize(
                 $src,
                 function(width, height) {
                     if ($preview.width() * $preview.height() > width * height * 3) {
-                        //usesample();
+                        usesample();
                     }
                 }
             );
@@ -112,8 +111,6 @@ $(function() {
         });
     };
     var $container = $('#items');
-    var $items = $container.find('.item');
-    $items.each(dealimage);
     var bootstrap_alert = function() {}
     bootstrap_alert.warning = function(message) {
         $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
@@ -132,13 +129,13 @@ $(function() {
                     cache: false,
                     success: function(data) {
                         var $items = $(data.result).find('.item');
-                        $items.each(dealimage);
                         $items.hide();
                         $container.append($items);
                         //$items.width(fit);
                         $container.imagesLoaded(function() {
                             if ($items.length) {
                                 $items.show();
+                                $items.each(dealimage);
                                 try {
                                     if (page == 0) {
                                         $container.masonry({
