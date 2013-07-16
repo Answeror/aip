@@ -22,13 +22,16 @@ def make(config=None):
     from flask.ext.openid import OpenID
     oid = OpenID(app, 'temp/openid')
 
+    from . import cache
+    cached = cache.make(app)
+
     from . import views
-    views.make(app=app, oid=oid)
+    views.make(app=app, oid=oid, cached=cached)
 
     from . import store
     db = store.make(app=app)
 
     from . import api
-    api.make(app)
+    api.make(app=app, cached=cached)
 
     return app

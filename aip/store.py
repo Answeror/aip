@@ -50,7 +50,9 @@ class Entry(db.Model):
 
     @hybrid_property
     def ctime(self):
-        return min(self.posts, key=lambda p: p.ctime)
+        if not hasattr(self, '_ctime'):
+            self._ctime = db.session.query(func.min(Post.ctime)).filter(Post.md5 == self.id)
+        return self._ctime
 
     @ctime.expression
     def ctime(cls):
@@ -58,15 +60,22 @@ class Entry(db.Model):
 
     @hybrid_property
     def best_post(self):
-        return max(self.posts, key=lambda p: p.score)
+        if not hasattr(self, '_best_post'):
+            return db.session.query(
+                Post,
+                func.max(Post.score),
+            ).group_by(Post.md5).filter(Post.md5 == self.id).first()[0]
+        return self._best_post
 
     @best_post.expression
     def best_post(cls):
-        return Post.query.filter_by(and_(md5=cls.id, score=func.max(Post.score).select()))
+        return Post.query.filter(and_(Post.md5 == cls.id, Post.score == func.max(Post.score).select()))
 
     @property
     def plus_count(self):
-        return db.session.query(User).with_parent(self, 'plused').count()
+        if not hasattr(self, '_plus_count'):
+            self._plus_count = db.session.query(User).with_parent(self, 'plused').count()
+        return self._plus_count
 
     @property
     def post_url(self):
