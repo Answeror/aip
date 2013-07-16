@@ -1,11 +1,13 @@
-<div id='items'>
+<div>
     {% for e in entries %}
-    <div class='item'>
+    <div class='item span2'>
         <div class='thumbnail'>
-            <a href='{{ e.url }}' target='_blank'>
-                <img class='preview lazy' style='width:{{ e.preview_width }}px;height:{{ e.preview_height }}px' src='{{ e.preview_url }}'>
-                <img class='sample' style='display:none;width:{{ e.preview_width }}px;height:{{ e.preview_height }}px' data-src='{{ url_for('.sample', md5=e.md5) }}'>
-            </a>
+            <p>
+                <a href='{{ e.url }}' target='_blank'>
+                    <img class='preview lazy' src='{{ e.preview_url }}'>
+                    <img class='sample' data-src='{{ url_for('.sample', md5=e.md5) }}'>
+                </a>
+            </p>
             <p>
                 {% if g.user %}
                     {% if g.user.has_plused(e) %}

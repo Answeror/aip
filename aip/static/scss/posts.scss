@@ -24,6 +24,12 @@ img {
     height: 96px;
     margin: 0 auto;
 }
+p:last-child {
+    margin-bottom: 0;
+}
+.preview, .sample {
+    width: 100%;
+}
 
 /* Responsive
 -------------------------------------------------- */

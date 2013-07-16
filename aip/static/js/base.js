@@ -132,34 +132,38 @@ $(function() {
                     cache: false,
                     success: function(data) {
                         var $items = $(data.result).find('.item');
-                        if ($items.length) {
-                            $items.each(dealimage);
-                            $container.append($items);
-                            $items.width(fit);
-                            try {
-                                if (page == 0) {
-                                    $container.masonry({
-                                        itemSelector: '.item',
-                                        gutter: gutter,
-                                        isAnimated: true,
-                                        columnWidth: min_width
-                                    });
-                                } else {
-                                    $container.masonry('appended', $items, true);
+                        $items.each(dealimage);
+                        $items.hide();
+                        $container.append($items);
+                        //$items.width(fit);
+                        $container.imagesLoaded(function() {
+                            if ($items.length) {
+                                $items.show();
+                                try {
+                                    if (page == 0) {
+                                        $container.masonry({
+                                            itemSelector: '.item',
+                                            isAnimated: true,
+                                            columnWidth: '.span2',
+                                            transitionDuration: '0.4s'
+                                        });
+                                    } else {
+                                        $container.masonry('appended', $items, true);
+                                    }
+                                } catch (e) {
+                                    console.log(e);
                                 }
-                            } catch (e) {
-                                console.log(e);
                             }
-                        }
-                        if ($items.length) {
-                            $this.waypoint('enable');
-                        } else {
-                            console.log('destroy waypoint');
-                            $this.waypoint('destroy');
-                        }
-                        $('#loading').hide();
-                        $('#alert_box').html('');
-                        page += 1;
+                            if ($items.length) {
+                                $this.waypoint('enable');
+                            } else {
+                                console.log('destroy waypoint');
+                                $this.waypoint('destroy');
+                            }
+                            $('#loading').hide();
+                            $('#alert_box').html('');
+                            page += 1;
+                        });
                     },
                     error: function() {
                         $('#loading').hide();

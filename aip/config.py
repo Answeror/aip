@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-AIP_PER = 16
+AIP_PER = 32
 AIP_COLUMN_WIDTH = 200
 AIP_GUTTER = 10
 AIP_LOG_FILE_PATH = 'aip.log'
