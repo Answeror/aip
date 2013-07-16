@@ -61,15 +61,11 @@ class Entry(db.Model):
     @hybrid_property
     def best_post(self):
         if not hasattr(self, '_best_post'):
-            return db.session.query(
+            self._best_post = db.session.query(
                 Post,
                 func.max(Post.score),
             ).group_by(Post.md5).filter(Post.md5 == self.id).first()[0]
         return self._best_post
-
-    @best_post.expression
-    def best_post(cls):
-        return Post.query.filter(and_(Post.md5 == cls.id, Post.score == func.max(Post.score).select()))
 
     @property
     def plus_count(self):
