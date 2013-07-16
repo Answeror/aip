@@ -130,7 +130,7 @@ def _fetch_image(url):
         return None
 
 
-def make(app, oid):
+def make(app, oid, cached):
 
     @app.before_request
     def lookup_current_user():
@@ -187,6 +187,7 @@ def make(app, oid):
         return redirect(oid.get_next_url())
 
     @app.route('/sample/<md5>')
+    @cached(timeout=24 * 60 * 60)
     def sample(md5):
         md5 = md5.encode('ascii')
         im = store.get_image_bi_md5(md5)
@@ -213,6 +214,7 @@ def make(app, oid):
         return render_template('index.html', pagination=pagination)
 
     @app.route('/style.css')
+    @cached(timeout=24 * 60 * 60)
     def style():
         import scss
         from collections import OrderedDict

@@ -92,7 +92,6 @@ class SqliteCache(BaseCache):
 def make(app):
     from functools import wraps
     from flask import request
-    from . import app
 
     cache = SqliteCache(os.path.join(app.config['AIP_TEMP_PATH'], 'cache'))
 

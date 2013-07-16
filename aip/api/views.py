@@ -130,7 +130,7 @@ def _update_images(begin=None, limit=65536):
         store.db.session.commit()
 
 
-def make(app, api):
+def make(app, api, cached):
 
     @api.route('/add_user', methods=['POST'])
     @guarded
@@ -223,6 +223,7 @@ def make(app, api):
         return jsonify(dict(count=entry.plus_count))
 
     @api.route('/sample/<md5>')
+    @cached(timeout=24 * 60 * 60)
     def sample(md5):
         md5 = md5.encode('ascii')
         im = store.get_image_bi_md5(md5)
