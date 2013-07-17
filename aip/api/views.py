@@ -9,6 +9,7 @@ from flask import (
     jsonify,
     request,
     render_template,
+    current_app,
     g
 )
 from datetime import datetime
@@ -237,3 +238,11 @@ def make(app, api, cached):
         output_stream = BytesIO()
         im.save(output_stream, format='JPEG')
         return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
+
+    @api.after_request
+    def after_request(response):
+        from flask.ext.sqlalchemy import get_debug_queries
+        for query in get_debug_queries():
+            if query.duration >= current_app.config['DATABASE_QUERY_TIMEOUT']:
+                current_app.logger.warning("SLOW QUERY: %s\nParameters: %s\nDuration: %fs\nContext: %s\n" % (query.statement, query.parameters, query.duration, query.context))
+        return response
