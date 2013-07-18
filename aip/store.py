@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 
 
+import logging
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func, and_, desc
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.declarative import declared_attr
 from hashlib import md5
 
 
@@ -57,42 +59,20 @@ def make(app):
         id = db.Column(db.LargeBinary(128), primary_key=True)
         posts = db.relationship('Post')
 
-        @hybrid_property
-        def ctime(self):
-            if not hasattr(self, '_ctime'):
-                self._ctime = db.session.query(func.min(Post.ctime)).filter(Post.md5 == self.id)
-            return self._ctime
+        @classmethod
+        def __declare_last__(cls):
+            sub = db.session.query(
+                Post.md5,
+                func.max(Post.score).label('score'),
+            ).group_by(Post.md5).subquery()
+            for key in ('post_url', 'preview_url', 'height', 'width', 'score', 'ctime'):
+                setattr(cls, key, db.column_property(
+                    db.select([getattr(Post, key)]).where((Post.md5 == sub.c.md5) & (Post.md5 == cls.id))
+                ))
 
-        @ctime.expression
-        def ctime(cls):
-            return db.session.query(func.min(Post.ctime)).filter(Post.md5 == cls.id)
-
-        @hybrid_property
-        def best_post(self):
-            if not hasattr(self, '_best_post'):
-                #self._best_post = Post.query.filter_by(md5=self.id).first()
-                #sub = Post.query.filter_by(md5=self.id).subquery()
-                #self._best_post = db.session.query(sub).filter(sub.c.score == func.max(sub.c.score).select()).first()
-                sub = db.session.query(
-                    Post.md5,
-                    func.max(Post.score).label('score'),
-                ).group_by(Post.md5).subquery()
-                self._best_post = Post.query.outerjoin(sub, Post.md5 == sub.c.md5).filter_by(md5=self.id).first()
-            return self._best_post
-
-        @property
-        def plus_count(self):
-            if not hasattr(self, '_plus_count'):
-                self._plus_count = db.session.query(User).with_parent(self, 'plused').count()
-            return self._plus_count
-
-        @property
-        def post_url(self):
-            return self.best_post.post_url
-
-        @property
-        def preview_url(self):
-            return self.best_post.preview_url
+            cls.plus_count = db.column_property(
+                db.select([func.count('*')]).where(plus_table.c.entry_id == cls.id)
+            )
 
         @property
         def preview_width(self):
@@ -100,15 +80,11 @@ def make(app):
 
         @property
         def preview_height(self):
-            return int(self.ideal_width * self.best_post.height / self.best_post.width)
+            return int(self.ideal_width * self.height / self.width)
 
         @property
         def md5(self):
             return self.id
-
-        @property
-        def score(self):
-            return self.best_post.score
 
     @stored
     class Post(db.Model):
@@ -251,5 +227,6 @@ def make(app):
     event.listen(db.engine, 'connect', _pragma_on_connect)
 
     db.create_all()
+
     store.db = db
     return store
