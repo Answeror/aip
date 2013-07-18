@@ -28,10 +28,10 @@ def make(config=None):
     from . import views
     views.make(app=app, oid=oid, cached=cached)
 
-    from . import store
-    db = store.make(app=app)
-
     from . import api
     api.make(app=app, cached=cached)
+
+    from . import store
+    db = store.make(app=app)
 
     return app
