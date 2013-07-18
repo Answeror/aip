@@ -59,46 +59,20 @@ def make(app):
         id = db.Column(db.LargeBinary(128), primary_key=True)
         posts = db.relationship('Post')
 
-        @hybrid_property
-        def ctime(self):
-            if not hasattr(self, '_ctime'):
-                self._ctime = db.session.query(func.min(Post.ctime)).filter(Post.md5 == self.id)
-            return self._ctime
-
-        @ctime.expression
-        def ctime(cls):
-            return db.session.query(func.min(Post.ctime)).filter(Post.md5 == cls.id)
-
         @classmethod
         def __declare_last__(cls):
-            try:
-                sub = db.session.query(
-                    Post.md5,
-                    func.max(Post.score).label('score'),
-                ).group_by(Post.md5).subquery()
-                cls.best_post = db.relation(
-                    Post,
-                    primaryjoin=((Post.md5 == sub.c.md5) & (Post.md5 == cls.id)),
-                    foreign_keys=[Post.md5],
-                    uselist=False,
-                    viewonly=True
-                )
-            except Exception as e:
-                logging.exception(e)
+            sub = db.session.query(
+                Post.md5,
+                func.max(Post.score).label('score'),
+            ).group_by(Post.md5).subquery()
+            for key in ('post_url', 'preview_url', 'height', 'width', 'score', 'ctime'):
+                setattr(cls, key, db.column_property(
+                    db.select([getattr(Post, key)]).where((Post.md5 == sub.c.md5) & (Post.md5 == cls.id))
+                ))
 
-        @property
-        def plus_count(self):
-            if not hasattr(self, '_plus_count'):
-                self._plus_count = db.session.query(User).with_parent(self, 'plused').count()
-            return self._plus_count
-
-        @property
-        def post_url(self):
-            return self.best_post.post_url
-
-        @property
-        def preview_url(self):
-            return self.best_post.preview_url
+            cls.plus_count = db.column_property(
+                db.select([func.count('*')]).where(plus_table.c.entry_id == cls.id)
+            )
 
         @property
         def preview_width(self):
@@ -106,15 +80,11 @@ def make(app):
 
         @property
         def preview_height(self):
-            return int(self.ideal_width * self.best_post.height / self.best_post.width)
+            return int(self.ideal_width * self.height / self.width)
 
         @property
         def md5(self):
             return self.id
-
-        @property
-        def score(self):
-            return self.best_post.score
 
     @stored
     class Post(db.Model):
@@ -255,8 +225,6 @@ def make(app):
 
     from sqlalchemy import event
     event.listen(db.engine, 'connect', _pragma_on_connect)
-
-    print(Entry.query)
 
     db.create_all()
 
