@@ -25,13 +25,13 @@ def make(config=None):
     from . import cache
     cached = cache.make(app)
 
-    from . import views
-    views.make(app=app, oid=oid, cached=cached)
-
     from . import store
-    db = store.make(app=app)
+    store = store.make(app=app)
+
+    from . import views
+    views.make(app=app, oid=oid, cached=cached, store=store)
 
     from . import api
-    api.make(app=app, cached=cached)
+    api.make(app=app, cached=cached, store=store)
 
     return app

@@ -34,9 +34,10 @@ def setuplogging(level, stdout):
 
 AIP_TEMP_PATH = os.path.abspath('temp')
 SQLALCHEMY_DATABASE_URI = 'sqlite:///%s' % os.path.abspath(os.path.join('temp', 'aip.db'))
+#SQLALCHEMY_DATABASE_URI = 'sqlite://'
 PROFILE = True
-SQLALCHEMY_RECORD_QUERIES = True
-DATABASE_QUERY_TIMEOUT = 0.5
+SQLALCHEMY_RECORD_QUERIES = False
+DATABASE_QUERY_TIMEOUT = 1e-5
 
 
 if __name__ == "__main__":
@@ -46,5 +47,5 @@ if __name__ == "__main__":
     app.secret_key = 'why would I tell you my secret key?'
     if app.config['PROFILE']:
         from werkzeug.contrib.profiler import ProfilerMiddleware
-        app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30], sort_by=('cumulative', 'calls'))
+        app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30]) # , sort_by=('cumulative', 'calls'))
     app.run(debug=True)
