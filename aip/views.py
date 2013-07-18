@@ -18,7 +18,6 @@ from operator import attrgetter as attr
 from io import BytesIO
 from PIL import Image
 from collections import namedtuple
-from . import store
 
 
 Post = namedtuple('Post', (
@@ -130,7 +129,7 @@ def _fetch_image(url):
         return None
 
 
-def make(app, oid, cached):
+def make(app, oid, cached, store):
 
     @app.before_request
     def lookup_current_user():

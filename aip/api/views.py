@@ -16,7 +16,6 @@ from datetime import datetime
 import threading
 from functools import wraps
 import pickle
-from .. import store
 
 
 lock = threading.RLock()
@@ -105,33 +104,29 @@ def wrap(entries):
     return entries
 
 
-def get_user_bi_someid():
-    if 'user_id' in request.json:
-        user = store.get_user_bi_id(request.json['user_id'])
-    elif 'user_openid' in request.json:
-        user = store.get_user_bi_openid(request.json['user_openid'])
-    else:
-        raise Exception('must provider user id or openid')
-    return user
+def make(app, api, cached, store):
+    def get_user_bi_someid():
+        if 'user_id' in request.json:
+            user = store.get_user_bi_id(request.json['user_id'])
+        elif 'user_openid' in request.json:
+            user = store.get_user_bi_openid(request.json['user_openid'])
+        else:
+            raise Exception('must provider user id or openid')
+        return user
 
-
-def _set_last_update_time(value):
-    store.set_meta('last_update_time', pickle.dumps(value))
-    store.db.session.commit()
-
-
-def _update_images(begin=None, limit=65536):
-    for make in g.sources:
-        source = make(store.Post)
-        tags = []
-        for i, im in zip(list(range(limit)), source.get_images(tags)):
-            if begin is not None and im.ctime <= begin:
-                break
-            store.put_image(im)
+    def _set_last_update_time(value):
+        store.set_meta('last_update_time', pickle.dumps(value))
         store.db.session.commit()
 
-
-def make(app, api, cached):
+    def _update_images(begin=None, limit=65536):
+        for make in g.sources:
+            source = make(store.Post)
+            tags = []
+            for i, im in zip(list(range(limit)), source.get_images(tags)):
+                if begin is not None and im.ctime <= begin:
+                    break
+                store.put_image(im)
+            store.db.session.commit()
 
     @api.route('/add_user', methods=['POST'])
     @guarded
