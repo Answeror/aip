@@ -37,9 +37,9 @@ def make(app):
     class User(db.Model):
 
         id = db.Column(db.LargeBinary(128), primary_key=True)
-        openid = db.Column(db.Text, unique=True)
-        name = db.Column(db.String(128), unique=True)
-        email = db.Column(db.String(256), unique=True)
+        openid = db.Column(db.Text, unique=True, index=True)
+        name = db.Column(db.String(128), unique=True, index=True)
+        email = db.Column(db.String(256), unique=True, index=True)
         plused = db.relationship('Entry', secondary=plus_table, backref='plused')
 
         def plus(self, entry):
@@ -124,10 +124,10 @@ def make(app):
         tags = db.Column(db.Text)
         ctime = db.Column(db.DateTime)
         mtime = db.Column(db.DateTime)
-        site_id = db.Column(db.String(128))
+        site_id = db.Column(db.String(128), index=True)
         post_id = db.Column(db.String(128))
         post_url = db.Column(db.Text)
-        md5 = db.Column(db.LargeBinary(128), db.ForeignKey('entry.id'))
+        md5 = db.Column(db.LargeBinary(128), db.ForeignKey('entry.id'), index=True)
 
     def _random_name():
         import uuid
