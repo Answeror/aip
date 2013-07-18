@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 
 
+import logging
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func, and_, desc
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.declarative import declared_attr
 from hashlib import md5
 
 
@@ -67,18 +69,18 @@ def make(app):
         def ctime(cls):
             return db.session.query(func.min(Post.ctime)).filter(Post.md5 == cls.id)
 
-        @hybrid_property
-        def best_post(self):
-            if not hasattr(self, '_best_post'):
-                #self._best_post = Post.query.filter_by(md5=self.id).first()
-                #sub = Post.query.filter_by(md5=self.id).subquery()
-                #self._best_post = db.session.query(sub).filter(sub.c.score == func.max(sub.c.score).select()).first()
+        @classmethod
+        def __declare_last__(cls):
+            try:
                 sub = db.session.query(
                     Post.md5,
                     func.max(Post.score).label('score'),
                 ).group_by(Post.md5).subquery()
-                self._best_post = Post.query.outerjoin(sub, Post.md5 == sub.c.md5).filter_by(md5=self.id).first()
-            return self._best_post
+                cls.best_post = db.column_property(
+                    db.select([Post]).where((Post.md5 == sub.c.md5) & (Post.md5 == cls.id))
+                )
+            except Exception as e:
+                logging.exception(e)
 
         @property
         def plus_count(self):
@@ -250,6 +252,9 @@ def make(app):
     from sqlalchemy import event
     event.listen(db.engine, 'connect', _pragma_on_connect)
 
+    print(Entry.query)
+
     db.create_all()
+
     store.db = db
     return store
