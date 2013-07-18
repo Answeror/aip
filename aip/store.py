@@ -65,9 +65,12 @@ def make(app):
                 Post.md5,
                 func.max(Post.score).label('score'),
             ).group_by(Post.md5).subquery()
+            cls.best_post_id = db.column_property(
+                db.select([Post.id]).where((Post.md5 == sub.c.md5) & (Post.md5 == cls.id))
+            )
             for key in ('post_url', 'preview_url', 'height', 'width', 'score', 'ctime'):
                 setattr(cls, key, db.column_property(
-                    db.select([getattr(Post, key)]).where((Post.md5 == sub.c.md5) & (Post.md5 == cls.id))
+                    db.select([getattr(Post, key)]).where(Post.id == cls.best_post_id)
                 ))
 
             cls.plus_count = db.column_property(
