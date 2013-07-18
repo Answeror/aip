@@ -76,8 +76,12 @@ def make(app):
                     Post.md5,
                     func.max(Post.score).label('score'),
                 ).group_by(Post.md5).subquery()
-                cls.best_post = db.column_property(
-                    db.select([Post]).where((Post.md5 == sub.c.md5) & (Post.md5 == cls.id))
+                cls.best_post = db.relation(
+                    Post,
+                    primaryjoin=((Post.md5 == sub.c.md5) & (Post.md5 == cls.id)),
+                    foreign_keys=[Post.md5],
+                    uselist=False,
+                    viewonly=True
                 )
             except Exception as e:
                 logging.exception(e)
