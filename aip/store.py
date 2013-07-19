@@ -8,6 +8,7 @@ from sqlalchemy import func, and_, desc
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.declarative import declared_attr
 from hashlib import md5
+from functools import partial
 
 
 def make(app):
@@ -57,24 +58,19 @@ def make(app):
     class Entry(db.Model):
 
         id = db.Column(db.LargeBinary(128), primary_key=True)
-        posts = db.relationship('Post')
+        posts = db.relationship('Post', lazy=False)
 
         @classmethod
         def __declare_last__(cls):
-            sub = db.session.query(
-                Post.md5,
-                func.max(Post.score).label('score'),
-            ).group_by(Post.md5).subquery()
-            cls.best_post_id = db.column_property(
-                db.select([Post.id]).where((Post.md5 == sub.c.md5) & (Post.md5 == cls.id))
-            )
-            for key in ('post_url', 'preview_url', 'height', 'width', 'score', 'ctime'):
-                setattr(cls, key, db.column_property(
-                    db.select([getattr(Post, key)]).where(Post.id == cls.best_post_id)
-                ))
+            cls.best_post = property(lambda self: max(self.posts, key=lambda p: p.score))
+            for key in ('post_url', 'preview_url', 'height', 'width', 'score'):
+                setattr(cls, key, property(partial(lambda key, self: getattr(self.best_post, key), key)))
 
             cls.plus_count = db.column_property(
                 db.select([func.count('*')]).where(plus_table.c.entry_id == cls.id)
+            )
+            cls.ctime = db.column_property(
+                db.select([func.min(Post.ctime)]).where(Post.md5 == cls.id)
             )
 
         @property
