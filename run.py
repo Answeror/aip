@@ -36,7 +36,7 @@ AIP_TEMP_PATH = os.path.abspath('temp')
 SQLALCHEMY_DATABASE_URI = 'sqlite:///%s' % os.path.abspath(os.path.join('temp', 'aip.db'))
 #SQLALCHEMY_DATABASE_URI = 'sqlite://'
 PROFILE = True
-SQLALCHEMY_RECORD_QUERIES = False
+SQLALCHEMY_RECORD_QUERIES = True
 DATABASE_QUERY_TIMEOUT = 1e-5
 
 
