@@ -213,7 +213,7 @@ def make(app, oid, cached, store):
         return render_template('index.html', pagination=pagination)
 
     @app.route('/style.css')
-    @cached(timeout=24 * 60 * 60)
+    #@cached(timeout=24 * 60 * 60)
     def style():
         import scss
         from collections import OrderedDict

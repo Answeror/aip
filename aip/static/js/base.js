@@ -78,7 +78,7 @@ $(function() {
                                 }
                             },
                             error: function() {
-                                console.log('plus failed');
+                                console.log('minus failed');
                             }
                         })
                     });
@@ -92,18 +92,18 @@ $(function() {
                             accepts: "application/json",
                             cache: false,
                             dataType: 'json',
-                            data: JSON.stringify({ user_id: user, entry_id: entry }),
-                            success: function(data) {
-                                if (!('error' in data)) {
-                                    $plus.data('count', data.count);
-                                    $plus.data('plused', true);
-                                    $plus.update();
-                                }
-                            },
-                            error: function() {
-                                console.log('plus failed');
+                            data: JSON.stringify({ user_id: user, entry_id: entry })
+                        }).done(function(data) {
+                            if (!('error' in data)) {
+                                $plus.data('count', data.count);
+                                $plus.data('plused', true);
+                                $plus.update();
                             }
-                        })
+                        }).fail(function() {
+                            console.log('plus failed');
+                        }).always(function() {
+                            console.log('plus complete');
+                        });
                     });
                 }
             };
@@ -114,58 +114,69 @@ $(function() {
     var bootstrap_alert = function() {}
     bootstrap_alert.warning = function(message) {
         $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
-    }
+    };
     var page = 0;
+    function progress(p) {
+        console.log(p);
+        $('#bar').width(p + '%');
+    };
     $container.waypoint(
         function(direction){
             if (direction === 'down' || direction === 'right') {
                 $this = $(this);
+                progress(0);
                 $('#loading').show();
                 $this.waypoint('disable');
                 $.ajax({
                     method: 'GET',
                     url: '/api/page/' + page,
                     accepts: "application/json",
-                    cache: false,
-                    success: function(data) {
-                        var $items = $(data.result).find('.item');
-                        $items.hide();
-                        $container.append($items);
-                        //$items.width(fit);
-                        $container.imagesLoaded(function() {
-                            if ($items.length) {
-                                $items.show();
-                                $items.each(dealimage);
-                                try {
-                                    if (page == 0) {
-                                        $container.masonry({
-                                            itemSelector: '.item',
-                                            isAnimated: true,
-                                            columnWidth: '.span2',
-                                            transitionDuration: '0.4s'
-                                        });
-                                    } else {
-                                        $container.masonry('appended', $items, true);
-                                    }
-                                } catch (e) {
-                                    console.log(e);
-                                }
-                            }
-                            if ($items.length) {
-                                $this.waypoint('enable');
-                            } else {
-                                console.log('destroy waypoint');
-                                $this.waypoint('destroy');
-                            }
-                            $('#loading').hide();
-                            $('#alert_box').html('');
-                            page += 1;
+                    cache: false
+                }).done(function(data) {
+                    var $items = $(data.result).find('.item');
+                    $items.hide();
+                    $container.append($items);
+                    //$items.width(fit);
+                    var n = $items.length;
+                    var loaded = 0;
+                    $items.each(function() {
+                        $(this).imagesLoaded(function() {
+                            ++loaded;
+                            progress(100 * loaded / n);
                         });
-                    },
-                    error: function() {
+                    });
+                    $container.imagesLoaded(function() {
+                        if ($items.length) {
+                            $items.show();
+                            $items.each(dealimage);
+                            try {
+                                if (page == 0) {
+                                    $container.masonry({
+                                        itemSelector: '.item',
+                                        isAnimated: true,
+                                        columnWidth: '.span2',
+                                        transitionDuration: '0.4s'
+                                    });
+                                } else {
+                                    $container.masonry('appended', $items, true);
+                                }
+                            } catch (e) {
+                                console.log(e);
+                            }
+                        }
+                        if ($items.length) {
+                            $this.waypoint('enable');
+                        } else {
+                            console.log('destroy waypoint');
+                            $this.waypoint('destroy');
+                        }
                         $('#loading').hide();
-                        bootstrap_alert.warning('Load more failed.');
-                    }
+                        $('#alert_box').html('');
+                        page += 1;
+                    });
+                }).fail(function() {
+                    $('#loading').hide();
+                    bootstrap_alert.warning('Load more failed.');
                 });
             }
         }, {
