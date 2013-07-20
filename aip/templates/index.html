@@ -6,7 +6,13 @@
         </div>
         <div id='alert_box'></div>
         <div id='loading' style='display:none'>
-            <img src='{{ url_for('.static', filename='images/inf.gif') }}'>
+            <hr>
+            <div class='span8 offset2'>
+                <p class='text-info text-center'>Loading...</p>
+                <div class="progress progress-striped active">
+                    <div id='bar' class="bar"></div>
+                </div>
+            </div>
         </div>
     </div>
     <script src="//ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.1.min.js"></script>

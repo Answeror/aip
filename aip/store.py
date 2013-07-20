@@ -43,7 +43,7 @@ def make(app):
         openid = db.Column(db.Text, unique=True, index=True)
         name = db.Column(db.String(128), unique=True, index=True)
         email = db.Column(db.String(256), unique=True, index=True)
-        plused = db.relationship('Entry', secondary=plus_table, backref='plused')
+        plused = db.relationship('Entry', secondary=plus_table, backref=db.backref('plused', lazy=False))
 
         def plus(self, entry):
             self.plused.append(entry)
@@ -66,12 +66,13 @@ def make(app):
             for key in ('post_url', 'preview_url', 'height', 'width', 'score'):
                 setattr(cls, key, property(partial(lambda key, self: getattr(self.best_post, key), key)))
 
-            cls.plus_count = db.column_property(
-                db.select([func.count('*')]).where(plus_table.c.entry_id == cls.id)
-            )
             cls.ctime = db.column_property(
                 db.select([func.min(Post.ctime)]).where(Post.md5 == cls.id)
             )
+
+        @property
+        def plus_count(self):
+            return len(self.plused)
 
         @property
         def preview_width(self):
