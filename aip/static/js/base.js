@@ -35,6 +35,8 @@ $(function() {
             $sample.imagesLoaded().done(function() {
                 console.log('use sample done');
                 $preview.fadeOut('slow', function() {
+                    $sample.width(preview.width());
+                    $sample.height(preview.height());
                     $sample.fadeIn('slow');
                 });
             }).error(function() {
