@@ -29,13 +29,14 @@ $(function() {
         var $this = $(this);
         var $preview = $this.find('img.preview');
         var $sample = $this.find('img.sample');
-        function usesample() {
+        function usesample(width, height) {
             console.log('use sample');
             $sample.attr('src', $sample.data('src'));
             $sample.imagesLoaded().done(function() {
                 console.log('use sample done');
                 $preview.fadeOut('slow', function() {
                     $sample.width($preview.width());
+                    $sample.height(height * $preview.width() / width);
                     $sample.fadeIn('slow');
                 });
             }).error(function() {
@@ -48,7 +49,7 @@ $(function() {
                 $src,
                 function(width, height) {
                     if ($preview.width() * $preview.height() > width * height * 3) {
-                        usesample();
+                        usesample(width, height);
                     }
                 }
             );
