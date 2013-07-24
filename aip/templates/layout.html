@@ -20,6 +20,15 @@
             <div class="navbar-inner">
                 <div class='container'>
                     <a class="brand" href="/">AIP Instrumentality Project</a>
+                    <div class='nav-collapse collapse'>
+                        <div class='pull-right'>
+                            {% if g.user %}
+                                <a href='/logout' class='btn'>logout</a>
+                            {% else %}
+                                <a href='/login' class='btn'>login</a>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
