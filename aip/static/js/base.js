@@ -163,7 +163,7 @@ $(function() {
                             progress(100 * loaded / n);
                         });
                     });
-                    $container.imagesLoaded().complete(function() {
+                    $container.imagesLoaded().always(function() {
                         if ($items.length) {
                             $items.show();
                             $items.each(dealimage);
