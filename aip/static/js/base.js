@@ -32,13 +32,27 @@ $(function() {
         function usesample() {
             console.log('use sample');
             $sample.attr('src', $sample.data('src'));
-            $sample.imagesLoaded().done(function() {
-                console.log('use sample done');
-                $preview.fadeOut('slow', function() {
-                    $sample.fadeIn('slow');
-                });
+            $.ajax({
+                method: 'GET',
+                url: $sample.data('src'),
+                accepts: "application/json",
+                cache: false
+            }).done(function(data) {
+                if ('error' in data) {
+                    console.log('get sample link failed');
+                } else {
+                    $sample.attr('src', data.result);
+                    $sample.imagesLoaded().done(function() {
+                        console.log('use sample done');
+                        $preview.fadeOut('slow', function() {
+                            $sample.fadeIn('slow');
+                        });
+                    }).error(function() {
+                        console.log('use sample error');
+                    });
+                }
             }).error(function() {
-                console.log('use sample error');
+                console.log('get sample link failed');
             });
         };
         $src = $preview.attr('src');
