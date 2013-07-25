@@ -3,7 +3,6 @@
 
 
 from nose.tools import (
-    assert_true,
     assert_equal,
     assert_in,
     assert_not_in,
@@ -200,3 +199,13 @@ def test_plus():
         data=json.dumps(dict(user_openid='openid'))
     )
     assert_equal(len(result(r)), 0)
+
+
+@with_setup(patch_urllib3, unpatch_urllib3)
+@with_setup(setup_app, teardown_app)
+def test_sample_link():
+    r = g.client.get(api('/update/20130630'))
+    assert_success(r)
+    r = result(g.client.get(api('/entries')))
+    r = g.client.get(api('/sample_link/%s' % r[0]['id']))
+    assert_success(r)

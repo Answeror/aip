@@ -5,7 +5,7 @@
             <p>
                 <a class='preview' href='{{ e.post_url }}' target='_blank'>
                     <img class='preview lazy' src='{{ e.preview_url }}'>
-                    <img class='sample' data-src='{{ url_for('.sample', md5=e.md5) }}'>
+                    <img class='sample' data-src='{{ url_for('.sample_link', md5=e.md5) }}'>
                 </a>
             </p>
             <p>

@@ -40,6 +40,10 @@ SQLALCHEMY_RECORD_QUERIES = True
 DATABASE_QUERY_TIMEOUT = 1e-5
 
 
+with open('imgur-client-id', 'rb') as f:
+    AIP_IMGUR_CLIENT_ID = f.read().decode('ascii').strip()
+
+
 if __name__ == "__main__":
     setuplogging(logging.DEBUG, True)
     from aip import make

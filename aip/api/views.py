@@ -3,8 +3,6 @@
 
 
 import logging
-from collections import namedtuple
-from operator import attrgetter as attr
 from flask import (
     jsonify,
     request,
@@ -16,6 +14,7 @@ from datetime import datetime
 import threading
 from functools import wraps
 import pickle
+import json
 
 
 lock = threading.RLock()
@@ -233,6 +232,64 @@ def make(app, api, cached, store):
         output_stream = BytesIO()
         im.save(output_stream, format='JPEG')
         return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
+
+    @api.route('/sample_link/<md5>')
+    def sample_link(md5):
+        md5 = md5.encode('ascii')
+        im = store.get_image_bi_md5(md5)
+        imgur = store.get_imgur_bi_md5(md5)
+        if not imgur:
+            imgur = make_imgur(im)
+            store.db.session.add(imgur)
+            store.db.session.commit()
+        return jsonify(dict(result=best_imgur_link(imgur, im.width, im.height)))
+
+    imgur_thumbnails = (
+        ('t', 160, 160),
+        ('m', 320, 320),
+        ('l', 640, 640),
+        ('h', 1024, 1024)
+    )
+
+    def best_imgur_link(imgur, width, height):
+        area = width * height
+        for suffix, width, height in imgur_thumbnails:
+            if area <= width * height:
+                parts = imgur.link.split('.')
+                assert len(parts) > 1
+                parts[-2] = parts[-2] + suffix
+                return '.'.join(parts)
+        return imgur.link
+
+    def make_imgur(im):
+        from urllib.request import Request, urlopen
+        from urllib.parse import urlencode
+        client_id = current_app.config['AIP_IMGUR_CLIENT_ID']
+        image_url = im.sample_url if im.sample_url else im.image_url
+        try:
+            r = urlopen(Request(
+                'https://api.imgur.com/3/image',
+                headers={'Authorization': 'Client-ID %s' % client_id},
+                data=urlencode({
+                    'image': image_url,
+                    'type': 'URL'
+                }).encode('ascii')
+            )).read()
+            r = json.loads(r.decode('utf-8'))
+            if not r['success']:
+                logging.error('make_imgur failed with error code %d' % r['status'])
+                return None
+        except Exception as e:
+            logging.error('make_imgur failed')
+            logging.exception(e)
+            return None
+        data = r['data']
+        return store.Imgur(
+            md5=im.md5,
+            id=data['id'].encode('ascii'),
+            deletehash=data['deletehash'].encode('ascii'),
+            link=data['link']
+        )
 
     @api.after_request
     def after_request(response):

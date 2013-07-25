@@ -105,6 +105,14 @@ def make(app):
         post_url = db.Column(db.Text)
         md5 = db.Column(db.LargeBinary(128), db.ForeignKey('entry.id'), index=True)
 
+    @stored
+    class Imgur(db.Model):
+
+        md5 = db.Column(db.LargeBinary(128), primary_key=True)
+        id = db.Column(db.LargeBinary(16))
+        deletehash = db.Column(db.LargeBinary(32))
+        link = db.Column(db.Text)
+
     def _random_name():
         import uuid
         return str(uuid.uuid4())
@@ -219,6 +227,10 @@ def make(app):
     def clear():
         db.drop_all()
         db.create_all()
+
+    @stored
+    def get_imgur_bi_md5(md5):
+        return Imgur.query.get(md5)
 
     def _pragma_on_connect(dbapi_con, con_record):
         dbapi_con.execute('PRAGMA cache_size = 100000')
