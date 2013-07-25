@@ -29,14 +29,12 @@ $(function() {
         var $this = $(this);
         var $preview = $this.find('img.preview');
         var $sample = $this.find('img.sample');
-        function usesample(width, height) {
+        function usesample() {
             console.log('use sample');
             $sample.attr('src', $sample.data('src'));
             $sample.imagesLoaded().done(function() {
                 console.log('use sample done');
                 $preview.fadeOut('slow', function() {
-                    $sample.width($preview.width());
-                    $sample.height(height * $preview.width() / width);
                     $sample.fadeIn('slow');
                 });
             }).error(function() {
@@ -48,8 +46,12 @@ $(function() {
             truesize(
                 $src,
                 function(width, height) {
+                    $preview.attr('width', width);
+                    $preview.attr('height', height);
+                    $sample.attr('width', width);
+                    $sample.attr('height', height);
                     if ($preview.width() * $preview.height() > width * height * 3) {
-                        usesample(width, height);
+                        usesample();
                     }
                 }
             );
