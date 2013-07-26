@@ -234,12 +234,18 @@ def make(app, api, cached, store):
         return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
 
     @api.route('/sample_link/<md5>')
+    @guarded
     def sample_link(md5):
         md5 = md5.encode('ascii')
         im = store.get_image_bi_md5(md5)
         imgur = store.get_imgur_bi_md5(md5)
         if not imgur:
-            imgur = make_imgur(im)
+            for i in range(current_app.config['AIP_IMGUR_RETRY_LIMIT']):
+                imgur = make_imgur(im)
+                if imgur is not None:
+                    break
+            if not imgur:
+                raise Exception('upload to imgur failed')
             store.db.session.add(imgur)
             store.db.session.commit()
         return jsonify(dict(result=best_imgur_link(imgur, im.width, im.height)))
@@ -252,9 +258,9 @@ def make(app, api, cached, store):
     )
 
     def best_imgur_link(imgur, width, height):
-        area = width * height
+        area = g.sample_width * (g.sample_width * height / width)
         for suffix, width, height in imgur_thumbnails:
-            if area <= width * height:
+            if area <= 3 * width * height:
                 parts = imgur.link.split('.')
                 assert len(parts) > 1
                 parts[-2] = parts[-2] + suffix

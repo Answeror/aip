@@ -39,7 +39,7 @@ PROFILE = True
 SQLALCHEMY_RECORD_QUERIES = True
 DATABASE_QUERY_TIMEOUT = 1e-5
 
-
+AIP_IMGUR_RETRY_LIMIT = 3
 with open('imgur-client-id', 'rb') as f:
     AIP_IMGUR_CLIENT_ID = f.read().decode('ascii').strip()
 
@@ -52,4 +52,4 @@ if __name__ == "__main__":
     if app.config['PROFILE']:
         from werkzeug.contrib.profiler import ProfilerMiddleware
         app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30]) # , sort_by=('cumulative', 'calls'))
-    app.run(debug=True)
+    app.run('0.0.0.0', debug=True)

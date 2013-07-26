@@ -31,7 +31,6 @@ $(function() {
         var $sample = $this.find('img.sample');
         function usesample() {
             console.log('use sample');
-            $sample.attr('src', $sample.data('src'));
             $.ajax({
                 method: 'GET',
                 url: $sample.data('src'),
@@ -55,17 +54,17 @@ $(function() {
                 console.log('get sample link failed');
             });
         };
-        $src = $preview.attr('src');
-        if ($src) {
+        var src = $preview.attr('src');
+        if (src) {
             truesize(
-                $src,
+                src,
                 function(width, height) {
                     $preview.attr('width', width);
                     $preview.attr('height', height);
                     $sample.attr('width', width);
                     $sample.attr('height', height);
                     if ($preview.width() * $preview.height() > width * height * 3) {
-                        usesample();
+                        //usesample();
                     }
                 }
             );
@@ -138,6 +137,7 @@ $(function() {
         console.log(p);
         $('#bar').width(p + '%');
     };
+    var marsed = false;
     $container.waypoint(
         function(direction){
             if (direction === 'down' || direction === 'right') {
@@ -154,34 +154,9 @@ $(function() {
                     var $items = $(data.result).find('.item');
                     $items.hide();
                     $container.append($items);
-                    //$items.width(fit);
                     var n = $items.length;
                     var loaded = 0;
-                    $items.each(function() {
-                        $(this).imagesLoaded(function() {
-                            ++loaded;
-                            progress(100 * loaded / n);
-                        });
-                    });
-                    $container.imagesLoaded().always(function() {
-                        if ($items.length) {
-                            $items.show();
-                            $items.each(dealimage);
-                            try {
-                                if (page == 0) {
-                                    $container.masonry({
-                                        itemSelector: '.item',
-                                        isAnimated: true,
-                                        columnWidth: '.span2',
-                                        transitionDuration: '0.4s'
-                                    });
-                                } else {
-                                    $container.masonry('appended', $items, true);
-                                }
-                            } catch (e) {
-                                console.log(e);
-                            }
-                        }
+                    var always = function() {
                         if ($items.length) {
                             $this.waypoint('enable');
                         } else {
@@ -191,6 +166,75 @@ $(function() {
                         $('#loading').hide();
                         $('#alert_box').html('');
                         page += 1;
+                    };
+                    var dealone = function($item) {
+                        if ($item.data('visited')) return;
+                        $item.data('visited', true);
+                        ++loaded;
+                        progress(100 * loaded / n);
+                        $item.show();
+                        $item.each(dealimage);
+                        try {
+                            if (!marsed) {
+                                $container.masonry({
+                                    itemSelector: '.item',
+                                    isAnimated: true,
+                                    columnWidth: '.span2',
+                                    transitionDuration: '0.4s'
+                                });
+                                marsed = true;
+                            } else {
+                                $container.masonry('appended', $item, true);
+                            }
+                        } catch (e) {
+                            console.log(e);
+                        }
+                    };
+                    var useproxy = function($item) {
+                        var $img = $item.find('img.preview');
+                        $.ajax({
+                            method: 'GET',
+                            url: $img.data('proxied-preview'),
+                            accepts: "application/json",
+                            cache: false
+                        }).done(function(data) {
+                            if ('error' in data) {
+                                console.log('get proxied preview link failed');
+                            } else {
+                                $item.imagesLoaded().done(function() {
+                                    dealone($item);
+                                });
+                                $img.attr('src', data.result);
+                            }
+                        }).error(function() {
+                            console.log('get proxied preview link failed');
+                        });
+                    };
+                    var timeout = false;
+                    var timeoutId = window.setTimeout(function() {
+                        timeout = true;
+                        $items.each(function() {
+                            console.log('timeout dealone');
+                            useproxy($(this));
+                        });
+                        $items.imagesLoaded().always(always);
+                    }, 5000);
+                    $items.imagesLoaded().progress(function(self, image) {
+                        if (!timeout) {
+                            var $item = $items.filter('[data-md5="' + $(image.img).data('md5') + '"]');
+                            if (image.isLoaded) {
+                                if ($item.length) {
+                                    dealone($item);
+                                }
+                            } else {
+                                useproxy($item);
+                            }
+                        }
+                    }).always(function() {
+                        window.clearTimeout(timeoutId);
+                        if (!timeout) {
+                            always();
+                        }
                     });
                 }).fail(function() {
                     $('#loading').hide();
