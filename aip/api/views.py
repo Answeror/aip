@@ -105,10 +105,18 @@ def wrap(entries):
 
 def make(app, api, cached, store):
     def get_user_bi_someid():
-        if 'user_id' in request.json:
-            user = store.get_user_bi_id(request.json['user_id'])
-        elif 'user_openid' in request.json:
-            user = store.get_user_bi_openid(request.json['user_openid'])
+        if request.json:
+            args = request.json
+        elif request.form:
+            args = request.form
+        elif request.args:
+            args = request.args
+        else:
+            args = {}
+        if 'user_id' in args:
+            user = store.get_user_bi_id(args['user_id'])
+        elif 'user_openid' in args:
+            user = store.get_user_bi_openid(args['user_openid'])
         else:
             raise Exception('must provider user id or openid')
         return user
@@ -157,7 +165,7 @@ def make(app, api, cached, store):
     def entry_count():
         return jsonify(dict(result=store.entry_count()))
 
-    @api.route('/entries')
+    @api.route('/entries', methods=['GET'])
     @guarded
     def entries():
         return jsonify(result=[tod(im, ('id',)) for im in store.get_entries_order_bi_ctime(get_slice())])
@@ -201,6 +209,13 @@ def make(app, api, cached, store):
         user.plus(entry)
         store.db.session.commit()
         return jsonify(dict(count=entry.plus_count))
+
+    @api.route('/plused/page/<int:id>.html', methods=['GET'])
+    @guarded
+    def plused_page_html(id):
+        user = get_user_bi_someid()
+        r = slice(g.per * id, g.per * (id + 1), 1)
+        return jsonify(result=render_template('page.html', entries=wrap(user.plused)))
 
     @api.route('/plused', methods=['GET'])
     @guarded
