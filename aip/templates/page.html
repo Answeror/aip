@@ -9,11 +9,13 @@
             </p>
             <p>
                 {% if g.user %}
-                    {% if g.user.has_plused(e) %}
-                        <a class='plus btn btn-mini' data-plused='true' data-count='{{ e.plus_count }}' data-user="{{ g.user.id.decode('utf-8') }}" data-entry="{{ e.id.decode('utf-8') }}"></a>
-                    {% else %}
-                        <a class='plus btn btn-mini' data-plused='false' data-count='{{ e.plus_count }}' data-user="{{ g.user.id.decode('utf-8') }}" data-entry="{{ e.id.decode('utf-8') }}"></a>
-                    {% endif %}
+                    <a
+                        class='plus btn btn-mini'
+                        data-plused={{ 'true' if g.user.has_plused(e) else 'false' }}
+                        data-count='{{ e.plus_count }}'
+                        data-user="{{ g.user.id.decode('utf-8') }}"
+                        data-entry="{{ e.id.decode('utf-8') }}"
+                    ></a>
                 {% else %}
                     <a class='btn btn-mini'>+{{ e.plus_count }}</a>
                 {% endif %}
