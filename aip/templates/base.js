@@ -190,7 +190,7 @@ $(function() {
                         $items.each(function() {
                             proxied($(this));
                         });
-                    }, 5000);
+                    }, {{ config['AIP_LOADING_TIMEOUT'] }});
                     $items.imagesLoaded().progress(function(self, image) {
                         if (!timeout) {
                             var $item = $buffer.find('.item[data-md5="' + $(image.img).data('md5') + '"]');
