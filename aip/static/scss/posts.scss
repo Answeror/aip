@@ -11,22 +11,22 @@ body {
     position: relative;
     padding-top: 40px;
 }
-#main {
+.main {
     margin-top: 5px;
 }
 .item {
     display: inline-block;
     vertical-align: top;
     margin-bottom: 5px;
+    img.preview {
+        width: 100%;
+    }
 }
 p:last-child {
     margin-bottom: 0;
 }
-img.preview, img.sample {
-    width: 100%;
-}
-img.sample {
-    display: none;
+#barout {
+    margin-top: 1em;
 }
 
 /* Responsive
@@ -55,6 +55,12 @@ img.sample {
     body {
         padding-top: 0;
     }
+    #loading {
+        position: fixed;
+    }
+    #loading .container {
+        width: 559px;
+    }
 }
 
 /* Tablet
@@ -64,6 +70,11 @@ img.sample {
     body {
         padding-top: 0;
     }
+    #loading {
+        position: fixed;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
 }
 
 /* Landscape phones
@@ -72,5 +83,10 @@ img.sample {
     /* Remove padding above jumbotron */
     body {
         padding-top: 0;
+    }
+    #loading {
+        position: fixed;
+        padding-left: 20px;
+        padding-right: 20px;
     }
 }
