@@ -235,6 +235,14 @@ def make(app, oid, cached, store):
         c._scss_files = OrderedDict(sources)
         return c.compile(), 200, {'Content-Type': 'text/css'}
 
+    @app.route('/js')
+    def js():
+        return (
+            render_template('base.js'),
+            200,
+            {'Content-Type': 'text/javascript'}
+        )
+
     @app.route('/log')
     def log():
         with open(app.config['AIP_LOG_FILE_PATH'], 'rb') as f:

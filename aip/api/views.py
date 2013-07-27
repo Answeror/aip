@@ -233,9 +233,9 @@ def make(app, api, cached, store):
         im.save(output_stream, format='JPEG')
         return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
 
-    @api.route('/sample_link/<md5>')
+    @api.route('/proxied_url/<md5>', methods=['GET'])
     @guarded
-    def sample_link(md5):
+    def proxied_url(md5):
         md5 = md5.encode('ascii')
         im = store.get_image_bi_md5(md5)
         imgur = store.get_imgur_bi_md5(md5)
@@ -248,7 +248,13 @@ def make(app, api, cached, store):
                 raise Exception('upload to imgur failed')
             store.db.session.add(imgur)
             store.db.session.commit()
-        return jsonify(dict(result=best_imgur_link(imgur, im.width, im.height)))
+        if 'width' in request.args:
+            width = float(request.args['width'])
+            height = width * im.height / im.width
+            url = best_imgur_link(imgur, width, height)
+        else:
+            url = imgur.link
+        return jsonify(dict(result=url))
 
     imgur_thumbnails = (
         ('t', 160, 160),
@@ -258,9 +264,9 @@ def make(app, api, cached, store):
     )
 
     def best_imgur_link(imgur, width, height):
-        area = g.sample_width * (g.sample_width * height / width)
+        area = width * height
         for suffix, width, height in imgur_thumbnails:
-            if area <= 3 * width * height:
+            if area <= current_app.config['AIP_RESOLUTION_LEVEL'] * width * height:
                 parts = imgur.link.split('.')
                 assert len(parts) > 1
                 parts[-2] = parts[-2] + suffix

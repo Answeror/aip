@@ -1,23 +1,4 @@
 $(function() {
-    //$.fn.lazyload = function(){
-        //var $this = $(this);
-        //$this.waypoint(
-            //function(){
-                //$this.hide().attr("src", $this.data('src')).fadeIn('slow');
-            //}, {
-                //triggerOnce: true,
-                //offset: function() {
-                    //return $.waypoints('viewportHeight') + $(this).height();
-                //}
-            //}
-        //);
-    //};
-    var gutter = 10;
-    var min_width = 200;
-    function fit(index, width){
-        var cols = Math.floor(width / min_width);
-        return cols * min_width + (cols - 1) * gutter;
-    };
     function truesize(src, callback) {
         var buf = new Image();
         buf.onload = function() {
@@ -28,32 +9,6 @@ $(function() {
     function dealimage() {
         var $this = $(this);
         var $preview = $this.find('img.preview');
-        var $sample = $this.find('img.sample');
-        function usesample() {
-            console.log('use sample');
-            $.ajax({
-                method: 'GET',
-                url: $sample.data('src'),
-                accepts: "application/json",
-                cache: false
-            }).done(function(data) {
-                if ('error' in data) {
-                    console.log('get sample link failed');
-                } else {
-                    $sample.attr('src', data.result);
-                    $sample.imagesLoaded().done(function() {
-                        console.log('use sample done');
-                        $preview.fadeOut('slow', function() {
-                            $sample.fadeIn('slow');
-                        });
-                    }).error(function() {
-                        console.log('use sample error');
-                    });
-                }
-            }).error(function() {
-                console.log('get sample link failed');
-            });
-        };
         var src = $preview.attr('src');
         if (src) {
             truesize(
@@ -61,15 +16,9 @@ $(function() {
                 function(width, height) {
                     $preview.attr('width', width);
                     $preview.attr('height', height);
-                    $sample.attr('width', width);
-                    $sample.attr('height', height);
-                    if ($preview.width() * $preview.height() > width * height * 3) {
-                        //usesample();
-                    }
                 }
             );
         }
-        //$preview.lazyload();
         $this.find('.plus').each(function() {
             var $plus = $(this);
             var user = $plus.data('user');
@@ -169,12 +118,17 @@ $(function() {
                         $('#alert_box').html('');
                         page += 1;
                     };
+                    var doneone = function($item) {
+                        ++loaded;
+                        progress(100 * loaded / n);
+                        if (loaded == n) {
+                            cleanup();
+                        }
+                    };
                     var dealone = function($item) {
                         if ($item.data('visited')) return;
                         $item.data('visited', true);
-                        ++loaded;
-                        progress(100 * loaded / n);
-                        $item.detach();
+                        doneone($item);
                         $container.append($item);
                         $item.each(dealimage);
                         try {
@@ -192,29 +146,41 @@ $(function() {
                         } catch (e) {
                             console.log(e);
                         }
-                        if (loaded == n) {
-                            cleanup();
-                        }
                     };
-                    var useproxy = function($item) {
-                        var $img = $item.find('img.preview');
-                        $.ajax({
-                            method: 'GET',
-                            url: $img.data('proxied-preview'),
-                            accepts: "application/json",
-                            cache: false
-                        }).done(function(data) {
-                            if ('error' in data) {
-                                console.log('get proxied preview link failed');
-                            } else {
-                                $item.imagesLoaded().done(function() {
-                                    dealone($item);
-                                });
-                                $img.attr('src', data.result);
-                            }
-                        }).error(function() {
+                    var proxied = function($item) {
+                        var error = function(message) {
                             console.log('get proxied preview link failed');
-                        });
+                            if (message) {
+                                console.log(message);
+                            }
+                            doneone($item);
+                        };
+                        try {
+                            var $img = $item.find('img.preview');
+                            $.ajax({
+                                method: 'GET',
+                                url: $img.data('proxied-url'),
+                                accepts: "application/json",
+                                cache: false,
+                                dataType: 'json',
+                                data: { width: $img.width() }
+                            }).done(function(data) {
+                                try {
+                                    if ('error' in data) {
+                                        error(data.error.message);
+                                    } else {
+                                        $item.imagesLoaded().done(function() {
+                                            dealone($item);
+                                        });
+                                        $img.attr('src', data.result);
+                                    }
+                                } catch (e) {
+                                    error(e.message);
+                                }
+                            }).fail(error);
+                        } catch (e) {
+                            error(e.message);
+                        }
                     };
                     var timeout = false;
                     var timeoutId = window.setTimeout(function() {
@@ -222,18 +188,27 @@ $(function() {
                         var $items = $buffer.find('.item');
                         console.log('timeout, remains: ' + $items.length);
                         $items.each(function() {
-                            useproxy($(this));
+                            proxied($(this));
                         });
                     }, 5000);
                     $items.imagesLoaded().progress(function(self, image) {
                         if (!timeout) {
-                            var $item = $items.filter('.item[data-md5="' + $(image.img).data('md5') + '"]');
+                            var $item = $buffer.find('.item[data-md5="' + $(image.img).data('md5') + '"]');
                             if (image.isLoaded) {
-                                if ($item.length) {
-                                    dealone($item);
-                                }
+                                var $img = $(image.img);
+                                truesize(
+                                    $img.attr('src'),
+                                    function(width, height) {
+                                        var r = {{ config['AIP_RESOLUTION_LEVEL'] }};
+                                        if (width * height * r < $img.width() * $img.height()) {
+                                            proxied($item);
+                                        } else {
+                                            dealone($item);
+                                        }
+                                    }
+                                );
                             } else {
-                                useproxy($item);
+                                proxied($item);
                             }
                         }
                     });

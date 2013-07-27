@@ -2,10 +2,9 @@
     {% for e in entries %}
     <div class='item span2' data-visited='false' data-md5='{{ e.md5 }}'>
         <div class='thumbnail'>
-            <p>
+            <p class=preview>
                 <a class='preview' href='{{ e.post_url }}' target='_blank'>
-                    <img class='preview lazy' src='{{ e.preview_url }}' data-md5='{{ e.md5 }}' data-proxied-preview='{{ url_for('.sample_link', md5=e.md5) }}'>
-                    <!--<img class='sample' data-src='{{ url_for('.sample_link', md5=e.md5) }}'>-->
+                    <img class='preview lazy' src='{{ e.preview_url }}' data-md5='{{ e.md5 }}' data-proxied-url='{{ url_for('.proxied_url', md5=e.md5) }}'>
                 </a>
             </p>
             <p>
