@@ -1,4 +1,9 @@
-$(function() {
+$.aip = {};
+$.aip.is = function(kargs) {
+    defaults = {
+        makePageData: $.noop
+    };
+    kargs = $.extend({}, defaults, kargs);
     function truesize(src, callback) {
         var buf = new Image();
         buf.onload = function() {
@@ -99,9 +104,11 @@ $(function() {
                 $this.waypoint('disable');
                 $.ajax({
                     method: 'GET',
-                    url: '/api/page/' + page,
+                    url: kargs.makePageUrl(page),
                     accepts: "application/json",
-                    cache: false
+                    cache: false,
+                    dataType: 'json',
+                    data: kargs.makePageData(page)
                 }).done(function(data) {
                     var $items = $(data.result).find('.item');
                     $buffer.append($items);
@@ -221,4 +228,4 @@ $(function() {
             offset: 'bottom-in-view'
         }
     );
-});
+};

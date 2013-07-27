@@ -35,8 +35,8 @@ def setuplogging(level, stdout):
 AIP_TEMP_PATH = os.path.abspath('temp')
 SQLALCHEMY_DATABASE_URI = 'sqlite:///%s' % os.path.abspath(os.path.join('temp', 'aip.db'))
 #SQLALCHEMY_DATABASE_URI = 'sqlite://'
-PROFILE = True
-SQLALCHEMY_RECORD_QUERIES = True
+PROFILE = False
+SQLALCHEMY_RECORD_QUERIES = False
 DATABASE_QUERY_TIMEOUT = 1e-5
 
 AIP_IMGUR_RETRY_LIMIT = 3

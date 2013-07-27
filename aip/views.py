@@ -199,18 +199,13 @@ def make(app, oid, cached, store):
         im.save(output_stream, format='JPEG')
         return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
 
-    @app.route('/', defaults={'page': 1})
-    @app.route('/page/<int:page>')
-    def posts(page):
-        from .pagination import Infinite
-        pagination = Infinite(
-            page,
-            app.config['AIP_PER'],
-            lambda begin, end: _scale(
-                store.get_entries_order_bi_ctime(r=slice(begin, end, 1))
-            )
-        )
-        return render_template('index.html', pagination=pagination)
+    @app.route('/')
+    def posts():
+        return render_template('index.html')
+
+    @app.route('/plused')
+    def plused():
+        return render_template('plused.html')
 
     @app.route('/style.css')
     #@cached(timeout=24 * 60 * 60)

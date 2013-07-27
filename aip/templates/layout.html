@@ -21,6 +21,11 @@
                 <div class='container'>
                     <a class="brand" href="/">AIP Instrumentality Project</a>
                     <div class='nav-collapse collapse'>
+                        <ul class="nav">
+                            {% if g.user %}
+                                <li><a href="/plused">plused</a></li>
+                            {% endif %}
+                        </ul>
                         <div class='pull-right'>
                             {% if g.user %}
                                 <a href='/logout' class='btn'>logout</a>
