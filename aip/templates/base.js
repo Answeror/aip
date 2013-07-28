@@ -20,7 +20,7 @@ $.aip.is = function(kargs) {
         };
         buf.src = src;
     };
-    function dealimage() {
+    function postprocess() {
         var $this = $(this);
         var $preview = $this.find('img.preview');
         var src = $preview.attr('src');
@@ -28,8 +28,8 @@ $.aip.is = function(kargs) {
             truesize(
                 src,
                 function(width, height) {
-                    $preview.attr('width', width);
-                    $preview.attr('height', height);
+                    $preview.attr('width', $preview.width());
+                    $preview.attr('height', $preview.width() * height / width);
                 }
             );
         }
@@ -142,7 +142,7 @@ $.aip.is = function(kargs) {
                     var dealone = function($item) {
                         try {
                             $container.append($item);
-                            $item.each(dealimage);
+                            $item.each(postprocess);
                             if (!marsed) {
                                 $container.masonry({
                                     itemSelector: '.item',
