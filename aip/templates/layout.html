@@ -11,6 +11,7 @@
         <![endif]-->
         <!-- Le styles -->
         <!--<link rel="stylesheet" href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css">-->
+        <!--<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/css/bootstrap.min.css">-->
         <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap.min.css') }}" media='screen'>
         <link rel='stylesheet' href="{{ url_for('.style') }}">
         {% block head %}{% endblock %}
@@ -43,5 +44,7 @@
             </div>
         </div>
         {% block body %}{% endblock %}
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <!--<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/js/bootstrap.min.js"></script>-->
     </body>
 </html>
