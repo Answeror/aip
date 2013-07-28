@@ -1,3 +1,5 @@
+// http://stackoverflow.com/a/3326655/238472
+if (!window.console) console = {log: function() {}};
 $.aip = {};
 $.aip.is = function(kargs) {
     defaults = {
@@ -98,8 +100,6 @@ $.aip.is = function(kargs) {
                 $this = $(this);
                 progress(0);
                 $('#loading').show();
-                console.log('clear buffer');
-                console.log('children: ' + $buffer.find('.item').length);
                 $buffer.empty();
                 $this.waypoint('disable');
                 $.ajax({
@@ -133,12 +133,9 @@ $.aip.is = function(kargs) {
                         }
                     };
                     var dealone = function($item) {
-                        if ($item.data('visited')) return;
-                        $item.data('visited', true);
-                        doneone($item);
-                        $container.append($item);
-                        $item.each(dealimage);
                         try {
+                            $container.append($item);
+                            $item.each(dealimage);
                             if (!marsed) {
                                 $container.masonry({
                                     itemSelector: '.item',
@@ -152,6 +149,8 @@ $.aip.is = function(kargs) {
                             }
                         } catch (e) {
                             console.log(e);
+                        } finally {
+                            doneone($item);
                         }
                     };
                     var proxied = function($item) {
@@ -170,6 +169,7 @@ $.aip.is = function(kargs) {
                                 accepts: "application/json",
                                 cache: false,
                                 dataType: 'json',
+                                timeout: {{ config['AIP_PROXIED_TIMEOUT'] }},
                                 data: { width: $img.width() }
                             }).done(function(data) {
                                 try {
@@ -184,13 +184,15 @@ $.aip.is = function(kargs) {
                                 } catch (e) {
                                     error(e.message);
                                 }
-                            }).fail(error);
+                            }).fail(function(x, t, m) {
+                                error(t);
+                            });
                         } catch (e) {
                             error(e.message);
                         }
                     };
                     var timeout = false;
-                    var timeoutId = window.setTimeout(function() {
+                    var timeoutId = setTimeout(function() {
                         timeout = true;
                         var $items = $buffer.find('.item');
                         console.log('timeout, remains: ' + $items.length);
@@ -217,6 +219,10 @@ $.aip.is = function(kargs) {
                             } else {
                                 proxied($item);
                             }
+                        }
+                    }).done(function() {
+                        if (!timeout) {
+                            clearTimeout(timeoutId);
                         }
                     });
                 }).fail(function() {

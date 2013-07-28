@@ -280,7 +280,10 @@ def make(app, api, cached, store):
 
     def best_imgur_link(imgur, width, height):
         area = width * height
+        ratio = width / height
         for suffix, width, height in imgur_thumbnails:
+            if ratio < width / height:
+                width = ratio * height
             if area <= current_app.config['AIP_RESOLUTION_LEVEL'] * width * height:
                 parts = imgur.link.split('.')
                 assert len(parts) > 1
