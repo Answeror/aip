@@ -1,6 +1,13 @@
 // http://stackoverflow.com/a/3326655/238472
 if (!window.console) console = {log: function() {}};
 $.aip = {};
+$.aip.reload = function($img) {
+    var d = new Date();
+    if (!$img.attr('data-raw-src')) {
+        $img.data('raw-src', $img.attr('src'));
+    }
+    $img.attr('src', $img.data('raw-src') + '?' + d.getTime());
+};
 $.aip.is = function(kargs) {
     defaults = {
         makePageData: $.noop
@@ -176,9 +183,30 @@ $.aip.is = function(kargs) {
                                     if ('error' in data) {
                                         error(data.error.message);
                                     } else {
+                                        failCount = 0;
+                                        var reload;
+                                        reload = function() {
+                                            if (failCount >= {{ config['AIP_RELOAD_LIMIT'] }}) {
+                                                error('retry to load ' + $img.attr('src') + ' too many times');
+                                                return;
+                                            }
+                                            ++failCount;
+                                            setTimeout(function() {
+                                                try {
+                                                    console.log('load ' + $img.attr('src') + ' failed, retring');
+                                                    $item.imagesLoaded().done(function() {
+                                                        console.log($img.attr('src'));
+                                                        dealone($item);
+                                                    }).fail(reload);
+                                                    $.aip.reload($img);
+                                                } catch (e) {
+                                                    error(e);
+                                                }
+                                            }, {{ config['AIP_RELOAD_INTERVAL'] }});
+                                        };
                                         $item.imagesLoaded().done(function() {
                                             dealone($item);
-                                        });
+                                        }).fail(reload);
                                         $img.attr('src', data.result);
                                     }
                                 } catch (e) {
