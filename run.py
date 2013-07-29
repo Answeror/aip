@@ -41,7 +41,8 @@ DATABASE_QUERY_TIMEOUT = 1e-5
 
 AIP_IMGUR_RETRY_LIMIT = 3
 with open('imgur-client-id', 'rb') as f:
-    AIP_IMGUR_CLIENT_ID = f.read().decode('ascii').strip()
+    lines = f.read().decode('ascii').strip().split('\n')
+    AIP_IMGUR_CLIENT_IDS = [line.strip() for line in lines]
 
 
 if __name__ == "__main__":
