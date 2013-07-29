@@ -8,6 +8,11 @@ $.aip.reload = function($img) {
     }
     $img.attr('src', $img.data('raw-src') + '?' + d.getTime());
 };
+$.aip.log = {}
+$.aip.log.error = function(message) {
+    $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
+};
+$.aip.log.warning = $.aip.log.error;
 $.aip.is = function(kargs) {
     defaults = {
         makePageData: $.noop
@@ -91,10 +96,6 @@ $.aip.is = function(kargs) {
         });
     };
     var $container = $('#items');
-    var bootstrap_alert = function() {}
-    bootstrap_alert.warning = function(message) {
-        $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
-    };
     var page = 0;
     function progress(p) {
         $('#bar').width(p + '%');
@@ -162,10 +163,11 @@ $.aip.is = function(kargs) {
                     };
                     var proxied = function($item) {
                         var error = function(message) {
-                            console.log('get proxied preview link failed');
+                            var s = 'get proxied preview link failed';
                             if (message) {
-                                console.log(message);
+                                s += '\n' + message;
                             }
+                            $.aip.log.error(s);
                             doneone($item);
                         };
                         try {
@@ -255,7 +257,7 @@ $.aip.is = function(kargs) {
                     });
                 }).fail(function() {
                     $('#loading').hide();
-                    bootstrap_alert.warning('Load more failed.');
+                    $.aip.log.warning('Load more failed.');
                 });
             }
         }, {
