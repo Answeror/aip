@@ -15,16 +15,22 @@ import threading
 from functools import wraps
 import pickle
 import json
+from io import BytesIO
+from PIL import Image
+from base64 import b64encode
 
 
-lock = threading.RLock()
+def locked(lock=None):
+    if lock is None:
+        lock = threading.RLock()
 
+    def inner(f):
+        @wraps(f)
+        def yainner(*args, **kargs):
+            with lock:
+                return f(*args, **kargs)
+        return yainner
 
-def locked(f):
-    @wraps(f)
-    def inner(*args, **kargs):
-        with lock:
-            return f(*args, **kargs)
     return inner
 
 
@@ -45,7 +51,9 @@ def guarded(f):
     @wraps(f)
     def inner(*args, **kargs):
         try:
-            return f(*args, **kargs)
+            r = f(*args, **kargs)
+            logging.debug('%s done' % f.__name__)
+            return r
         except Exception as e:
             failed(
                 f.__name__,
@@ -180,7 +188,7 @@ def make(app, api, cached, store):
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
     @guarded
-    @locked
+    @locked()
     def update(begin=None):
         from datetime import datetime
         begin = datetime.strptime(begin, '%Y%m%d')
@@ -214,7 +222,6 @@ def make(app, api, cached, store):
     @guarded
     def plused_page_html(id):
         user = get_user_bi_someid()
-        r = slice(g.per * id, g.per * (id + 1), 1)
         return jsonify(result=render_template('page.html', entries=wrap(user.plused)))
 
     @api.route('/plused', methods=['GET'])
@@ -239,9 +246,7 @@ def make(app, api, cached, store):
         im = store.get_image_bi_md5(md5)
         url = im.sample_url if im.sample_url else im.image_url
         height = im.height
-        from io import BytesIO
         input_stream = BytesIO(_fetch_image(url))
-        from PIL import Image
         im = Image.open(input_stream)
         im.thumbnail((g.sample_width, height), Image.ANTIALIAS)
         output_stream = BytesIO()
@@ -250,15 +255,21 @@ def make(app, api, cached, store):
 
     @api.route('/proxied_url/<md5>', methods=['GET'])
     @guarded
+    @locked()
     def proxied_url(md5):
         md5 = md5.encode('ascii')
         im = store.get_image_bi_md5(md5)
         imgur = store.get_imgur_bi_md5(md5)
         if not imgur:
-            for i in range(current_app.config['AIP_IMGUR_RETRY_LIMIT']):
+            fail_count = 0
+            while True:
                 imgur = make_imgur(im)
                 if imgur is not None:
                     break
+                if fail_count >= current_app.config['AIP_UPLOAD_IMGUR_RETRY_LIMIT']:
+                    break
+                logging.info('upload %s to imgur failed, retry' % md5)
+                ++fail_count
             if not imgur:
                 raise Exception('upload to imgur failed')
             store.db.session.add(imgur)
@@ -294,32 +305,82 @@ def make(app, api, cached, store):
     def make_imgur(im):
         from urllib.request import Request, urlopen
         from urllib.parse import urlencode
-        client_id = current_app.config['AIP_IMGUR_CLIENT_ID']
-        image_url = im.sample_url if im.sample_url else im.image_url
-        try:
-            r = urlopen(Request(
-                'https://api.imgur.com/3/image',
-                headers={'Authorization': 'Client-ID %s' % client_id},
-                data=urlencode({
-                    'image': image_url,
-                    'type': 'URL'
-                }).encode('ascii')
-            )).read()
-            r = json.loads(r.decode('utf-8'))
-            if not r['success']:
-                logging.error('make_imgur failed with error code %d' % r['status'])
-                return None
-        except Exception as e:
-            logging.error('make_imgur failed')
-            logging.exception(e)
-            return None
-        data = r['data']
-        return store.Imgur(
-            md5=im.md5,
-            id=data['id'].encode('ascii'),
-            deletehash=data['deletehash'].encode('ascii'),
-            link=data['link']
-        )
+        from random import shuffle
+
+        def inner(client_id):
+            image_url = im.sample_url if im.sample_url else im.image_url
+
+            def deal(r):
+                try:
+                    logging.error('make_imgur failed with error code %d and message: %s' % (r['status'], r['data']['error']['message']))
+                except:
+                    logging.error(r)
+
+                logging.info('download and resize')
+                if r['status'] == 400:
+                    input_stream = BytesIO(_fetch_image(image_url))
+                    im = Image.open(input_stream)
+                    limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
+                    im.thumbnail(
+                        (limit, limit),
+                        Image.ANTIALIAS
+                    )
+                    output_stream = BytesIO()
+                    im.convert('RGB').save(output_stream, format='JPEG')
+                    r = urlopen(Request(
+                        'https://api.imgur.com/3/image',
+                        headers={'Authorization': 'Client-ID %s' % client_id},
+                        data=urlencode({
+                            'image': b64encode(output_stream.getvalue()),
+                            'type': 'base64'
+                        }).encode('ascii')
+                    ), timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT']).read()
+                    return json.loads(r.decode('utf-8'))
+
+            try:
+                r = urlopen(Request(
+                    'https://api.imgur.com/3/image',
+                    headers={'Authorization': 'Client-ID %s' % client_id},
+                    data=urlencode({
+                        'image': image_url,
+                        'type': 'URL'
+                    }).encode('ascii')
+                ), timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT']).read()
+                r = json.loads(r.decode('utf-8'))
+                if not r['success']:
+                    r = deal(r)
+                    if r is None:
+                        return None
+            except Exception as e:
+                logging.error('make_imgur failed')
+                logging.exception(e)
+                try:
+                    r = json.loads(e.read().decode('utf-8'))
+                    if not r['success']:
+                        r = deal(r)
+                        if r is None:
+                            return None
+                except Exception as e:
+                    logging.exception(e)
+                    return None
+
+            data = r['data']
+            return store.Imgur(
+                md5=im.md5,
+                id=data['id'].encode('ascii'),
+                deletehash=data['deletehash'].encode('ascii'),
+                link=data['link']
+            )
+
+        client_ids = current_app.config['AIP_IMGUR_CLIENT_IDS'][:]
+        shuffle(client_ids)
+        for client_id in client_ids:
+            logging.info('use client id: %s' % client_id)
+            ret = inner(client_id)
+            if ret is not None:
+                return ret
+            logging.info('client id %s failed' % client_id)
+        return None
 
     @api.after_request
     def after_request(response):

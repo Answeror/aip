@@ -8,6 +8,14 @@ $.aip.reload = function($img) {
     }
     $img.attr('src', $img.data('raw-src') + '?' + d.getTime());
 };
+$.aip.error = function(message) {
+    console.log(message);
+    $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
+};
+$.aip.warning = $.aip.error;
+$.aip.disturb = function(x) {
+    return x * (Math.random() + 0.5)
+};
 $.aip.is = function(kargs) {
     defaults = {
         makePageData: $.noop
@@ -91,10 +99,6 @@ $.aip.is = function(kargs) {
         });
     };
     var $container = $('#items');
-    var bootstrap_alert = function() {}
-    bootstrap_alert.warning = function(message) {
-        $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
-    };
     var page = 0;
     function progress(p) {
         $('#bar').width(p + '%');
@@ -137,6 +141,8 @@ $.aip.is = function(kargs) {
                         progress(100 * loaded / n);
                         if (loaded == n) {
                             cleanup();
+                        } else if (loaded > n) {
+                            console.log('loaded(' + loaded + ') > n(' + n + ')');
                         }
                     };
                     var dealone = function($item) {
@@ -162,14 +168,32 @@ $.aip.is = function(kargs) {
                     };
                     var proxied = function($item) {
                         var error = function(message) {
-                            console.log('get proxied preview link failed');
+                            var s = 'get proxied preview link failed';
                             if (message) {
-                                console.log(message);
+                                s += '\n' + message;
                             }
+                            $.aip.error(s);
                             doneone($item);
                         };
-                        try {
-                            var $img = $item.find('img.preview');
+                        var $img = $item.find('img.preview');
+                        var failCount = 0;
+                        var proxy;
+                        function reproxy() {
+                            if (failCount >= {{ config['AIP_REPROXY_LIMIT'] }}) {
+                                error('reproxy ' + $img.attr('src') + ' too many times');
+                            } else {
+                                ++failCount;
+                                setTimeout(function() {
+                                    try {
+                                        console.log('reproxy ' + $img.attr('src'));
+                                        proxy();
+                                    } catch (e) {
+                                        error(e);
+                                    }
+                                }, $.aip.disturb({{ config['AIP_REPROXY_INTERVAL'] }}));
+                            }
+                        };
+                        var proxy = function() {
                             $.ajax({
                                 method: 'GET',
                                 url: $img.data('proxied-url'),
@@ -181,28 +205,29 @@ $.aip.is = function(kargs) {
                             }).done(function(data) {
                                 try {
                                     if ('error' in data) {
-                                        error(data.error.message);
+                                        console.log(data.error.message);
+                                        reproxy();
                                     } else {
-                                        failCount = 0;
+                                        var failCount = 0;
                                         var reload;
                                         reload = function() {
                                             if (failCount >= {{ config['AIP_RELOAD_LIMIT'] }}) {
-                                                error('retry to load ' + $img.attr('src') + ' too many times');
-                                                return;
+                                                error('reload ' + $img.attr('src') + ' too many times');
+                                            } else {
+                                                ++failCount;
+                                                setTimeout(function() {
+                                                    try {
+                                                        console.log('reload ' + $img.attr('src'));
+                                                        $item.imagesLoaded().done(function() {
+                                                            console.log($img.attr('src'));
+                                                            dealone($item);
+                                                        }).fail(reload);
+                                                        $.aip.reload($img);
+                                                    } catch (e) {
+                                                        error(e);
+                                                    }
+                                                }, $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }}));
                                             }
-                                            ++failCount;
-                                            setTimeout(function() {
-                                                try {
-                                                    console.log('load ' + $img.attr('src') + ' failed, retring');
-                                                    $item.imagesLoaded().done(function() {
-                                                        console.log($img.attr('src'));
-                                                        dealone($item);
-                                                    }).fail(reload);
-                                                    $.aip.reload($img);
-                                                } catch (e) {
-                                                    error(e);
-                                                }
-                                            }, {{ config['AIP_RELOAD_INTERVAL'] }});
                                         };
                                         $item.imagesLoaded().done(function() {
                                             dealone($item);
@@ -213,11 +238,11 @@ $.aip.is = function(kargs) {
                                     error(e.message);
                                 }
                             }).fail(function(x, t, m) {
-                                error(t);
+                                console.log(t);
+                                reproxy();
                             });
-                        } catch (e) {
-                            error(e.message);
-                        }
+                        };
+                        proxy();
                     };
                     var timeout = false;
                     var timeoutId = setTimeout(function() {
@@ -255,7 +280,7 @@ $.aip.is = function(kargs) {
                     });
                 }).fail(function() {
                     $('#loading').hide();
-                    bootstrap_alert.warning('Load more failed.');
+                    $.aip.log.warning('Load more failed.');
                 });
             }
         }, {
