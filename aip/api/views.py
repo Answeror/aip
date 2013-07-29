@@ -17,14 +17,17 @@ import pickle
 import json
 
 
-lock = threading.RLock()
+def locked(lock=None):
+    if lock is None:
+        lock = threading.RLock()
 
+    def inner(f):
+        @wraps(f)
+        def yainner(*args, **kargs):
+            with lock:
+                return f(*args, **kargs)
+        return inner
 
-def locked(f):
-    @wraps(f)
-    def inner(*args, **kargs):
-        with lock:
-            return f(*args, **kargs)
     return inner
 
 
@@ -180,7 +183,7 @@ def make(app, api, cached, store):
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
     @guarded
-    @locked
+    @locked()
     def update(begin=None):
         from datetime import datetime
         begin = datetime.strptime(begin, '%Y%m%d')
@@ -214,7 +217,6 @@ def make(app, api, cached, store):
     @guarded
     def plused_page_html(id):
         user = get_user_bi_someid()
-        r = slice(g.per * id, g.per * (id + 1), 1)
         return jsonify(result=render_template('page.html', entries=wrap(user.plused)))
 
     @api.route('/plused', methods=['GET'])
@@ -250,6 +252,7 @@ def make(app, api, cached, store):
 
     @api.route('/proxied_url/<md5>', methods=['GET'])
     @guarded
+    @locked()
     def proxied_url(md5):
         md5 = md5.encode('ascii')
         im = store.get_image_bi_md5(md5)
