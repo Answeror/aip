@@ -234,6 +234,7 @@ def make(app, api, cached, store):
             resolution_level=current_app.config['AIP_RESOLUTION_LEVEL'],
             max_size=(limit, limit),
             timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
+            album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH'],
             http=g.http
         )
         if not imgur_image:

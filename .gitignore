@@ -9,4 +9,4 @@
 /dist/
 /gae/
 *.bak
-imgur-client-id
+imgur.json

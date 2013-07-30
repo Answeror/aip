@@ -16,9 +16,11 @@ import urllib3
 
 RESPONSE_FILE_PATH = os.path.join(os.path.dirname(__file__), 'response.pkl')
 SQLALCHEMY_DATABASE_URI = 'sqlite://'
-with open(os.path.join(os.path.dirname(__file__), 'imgur-client-id'), 'rb') as f:
-    lines = f.read().decode('ascii').strip().split('\n')
-    AIP_IMGUR_CLIENT_IDS = [line.strip() for line in lines]
+with open(os.path.join(os.path.dirname(__file__), 'imgur.json'), 'rb') as f:
+    imgur_conf = json.loads(f.read().decode('ascii'))
+    AIP_IMGUR_CLIENT_IDS = imgur_conf['client_ids']
+    AIP_IMGUR_ALBUM_ID = imgur_conf['album']['id']
+    AIP_IMGUR_ALBUM_DELETEHASH = imgur_conf['album']['deletehash']
 
 
 g = type('g', (object,), {})()

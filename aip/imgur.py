@@ -30,12 +30,14 @@ class Imgur(object):
         resolution_level,
         max_size,
         timeout,
+        album_deletehash,
         http
     ):
         self.client_ids = client_ids
         self.resolution_level = resolution_level
         self.max_size = max_size
         self.timeout = timeout
+        self.album_deletehash = album_deletehash
         self.http = http
 
     def _fetch(self, url):
@@ -105,7 +107,9 @@ class Imgur(object):
                         url='https://api.imgur.com/3/image',
                         data={
                             'image': b64encode(output_stream.getvalue()),
-                            'type': 'base64'
+                            'type': 'base64',
+                            'title': image.md5.decode('ascii'),
+                            'album': self.album_deletehash
                         }
                     )
 
@@ -116,7 +120,9 @@ class Imgur(object):
                     url='https://api.imgur.com/3/image',
                     data={
                         'image': image_url,
-                        'type': 'URL'
+                        'type': 'URL',
+                        'title': image.md5.decode('ascii'),
+                        'album': self.album_deletehash
                     }
                 )
                 if not r['success']:
