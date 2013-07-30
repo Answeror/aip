@@ -3,6 +3,7 @@
 
 import os
 import logging
+import json
 from aip.config import AIP_LOG_FILE_PATH
 
 
@@ -40,9 +41,11 @@ SQLALCHEMY_RECORD_QUERIES = False
 DATABASE_QUERY_TIMEOUT = 1e-5
 
 AIP_IMGUR_RETRY_LIMIT = 3
-with open('imgur-client-id', 'rb') as f:
-    lines = f.read().decode('ascii').strip().split('\n')
-    AIP_IMGUR_CLIENT_IDS = [line.strip() for line in lines]
+with open(os.path.join(os.path.dirname(__file__), 'imgur.json'), 'rb') as f:
+    imgur_conf = json.loads(f.read().decode('ascii'))
+    AIP_IMGUR_CLIENT_IDS = imgur_conf['client_ids']
+    AIP_IMGUR_ALBUM_ID = imgur_conf['album']['id']
+    AIP_IMGUR_ALBUM_DELETEHASH = imgur_conf['album']['deletehash']
 
 
 if __name__ == "__main__":
@@ -52,5 +55,5 @@ if __name__ == "__main__":
     app.secret_key = 'why would I tell you my secret key?'
     if app.config['PROFILE']:
         from werkzeug.contrib.profiler import ProfilerMiddleware
-        app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30]) # , sort_by=('cumulative', 'calls'))
+        app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])  # , sort_by=('cumulative', 'calls'))
     app.run('0.0.0.0', debug=True)
