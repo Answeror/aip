@@ -8,6 +8,7 @@ import logging
 from io import BytesIO
 from base64 import b64encode
 from collections import namedtuple
+from urllib.error import HTTPError
 
 
 imgur_thumbnails = (
@@ -63,9 +64,20 @@ class Imgur(object):
                 return '.'.join(parts)
         return image.link
 
+    def call(self, client_id, method, url, data):
+        try:
+            r = self.http.request(
+                method=method,
+                url=url,
+                fields=data,
+                headers={'Authorization': 'Client-ID %s' % client_id},
+                timeout=self.timeout
+            )
+            return json.loads(r.data.decode('utf-8'))
+        except HTTPError as e:
+            return json.loads(e.read().decode('utf-8'))
+
     def upload(self, image):
-        from urllib.request import Request, urlopen
-        from urllib.parse import urlencode
         from random import shuffle
 
         def inner(client_id):
@@ -87,26 +99,26 @@ class Imgur(object):
                     )
                     output_stream = BytesIO()
                     image.convert('RGB').save(output_stream, format='JPEG')
-                    r = urlopen(Request(
-                        'https://api.imgur.com/3/image',
-                        headers={'Authorization': 'Client-ID %s' % client_id},
-                        data=urlencode({
+                    return self.call(
+                        client_id=client_id,
+                        method='POST',
+                        url='https://api.imgur.com/3/image',
+                        data={
                             'image': b64encode(output_stream.getvalue()),
                             'type': 'base64'
-                        }).encode('ascii')
-                    ), timeout=self.timeout).read()
-                    return json.loads(r.decode('utf-8'))
+                        }
+                    )
 
             try:
-                r = urlopen(Request(
-                    'https://api.imgur.com/3/image',
-                    headers={'Authorization': 'Client-ID %s' % client_id},
-                    data=urlencode({
+                r = self.call(
+                    client_id=client_id,
+                    method='POST',
+                    url='https://api.imgur.com/3/image',
+                    data={
                         'image': image_url,
                         'type': 'URL'
-                    }).encode('ascii')
-                ), timeout=self.timeout).read()
-                r = json.loads(r.decode('utf-8'))
+                    }
+                )
                 if not r['success']:
                     r = deal(r)
                     if r is None:
@@ -114,15 +126,7 @@ class Imgur(object):
             except Exception as e:
                 logging.error('make_imgur failed')
                 logging.exception(e)
-                try:
-                    r = json.loads(e.read().decode('utf-8'))
-                    if not r['success']:
-                        r = deal(r)
-                        if r is None:
-                            return None
-                except Exception as e:
-                    logging.exception(e)
-                    return None
+                return None
 
             data = r['data']
             return Image(

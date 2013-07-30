@@ -11,6 +11,7 @@ from nose.tools import (
 from mock import patch, Mock
 import os
 import json
+import urllib3
 
 
 RESPONSE_FILE_PATH = os.path.join(os.path.dirname(__file__), 'response.pkl')
@@ -39,12 +40,21 @@ def teardown_app():
 
 
 def patch_urllib3():
-    def request(method, url):
+    real = urllib3.PoolManager()
+
+    def request(*args, **kargs):
+        if len(args) > 1:
+            url = args[1]
+        else:
+            url = kargs['url']
+
+        if url.startswith('https://api.imgur.com'):
+            return real.request(*args, **kargs)
+
         import pickle
         with open(RESPONSE_FILE_PATH, 'rb') as f:
             d = pickle.load(f)
         r = Mock()
-        assert_equal(method, 'GET')
         assert_in(url, d)
         r.data = d[url]
         return r
