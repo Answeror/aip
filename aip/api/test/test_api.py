@@ -15,6 +15,9 @@ import json
 
 RESPONSE_FILE_PATH = os.path.join(os.path.dirname(__file__), 'response.pkl')
 SQLALCHEMY_DATABASE_URI = 'sqlite://'
+with open(os.path.join(os.path.dirname(__file__), 'imgur-client-id'), 'rb') as f:
+    lines = f.read().decode('ascii').strip().split('\n')
+    AIP_IMGUR_CLIENT_IDS = [line.strip() for line in lines]
 
 
 g = type('g', (object,), {})()
@@ -203,9 +206,9 @@ def test_plus():
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
-def test_sample_link():
+def test_proxied_url():
     r = g.client.get(api('/update/20130630'))
     assert_success(r)
     r = result(g.client.get(api('/entries')))
-    r = g.client.get(api('/sample_link/%s' % r[0]['id']))
+    r = g.client.get(api('/proxied_url/%s' % r[0]['id']))
     assert_success(r)
