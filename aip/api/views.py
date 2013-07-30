@@ -14,10 +14,7 @@ from datetime import datetime
 import threading
 from functools import wraps
 import pickle
-import json
-from io import BytesIO
-from PIL import Image
-from base64 import b64encode
+from ..imgur import Imgur
 
 
 def locked(lock=None):
@@ -83,21 +80,6 @@ def get_slice():
     else:
         r = None
     return r
-
-
-def _fetch(url):
-    return g.http.request('GET', url)
-
-
-def _fetch_image(url):
-    try:
-        logging.info('fetch image: %s' % url)
-        r = _fetch(url)
-        return r.data
-    except Exception as e:
-        logging.error('fetch image failed: %s' % url)
-        logging.exception(e)
-        return None
 
 
 def wrap(entries):
@@ -239,148 +221,49 @@ def make(app, api, cached, store):
         store.db.session.commit()
         return jsonify(dict(count=entry.plus_count))
 
-    @api.route('/sample/<md5>')
-    @cached(timeout=24 * 60 * 60)
-    def sample(md5):
-        md5 = md5.encode('ascii')
-        im = store.get_image_bi_md5(md5)
-        url = im.sample_url if im.sample_url else im.image_url
-        height = im.height
-        input_stream = BytesIO(_fetch_image(url))
-        im = Image.open(input_stream)
-        im.thumbnail((g.sample_width, height), Image.ANTIALIAS)
-        output_stream = BytesIO()
-        im.save(output_stream, format='JPEG')
-        return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
-
     @api.route('/proxied_url/<md5>', methods=['GET'])
     @guarded
     @locked()
     def proxied_url(md5):
         md5 = md5.encode('ascii')
         im = store.get_image_bi_md5(md5)
-        imgur = store.get_imgur_bi_md5(md5)
-        if not imgur:
+        imgur_image = store.get_imgur_bi_md5(md5)
+        limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
+        imgur = Imgur(
+            client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
+            resolution_level=current_app.config['AIP_RESOLUTION_LEVEL'],
+            max_size=(limit, limit),
+            timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
+            album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH'],
+            http=g.http
+        )
+        if not imgur_image:
             fail_count = 0
             while True:
-                imgur = make_imgur(im)
-                if imgur is not None:
+                imgur_image = imgur.upload(im)
+                if imgur_image is not None:
+                    imgur_image = store.Imgur(
+                        id=imgur_image.id,
+                        md5=imgur_image.md5,
+                        link=imgur_image.link,
+                        deletehash=imgur_image.deletehash
+                    )
                     break
                 if fail_count >= current_app.config['AIP_UPLOAD_IMGUR_RETRY_LIMIT']:
                     break
                 logging.info('upload %s to imgur failed, retry' % md5)
                 ++fail_count
-            if not imgur:
+            if not imgur_image:
                 raise Exception('upload to imgur failed')
-            store.db.session.add(imgur)
+            store.db.session.add(imgur_image)
             store.db.session.commit()
         if 'width' in request.args:
             width = float(request.args['width'])
             height = width * im.height / im.width
-            url = best_imgur_link(imgur, width, height)
+            url = imgur.best_link(imgur_image, width, height)
         else:
-            url = imgur.link
+            url = imgur_image.link
         return jsonify(dict(result=url))
-
-    imgur_thumbnails = (
-        ('t', 160, 160),
-        ('m', 320, 320),
-        ('l', 640, 640),
-        ('h', 1024, 1024)
-    )
-
-    def best_imgur_link(imgur, width, height):
-        area = width * height
-        ratio = width / height
-        for suffix, width, height in imgur_thumbnails:
-            if ratio < width / height:
-                width = ratio * height
-            if area <= current_app.config['AIP_RESOLUTION_LEVEL'] * width * height:
-                parts = imgur.link.split('.')
-                assert len(parts) > 1
-                parts[-2] = parts[-2] + suffix
-                return '.'.join(parts)
-        return imgur.link
-
-    def make_imgur(im):
-        from urllib.request import Request, urlopen
-        from urllib.parse import urlencode
-        from random import shuffle
-
-        def inner(client_id):
-            image_url = im.sample_url if im.sample_url else im.image_url
-
-            def deal(r):
-                try:
-                    logging.error('make_imgur failed with error code %d and message: %s' % (r['status'], r['data']['error']['message']))
-                except:
-                    logging.error(r)
-
-                logging.info('download and resize')
-                if r['status'] == 400:
-                    input_stream = BytesIO(_fetch_image(image_url))
-                    im = Image.open(input_stream)
-                    limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
-                    im.thumbnail(
-                        (limit, limit),
-                        Image.ANTIALIAS
-                    )
-                    output_stream = BytesIO()
-                    im.convert('RGB').save(output_stream, format='JPEG')
-                    r = urlopen(Request(
-                        'https://api.imgur.com/3/image',
-                        headers={'Authorization': 'Client-ID %s' % client_id},
-                        data=urlencode({
-                            'image': b64encode(output_stream.getvalue()),
-                            'type': 'base64'
-                        }).encode('ascii')
-                    ), timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT']).read()
-                    return json.loads(r.decode('utf-8'))
-
-            try:
-                r = urlopen(Request(
-                    'https://api.imgur.com/3/image',
-                    headers={'Authorization': 'Client-ID %s' % client_id},
-                    data=urlencode({
-                        'image': image_url,
-                        'type': 'URL'
-                    }).encode('ascii')
-                ), timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT']).read()
-                r = json.loads(r.decode('utf-8'))
-                if not r['success']:
-                    r = deal(r)
-                    if r is None:
-                        return None
-            except Exception as e:
-                logging.error('make_imgur failed')
-                logging.exception(e)
-                try:
-                    r = json.loads(e.read().decode('utf-8'))
-                    if not r['success']:
-                        r = deal(r)
-                        if r is None:
-                            return None
-                except Exception as e:
-                    logging.exception(e)
-                    return None
-
-            data = r['data']
-            return store.Imgur(
-                md5=im.md5,
-                id=data['id'].encode('ascii'),
-                deletehash=data['deletehash'].encode('ascii'),
-                link=data['link']
-            )
-
-        client_ids = current_app.config['AIP_IMGUR_CLIENT_IDS'][:]
-        shuffle(client_ids)
-        for client_id in client_ids:
-            logging.info('use client id: %s' % client_id)
-            ret = inner(client_id)
-            if ret is not None:
-                return ret
-            logging.info('client id %s failed' % client_id)
-        return None
 
     @api.after_request
     def after_request(response):

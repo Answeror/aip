@@ -11,10 +11,16 @@ from nose.tools import (
 from mock import patch, Mock
 import os
 import json
+import urllib3
 
 
 RESPONSE_FILE_PATH = os.path.join(os.path.dirname(__file__), 'response.pkl')
 SQLALCHEMY_DATABASE_URI = 'sqlite://'
+with open(os.path.join(os.path.dirname(__file__), 'imgur.json'), 'rb') as f:
+    imgur_conf = json.loads(f.read().decode('ascii'))
+    AIP_IMGUR_CLIENT_IDS = imgur_conf['client_ids']
+    AIP_IMGUR_ALBUM_ID = imgur_conf['album']['id']
+    AIP_IMGUR_ALBUM_DELETEHASH = imgur_conf['album']['deletehash']
 
 
 g = type('g', (object,), {})()
@@ -36,12 +42,21 @@ def teardown_app():
 
 
 def patch_urllib3():
-    def request(method, url):
+    real = urllib3.PoolManager()
+
+    def request(*args, **kargs):
+        if len(args) > 1:
+            url = args[1]
+        else:
+            url = kargs['url']
+
+        if url.startswith('https://api.imgur.com'):
+            return real.request(*args, **kargs)
+
         import pickle
         with open(RESPONSE_FILE_PATH, 'rb') as f:
             d = pickle.load(f)
         r = Mock()
-        assert_equal(method, 'GET')
         assert_in(url, d)
         r.data = d[url]
         return r
@@ -203,9 +218,9 @@ def test_plus():
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
-def test_sample_link():
+def test_proxied_url():
     r = g.client.get(api('/update/20130630'))
     assert_success(r)
     r = result(g.client.get(api('/entries')))
-    r = g.client.get(api('/sample_link/%s' % r[0]['id']))
+    r = g.client.get(api('/proxied_url/%s' % r[0]['id']))
     assert_success(r)
