@@ -28,19 +28,8 @@ $.aip.is = function(kargs) {
         };
         buf.src = src;
     };
-    function postprocess() {
-        var $this = $(this);
+    function postprocess($this, callback) {
         var $preview = $this.find('img.preview');
-        var src = $preview.attr('src');
-        if (src) {
-            truesize(
-                src,
-                function(width, height) {
-                    $preview.attr('width', $preview.width());
-                    $preview.attr('height', $preview.width() * height / width);
-                }
-            );
-        }
         $this.find('.plus').each(function() {
             var $plus = $(this);
             var user = $plus.data('user');
@@ -96,6 +85,19 @@ $.aip.is = function(kargs) {
                 }
             };
             $plus.update();
+            var src = $preview.attr('src');
+            if (src) {
+                truesize(
+                    src,
+                    function(width, height) {
+                        $preview.attr('width', $preview.width());
+                        $preview.attr('height', $preview.width() * height / width);
+                        callback();
+                    }
+                );
+            } else {
+                callback();
+            }
         });
     };
     var $container = $('#items');
@@ -136,6 +138,7 @@ $.aip.is = function(kargs) {
                         $('#alert_box').html('');
                         page += 1;
                     };
+                    // no exception
                     var doneone = function($item) {
                         ++loaded;
                         progress(100 * loaded / n);
@@ -146,24 +149,43 @@ $.aip.is = function(kargs) {
                         }
                     };
                     var dealone = function($item) {
-                        try {
-                            $container.append($item);
-                            $item.each(postprocess);
-                            if (!marsed) {
-                                $container.masonry({
-                                    itemSelector: '.item',
-                                    isAnimated: true,
-                                    columnWidth: '.span2',
-                                    transitionDuration: '0.4s'
-                                });
-                                marsed = true;
-                            } else {
-                                $container.masonry('appended', $item, true);
+                        var done = false;
+                        var guarded_doneone = function() {
+                            if (!done) {
+                                doneone($item);
+                                done = true;
                             }
+                        };
+                        var guarded = function(f) {
+                            var inner = function() {
+                                try {
+                                    return f(arguments);
+                                } catch (e) {
+                                    console.log(e);
+                                } finally {
+                                    guarded_doneone();
+                                }
+                            };
+                            return inner;
+                        };
+                        try {
+                            postprocess($item, guarded(function() {
+                                $container.append($item);
+                                if (!marsed) {
+                                    $container.masonry({
+                                        itemSelector: '.item',
+                                        isAnimated: true,
+                                        columnWidth: '.span2',
+                                        transitionDuration: '0.4s'
+                                    });
+                                    marsed = true;
+                                } else {
+                                    $container.masonry('appended', $item, true);
+                                }
+                            }));
                         } catch (e) {
                             console.log(e);
-                        } finally {
-                            doneone($item);
+                            guarded_doneone();
                         }
                     };
                     var proxied = function($item) {

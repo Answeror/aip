@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block body %}
     <div id='main' class='main container'>
+        <div id='buffer' style='height:0;overflow:hidden' class='row thumbnails'></div>
         <div id='items' class='row thumbnails'></div>
         <div id='alert_box'></div>
     </div>
@@ -14,11 +15,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    <div style='position:fixed;top:300%'>
-        <div class='container'>
-            <div id='buffer' class='row thumbnails'></div>
         </div>
     </div>
     <script src="//ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.1.min.js"></script>
