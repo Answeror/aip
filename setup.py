@@ -3,11 +3,16 @@
 
 
 from setuptools import setup
+import subprocess as sp
+
+
+# see http://goo.gl/y6wgWV for details
+version = sp.check_output(["git", "describe"]).decode('utf-8').strip()
 
 
 setup(
     name='aip.core',
-    version='0.1.0',
+    version=version,
     author='answeror',
     author_email='answeror@gmail.com',
     packages=['aip'],
