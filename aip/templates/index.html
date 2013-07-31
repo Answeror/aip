@@ -1,41 +1,11 @@
 {% extends "layout.html" %}
 {% block body %}
-    <div id='main' class='main container'>
-        <div id='buffer' style='height:0;overflow:hidden' class='row thumbnails'></div>
-        <div id='items' class='row thumbnails'></div>
-        <div id='alert_box'></div>
-    </div>
-    <div id='loading' style='display:none' class="navbar navbar-fixed-bottom">
-        <div class="navbar-inner">
-            <div class='container'>
-                <div id=barout class='span8 offset2'>
-                    <p class='text-info text-center'>Loading...</p>
-                    <div class="progress progress-striped active">
-                        <div id='bar' class="bar"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <script src="//ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.1.min.js"></script>
-    <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
-    <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
-    <script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
-    <script src="{{ url_for('.js') }}"></script>
+    {% include 'wall.html' %}
     <script>
         $(function() {
             $.aip.is({
                 makePageUrl: function(page) { return '/api/page/' + page; }
             });
         });
-    </script>
-    <script>
-        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-        ga('create', 'UA-10313309-5', 'answeror.com');
-        ga('send', 'pageview');
     </script>
 {% endblock %}

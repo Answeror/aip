@@ -1,0 +1,22 @@
+<div id='main' class='main container'>
+    <div id='buffer' style='height:0;overflow:hidden' class='row thumbnails'></div>
+    <div id='items' class='row thumbnails'></div>
+    <div id='alert_box'></div>
+</div>
+<div id='loading' style='display:none' class="navbar navbar-fixed-bottom">
+    <div class="navbar-inner">
+        <div class='container'>
+            <div id=barout class='span8 offset2'>
+                <p class='text-info text-center'>Loading...</p>
+                <div class="progress progress-striped active">
+                    <div id='bar' class="bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="//ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.1.min.js"></script>
+<script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
+<script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
+<script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
+<script src="{{ url_for('.js') }}"></script>
