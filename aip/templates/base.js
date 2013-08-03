@@ -206,12 +206,8 @@ $.aip.is = function(kargs) {
                             } else {
                                 ++failCount;
                                 setTimeout(function() {
-                                    try {
-                                        console.log('reproxy ' + $img.attr('src'));
-                                        proxy();
-                                    } catch (e) {
-                                        error(e);
-                                    }
+                                    console.log('reproxy ' + $img.attr('src'));
+                                    proxy();
                                 }, $.aip.disturb({{ config['AIP_REPROXY_INTERVAL'] }}));
                             }
                         };
@@ -225,39 +221,31 @@ $.aip.is = function(kargs) {
                                 timeout: {{ config['AIP_PROXIED_TIMEOUT'] }},
                                 data: { width: $img.width() }
                             }).done(function(data) {
-                                try {
-                                    if ('error' in data) {
-                                        console.log(data.error.message);
-                                        reproxy();
-                                    } else {
-                                        var failCount = 0;
-                                        var reload;
-                                        reload = function() {
-                                            if (failCount >= {{ config['AIP_RELOAD_LIMIT'] }}) {
-                                                error('reload ' + $img.attr('src') + ' too many times');
-                                            } else {
-                                                ++failCount;
-                                                setTimeout(function() {
-                                                    try {
-                                                        console.log('reload ' + $img.attr('src'));
-                                                        $item.imagesLoaded().done(function() {
-                                                            console.log($img.attr('src'));
-                                                            dealone($item);
-                                                        }).fail(reload);
-                                                        $.aip.reload($img);
-                                                    } catch (e) {
-                                                        error(e);
-                                                    }
-                                                }, $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }}));
-                                            }
-                                        };
-                                        $item.imagesLoaded().done(function() {
-                                            dealone($item);
-                                        }).fail(reload);
-                                        $img.attr('src', data.result);
-                                    }
-                                } catch (e) {
-                                    error(e.message);
+                                if ('error' in data) {
+                                    console.log(data.error.message);
+                                    reproxy();
+                                } else {
+                                    var failCount = 0;
+                                    var reload;
+                                    reload = function() {
+                                        if (failCount >= {{ config['AIP_RELOAD_LIMIT'] }}) {
+                                            error('reload ' + $img.attr('src') + ' too many times');
+                                        } else {
+                                            ++failCount;
+                                            setTimeout(function() {
+                                                console.log('reload ' + $img.attr('src'));
+                                                $item.imagesLoaded().done(function() {
+                                                    console.log($img.attr('src'));
+                                                    dealone($item);
+                                                }).fail(reload);
+                                                $.aip.reload($img);
+                                            }, $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }}));
+                                        }
+                                    };
+                                    $item.imagesLoaded().done(function() {
+                                        dealone($item);
+                                    }).fail(reload);
+                                    $img.attr('src', data.result);
                                 }
                             }).fail(function(x, t, m) {
                                 console.log(t);
