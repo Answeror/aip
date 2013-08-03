@@ -124,6 +124,9 @@ $.aip.is = function(kargs) {
                     data: kargs.makePageData(page)
                 }).done(function(data) {
                     var $items = $(data.result).find('.item');
+                    $items.each(function() {
+                        $(this).attr('data-loading', false).attr('data-done', false);
+                    });
                     $buffer.append($items);
                     var n = $items.length;
                     var loaded = 0;
@@ -145,17 +148,16 @@ $.aip.is = function(kargs) {
                         if (loaded == n) {
                             cleanup();
                         } else if (loaded > n) {
-                            console.log('loaded(' + loaded + ') > n(' + n + ')');
+                            throw 'loaded(' + loaded + ') > n(' + n + ')';
+                        }
+                    };
+                    var guarded_doneone = function($item) {
+                        if ($item.attr('data-done') == 'false') {
+                            doneone($item);
+                            $item.attr('data-done', true);
                         }
                     };
                     var dealone = function($item) {
-                        var done = false;
-                        var guarded_doneone = function() {
-                            if (!done) {
-                                doneone($item);
-                                done = true;
-                            }
-                        };
                         var guarded = function(f) {
                             var inner = function() {
                                 try {
@@ -163,7 +165,7 @@ $.aip.is = function(kargs) {
                                 } catch (e) {
                                     console.log(e);
                                 } finally {
-                                    guarded_doneone();
+                                    guarded_doneone($item);
                                 }
                             };
                             return inner;
@@ -172,6 +174,7 @@ $.aip.is = function(kargs) {
                             postprocess($item, guarded(function() {
                                 $container.append($item);
                                 if (!marsed) {
+                                    console.log('initialize masonry');
                                     $container.masonry({
                                         itemSelector: '.item',
                                         isAnimated: true,
@@ -185,7 +188,7 @@ $.aip.is = function(kargs) {
                             }));
                         } catch (e) {
                             console.log(e);
-                            guarded_doneone();
+                            guarded_doneone($item);
                         }
                     };
                     var proxied = function($item) {
@@ -195,7 +198,7 @@ $.aip.is = function(kargs) {
                                 s += '\n' + message;
                             }
                             $.aip.error(s);
-                            doneone($item);
+                            guarded_doneone($item);
                         };
                         var $img = $item.find('img.preview');
                         var failCount = 0;
@@ -257,7 +260,7 @@ $.aip.is = function(kargs) {
                     var timeout = false;
                     var timeoutId = setTimeout(function() {
                         timeout = true;
-                        var $items = $buffer.find('.item');
+                        var $items = $buffer.find('.item[data-loading="false"]');
                         console.log('timeout, remains: ' + $items.length);
                         $items.each(function() {
                             proxied($(this));
@@ -267,6 +270,7 @@ $.aip.is = function(kargs) {
                         if (!timeout) {
                             var $item = $buffer.find('.item[data-md5="' + $(image.img).data('md5') + '"]');
                             if (image.isLoaded) {
+                                $item.attr('data-loading', true);
                                 var $img = $(image.img);
                                 truesize(
                                     $img.attr('src'),

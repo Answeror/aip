@@ -7,7 +7,18 @@
     <div class="navbar-inner">
         <div class='container'>
             <div id=barout class='span8 offset2'>
-                <p class='text-info text-center'>Loading...</p>
+                <p class='text-info text-center'>
+                    {% for field in (
+                        'in-json',
+                        'need-enlarge',
+                        'original-preview-loading-failed',
+                        'proxied-preview-loading-failed',
+                        'need-proxied',
+                        'proxied'
+                    ) %}
+                        <span name='{{ field }}'>0</span>&nbsp;/&nbsp;
+                    {% endfor %}
+                </p>
                 <div class="progress progress-striped active">
                     <div id='bar' class="bar"></div>
                 </div>
