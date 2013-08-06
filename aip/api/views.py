@@ -14,6 +14,7 @@ from datetime import datetime
 import threading
 from functools import wraps
 import pickle
+from ..imgur import Imgur
 from ..bed.immio import Immio
 
 
@@ -221,11 +222,47 @@ def make(app, api, cached, store):
         store.db.session.commit()
         return jsonify(dict(count=entry.plus_count))
 
-    @api.route('/proxied_url/<md5>', methods=['GET'])
-    @guarded
-    @locked()
-    def proxied_url(md5):
-        md5 = md5.encode('ascii')
+    def imgur_url(md5):
+        im = store.get_image_bi_md5(md5)
+        imgur_image = store.get_imgur_bi_md5(md5)
+        limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
+        imgur = Imgur(
+            client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
+            resolution_level=current_app.config['AIP_RESOLUTION_LEVEL'],
+            max_size=(limit, limit),
+            timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
+            album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH'],
+            http=g.http
+        )
+        if not imgur_image:
+            fail_count = 0
+            while True:
+                imgur_image = imgur.upload(im)
+                if imgur_image is not None:
+                    imgur_image = store.Imgur(
+                        id=imgur_image.id,
+                        md5=imgur_image.md5,
+                        link=imgur_image.link,
+                        deletehash=imgur_image.deletehash
+                    )
+                    break
+                if fail_count >= current_app.config['AIP_UPLOAD_IMGUR_RETRY_LIMIT']:
+                    break
+                logging.info('upload %s to imgur failed, retry' % md5)
+                ++fail_count
+            if not imgur_image:
+                raise Exception('upload to imgur failed')
+            store.db.session.add(imgur_image)
+            store.db.session.commit()
+        if 'width' in request.args:
+            width = float(request.args['width'])
+            height = width * im.height / im.width
+            url = imgur.best_link(imgur_image, width, height)
+        else:
+            url = imgur_image.link
+        return url
+
+    def immio_url(md5):
         im = store.get_image_bi_md5(md5)
         immio_image = store.get_immio_bi_md5(md5)
         immio = Immio(
@@ -247,7 +284,19 @@ def make(app, api, cached, store):
                 raise Exception('upload to immio failed')
             store.db.session.add(immio_image)
             store.db.session.commit()
-        return jsonify(dict(result=immio_image.uri))
+        return immio_image.uri
+
+    @api.route('/proxied_url/<md5>', methods=['GET'])
+    @guarded
+    @locked()
+    def proxied_url(md5):
+        md5 = md5.encode('ascii')
+        for make in (immio_url, imgur_url):
+            try:
+                return jsonify(dict(result=make(md5)))
+            except Exception as e:
+                logging.error(e)
+        return jsonify(dict(error=dict(message='all gallery failed')))
 
     @api.after_request
     def after_request(response):

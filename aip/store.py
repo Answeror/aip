@@ -9,6 +9,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.declarative import declared_attr
 from hashlib import md5
 from functools import partial
+from datetime import datetime
 
 
 def make(app):
@@ -112,6 +113,7 @@ def make(app):
         id = db.Column(db.LargeBinary(16))
         deletehash = db.Column(db.LargeBinary(32))
         link = db.Column(db.Text)
+        ctime = db.Column(db.DateTime, default=datetime.utcnow)
 
     @stored
     class Immio(db.Model):
@@ -121,6 +123,7 @@ def make(app):
         uri = db.Column(db.Text)
         width = db.Column(db.Integer)
         height = db.Column(db.Integer)
+        ctime = db.Column(db.DateTime, default=datetime.utcnow)
 
     def _random_name():
         import uuid
