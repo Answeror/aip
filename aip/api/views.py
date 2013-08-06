@@ -14,7 +14,7 @@ from datetime import datetime
 import threading
 from functools import wraps
 import pickle
-from ..imgur import Imgur
+from ..bed.immio import Immio
 
 
 def locked(lock=None):
@@ -227,43 +227,27 @@ def make(app, api, cached, store):
     def proxied_url(md5):
         md5 = md5.encode('ascii')
         im = store.get_image_bi_md5(md5)
-        imgur_image = store.get_imgur_bi_md5(md5)
-        limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
-        imgur = Imgur(
-            client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
-            resolution_level=current_app.config['AIP_RESOLUTION_LEVEL'],
-            max_size=(limit, limit),
-            timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
-            album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH'],
+        immio_image = store.get_immio_bi_md5(md5)
+        immio = Immio(
+            max_size=current_app.config['AIP_IMMIO_RESIZE_MAX_SIZE'],
+            timeout=current_app.config['AIP_UPLOAD_IMMIO_TIMEOUT'],
             http=g.http
         )
-        if not imgur_image:
-            fail_count = 0
-            while True:
-                imgur_image = imgur.upload(im)
-                if imgur_image is not None:
-                    imgur_image = store.Imgur(
-                        id=imgur_image.id,
-                        md5=imgur_image.md5,
-                        link=imgur_image.link,
-                        deletehash=imgur_image.deletehash
-                    )
-                    break
-                if fail_count >= current_app.config['AIP_UPLOAD_IMGUR_RETRY_LIMIT']:
-                    break
-                logging.info('upload %s to imgur failed, retry' % md5)
-                ++fail_count
-            if not imgur_image:
-                raise Exception('upload to imgur failed')
-            store.db.session.add(imgur_image)
+        if not immio_image:
+            immio_image = immio.upload(im)
+            if immio_image is not None:
+                immio_image = store.Immio(
+                    uid=immio_image.uid,
+                    md5=immio_image.md5,
+                    uri=immio_image.uri,
+                    width=immio_image.width,
+                    height=immio_image.height
+                )
+            if not immio_image:
+                raise Exception('upload to immio failed')
+            store.db.session.add(immio_image)
             store.db.session.commit()
-        if 'width' in request.args:
-            width = float(request.args['width'])
-            height = width * im.height / im.width
-            url = imgur.best_link(imgur_image, width, height)
-        else:
-            url = imgur_image.link
-        return jsonify(dict(result=url))
+        return jsonify(dict(result=immio_image.uri))
 
     @api.after_request
     def after_request(response):

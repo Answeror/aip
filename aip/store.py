@@ -113,6 +113,15 @@ def make(app):
         deletehash = db.Column(db.LargeBinary(32))
         link = db.Column(db.Text)
 
+    @stored
+    class Immio(db.Model):
+
+        md5 = db.Column(db.LargeBinary(128), primary_key=True)
+        uid = db.Column(db.LargeBinary(16))
+        uri = db.Column(db.Text)
+        width = db.Column(db.Integer)
+        height = db.Column(db.Integer)
+
     def _random_name():
         import uuid
         return str(uuid.uuid4())
@@ -231,6 +240,10 @@ def make(app):
     @stored
     def get_imgur_bi_md5(md5):
         return Imgur.query.get(md5)
+
+    @stored
+    def get_immio_bi_md5(md5):
+        return Immio.query.get(md5)
 
     def _pragma_on_connect(dbapi_con, con_record):
         dbapi_con.execute('PRAGMA cache_size = 100000')

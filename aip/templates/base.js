@@ -41,7 +41,8 @@ $.aip.load_image = function(kargs) {
             make: function(depth) {
                 console.log((depth + 1) + 'th loading ' + src);
                 // each cross means a reload
-                $img.attr('src', src + '?' + Array(depth + 2).join('x'));
+                actual_src = src + '?' + Array(depth + 2).join('x')
+                $img.attr('src', actual_src);
                 var tid = setTimeout(function() {
                     reject('timeout');
                 }, timeout);
@@ -56,8 +57,11 @@ $.aip.load_image = function(kargs) {
                     $d.reject(reason);
                 };
                 $img.imagesLoaded().done(function() {
+                    clearTimeout(tid);
                     if (!rejected) {
-                        $.aip.actual_size(src, function(width, height) {
+                        console.log('loaded: ' + actual_src);
+                        $.aip.actual_size(actual_src, function(width, height) {
+                            console.log('sized: ' + actual_src);
                             $img.data('actual-width', width);
                             $img.data('actual-height', height);
                             $img.attr('width', $img.width());
@@ -66,6 +70,7 @@ $.aip.load_image = function(kargs) {
                         });
                     }
                 }).fail(function() {
+                    clearTimeout(tid);
                     reject('unknown');
                 });
                 return $d.promise();
@@ -98,7 +103,7 @@ $.aip.is = function(kargs) {
         makePageData: $.noop
     };
     kargs = $.extend({}, defaults, kargs);
-    function postprocess($this, callback) {
+    function postprocess($this) {
         var $preview = $this.find('img.preview');
         $this.find('.plus').each(function() {
             var $plus = $(this);
@@ -155,7 +160,6 @@ $.aip.is = function(kargs) {
                 }
             };
             $plus.update();
-            callback();
         });
     };
     var $container = $('#items');
@@ -217,37 +221,26 @@ $.aip.is = function(kargs) {
                         }
                     };
                     var dealone = function($item) {
-                        var guarded = function(f) {
-                            var inner = function() {
-                                try {
-                                    return f(arguments);
-                                } catch (e) {
-                                    console.log(e);
-                                } finally {
-                                    guarded_doneone($item);
-                                }
-                            };
-                            return inner;
-                        };
                         try {
-                            postprocess($item, guarded(function() {
-                                $container.append($item);
-                                if (!marsed) {
-                                    console.log('initialize masonry');
-                                    $container.masonry({
-                                        itemSelector: '.item',
-                                        isAnimated: true,
-                                        columnWidth: '.span2',
-                                        transitionDuration: '0.4s'
-                                    });
-                                    marsed = true;
-                                } else {
-                                    $container.masonry('appended', $item, true);
-                                }
-                                $.aip.inc('done');
-                            }));
+                            postprocess($item);
+                            $container.append($item);
+                            if (!marsed) {
+                                console.log('initialize masonry');
+                                $container.masonry({
+                                    itemSelector: '.item',
+                                    isAnimated: true,
+                                    columnWidth: '.span2',
+                                    transitionDuration: '0.4s'
+                                });
+                                marsed = true;
+                            } else {
+                                $container.masonry('appended', $item, true);
+                            }
+                            $.aip.inc('done');
                         } catch (e) {
+                            console.log('postprocess failed');
                             console.log(e);
+                        } finally {
                             guarded_doneone($item);
                         }
                     };
@@ -282,6 +275,7 @@ $.aip.is = function(kargs) {
                                 return $.aip.disturb({{ config['AIP_REPROXY_INTERVAL'] }});
                             })
                         }).done(function(r) {
+                            console.log(JSON.stringify(r));
                             $.aip.load_image({
                                 img: $img,
                                 src: r.result,
@@ -310,6 +304,7 @@ $.aip.is = function(kargs) {
                                 return $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }});
                             })
                         }).done(function() {
+                            console.log('done: ' + $img.attr('src'));
                             $this.attr('data-loading', true);
                             var r = {{ config['AIP_RESOLUTION_LEVEL'] }};
                             $.aip.super_resolution($img, function() {
