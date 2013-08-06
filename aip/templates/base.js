@@ -9,12 +9,8 @@ $.aip.inc = function(name, value) {
     if (!value) value = 1;
     $t.text(parseInt($t.text()) + value);
 };
-$.aip.actual_size = function(src, callback) {
-    var buf = new Image();
-    buf.onload = function() {
-        callback(this.width, this.height);
-    };
-    buf.src = src;
+$.aip.actual_size = function($img, callback) {
+    callback($img[0].naturalWidth, $img[0].naturalHeight);
 };
 $.aip.redo = function(kargs) {
     function inner(depth, make, reloads) {
@@ -41,7 +37,9 @@ $.aip.load_image = function(kargs) {
             make: function(depth) {
                 console.log((depth + 1) + 'th loading ' + src);
                 // each cross means a reload
-                actual_src = src + '?' + Array(depth + 2).join('x')
+                // mod 2 to force reload
+                var actual_src = src + '?x=' + ((depth + 2) % 2);
+                //var actual_src = src;
                 $img.attr('src', actual_src);
                 var tid = setTimeout(function() {
                     reject('timeout');
@@ -60,8 +58,8 @@ $.aip.load_image = function(kargs) {
                     clearTimeout(tid);
                     if (!rejected) {
                         console.log('loaded: ' + actual_src);
-                        $.aip.actual_size(actual_src, function(width, height) {
-                            console.log('sized: ' + actual_src);
+                        $.aip.actual_size($img, function(width, height) {
+                            console.log('sized(' + width + 'x' + height + '): ' + actual_src);
                             $img.data('actual-width', width);
                             $img.data('actual-height', height);
                             $img.attr('width', $img.width());
@@ -80,9 +78,19 @@ $.aip.load_image = function(kargs) {
     };
     return inner(kargs.img, kargs.src, kargs.timeout, kargs.reloads);
 };
+$.fn.actual_area = function() {
+    return $(this).data('actual-width') * $(this).data('actual-height');
+};
+$.fn.viewport_area = function() {
+    return $(this).width() * $(this).height();
+};
 $.aip.super_resolution = function($img, callback, otherwise) {
     var r = {{ config['AIP_RESOLUTION_LEVEL'] }};
-    if ($img.data('actual-width') * $img.data('actual-height') * r < $img.width() * $img.height()) {
+    var aa = $img.actual_area();
+    var va = $img.viewport_area();
+    var need = aa * r < va;
+    console.log('super resolution ' + aa + ' x ' + r + ' < ' + va + ' -> ' + need);
+    if (need) {
         $.aip.inc('need-enlarge');
         callback();
     } else {
