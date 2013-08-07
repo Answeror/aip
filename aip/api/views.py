@@ -135,7 +135,10 @@ def make(app, api, cached, store):
         buf = []
         for id, value in api.q.pop(**kargs):
             if id in ids:
-                buf.append((id, json.loads(value.data.decode('utf-8'))))
+                buf.append(dict(
+                    id=id,
+                    result=json.loads(value.data.decode('utf-8'))
+                ))
         return jsonify(dict(result=buf))
 
     def get_user_bi_someid():
@@ -320,7 +323,9 @@ def make(app, api, cached, store):
             timeout=current_app.config['AIP_UPLOAD_IMMIO_TIMEOUT'],
             http=g.http
         )
-        if not immio_image:
+        if immio_image:
+            logging.info('hit %s' % md5.decode('ascii'))
+        else:
             immio_image = immio.upload(im)
             if immio_image is not None:
                 immio_image = store.Immio(
@@ -332,6 +337,7 @@ def make(app, api, cached, store):
                 )
             if not immio_image:
                 raise Exception('upload to immio failed')
+            immio_image = store.db.session.merge(immio_image)
             store.db.session.add(immio_image)
             store.db.session.commit()
         return immio_image.uri
@@ -344,8 +350,11 @@ def make(app, api, cached, store):
     def proxied_url(md5):
         md5 = md5.encode('ascii')
         for make in (immio_url, imgur_url):
+            logging.info('use %s' % make.__name__)
             try:
-                return jsonify(dict(result=make(md5)))
+                uri = make(md5)
+                logging.info('get %s' % uri)
+                return jsonify(dict(result=uri))
             except Exception as e:
                 logging.error(e)
         return jsonify(dict(error=dict(message='all gallery failed')))

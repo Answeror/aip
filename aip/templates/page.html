@@ -4,7 +4,15 @@
         <div class='thumbnail'>
             <p class=preview>
                 <a class='preview' href='{{ e.post_url }}' target='_blank'>
-                    <img class='preview lazy' data-src='{{ e.preview_url }}' data-md5='{{ e.md5 }}' data-proxied-url='{{ url_for('.proxied_url', md5=e.md5) }}'>
+                    <img
+                        class='preview lazy'
+                        alt=loading
+                        data-src='{{ e.preview_url }}'
+                        data-md5={{ e.md5 }}
+                        data-proxied-url='{{ url_for('.proxied_url', md5=e.md5) }}'
+                        data-width={{ e.width }}
+                        data-height={{ e.height }}
+                    >
                 </a>
             </p>
             <p>

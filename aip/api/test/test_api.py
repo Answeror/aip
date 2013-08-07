@@ -116,19 +116,11 @@ def test_add_user():
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
-def test_async_update_images():
+def test_update_images():
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 0)
-    r = g.client.get(api('/async/update/20130630'))
+    r = g.client.get(api('/update/20130630'))
     assert_success(r)
-    assert_in('id', result(r))
-    id = result(r)['id']
-    for i in range(10):
-        r = g.client.get(api('/async/pump'), data=dict(ids=[id], interval=20))
-        if result(r):
-            break
-    else:
-        assert False, 'pump failed'
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 712)
 
