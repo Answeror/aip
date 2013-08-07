@@ -12,10 +12,14 @@ from flask import (
 )
 from datetime import datetime
 import threading
-from functools import wraps
+from functools import wraps, partial
+from uuid import uuid4
 import pickle
 from ..imgur import Imgur
 from ..bed.immio import Immio
+from ..async.background import Background
+from ..async.queue import EventQueue
+import json
 
 
 def locked(lock=None):
@@ -95,6 +99,45 @@ def wrap(entries):
 
 
 def make(app, api, cached, store):
+    api.b = Background(slave_count=app.config.get('AIP_SLAVE_COUNT', 1))
+    api.b.start()
+    api.q = EventQueue(maxlen=app.config.get('AIP_EVENT_QUEUE_MAX_LENGTH', 65536))
+
+    def async(f):
+        @wraps(f)
+        def inner(*args, **kargs):
+            # save request data
+            environ = request.environ
+
+            def g():
+                # restore request data
+                with app.request_context(environ):
+                    return f(*args, **kargs)
+
+            if '/async/' not in str(request.url_rule):
+                return g()
+            else:
+                id = str(uuid4())
+                api.b.function(g, lambda a: api.q.push((id, a)))
+                return jsonify(dict(result=dict(id=id)))
+        return inner
+
+    @api.route('/async/pump', methods=['POST'])
+    @guarded
+    def pump():
+        ids = set(request.json['ids'])
+        interval = int(1e6 * request.json['interval'])
+        kargs = {}
+        kargs['microseconds'] = interval % 1000000
+        interval /= 1000000
+        kargs['seconds'] = interval % (24 * 3600)
+        kargs['days'] = interval / (24 * 3600)
+        buf = []
+        for id, value in api.q.pop(**kargs):
+            if id in ids:
+                buf.append((id, json.loads(value.data.decode('utf-8'))))
+        return jsonify(dict(result=buf))
+
     def get_user_bi_someid():
         if request.json:
             args = request.json
@@ -168,9 +211,12 @@ def make(app, api, cached, store):
         r = slice(g.per * id, g.per * (id + 1), 1)
         return jsonify(result=render_template('page.html', entries=wrap(store.get_entries_order_bi_ctime(r))))
 
+    @api.route('/async/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
+    @api.route('/async/update/<begin>')
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
     @guarded
+    @async
     @locked()
     def update(begin=None):
         from datetime import datetime
@@ -192,8 +238,10 @@ def make(app, api, cached, store):
         store.clear()
         return jsonify(dict())
 
+    @api.route('/async/plus', methods=['POST'])
     @api.route('/plus', methods=['POST'])
     @guarded
+    @async
     def plus():
         user = get_user_bi_someid()
         entry = store.get_entry_bi_id(request.json['entry_id'])
@@ -213,8 +261,10 @@ def make(app, api, cached, store):
         user = get_user_bi_someid()
         return jsonify(result=[tod(e, ('id',)) for e in user.plused])
 
+    @api.route('/async/minus', methods=['POST'])
     @api.route('/minus', methods=['POST'])
     @guarded
+    @async
     def minus():
         user = get_user_bi_someid()
         entry = store.get_entry_bi_id(request.json['entry_id'])
@@ -286,8 +336,10 @@ def make(app, api, cached, store):
             store.db.session.commit()
         return immio_image.uri
 
+    @api.route('/async/proxied_url/<md5>', methods=['GET'])
     @api.route('/proxied_url/<md5>', methods=['GET'])
     @guarded
+    @async
     @locked()
     def proxied_url(md5):
         md5 = md5.encode('ascii')

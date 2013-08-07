@@ -12,10 +12,14 @@ from mock import patch, Mock
 import os
 import json
 import urllib3
+import time
+import tempfile
 
 
 RESPONSE_FILE_PATH = os.path.join(os.path.dirname(__file__), 'response.pkl')
-SQLALCHEMY_DATABASE_URI = 'sqlite://'
+dbf = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
+dbf.close()
+SQLALCHEMY_DATABASE_URI = 'sqlite:///%s' % dbf.name
 with open(os.path.join(os.path.dirname(__file__), 'imgur.json'), 'rb') as f:
     imgur_conf = json.loads(f.read().decode('ascii'))
     AIP_IMGUR_CLIENT_IDS = imgur_conf['client_ids']
@@ -99,19 +103,19 @@ def result(r):
     return r['result']
 
 
-@with_setup(patch_urllib3, unpatch_urllib3)
-@with_setup(setup_app, teardown_app)
-def test_add_user():
-    r = g.client.get(api('/user_count'))
-    assert_equal(result(r), 0)
-    r = g.client.post(api('/add_user'), content_type='application/json', data=json.dumps(dict(
-        openid='openid',
-        name='Cosmo Du',
-        email='answeror@gmail.com'
-    )))
-    assert_success(r)
-    r = g.client.get(api('/user_count'))
-    assert_equal(result(r), 1)
+def pump(ids):
+    for i in range(10):
+        time.sleep(1)
+        r = g.client.post(
+            api('/async/pump'),
+            content_type='application/json',
+            data=json.dumps(dict(ids=ids, interval=20))
+        )
+        assert_success(r)
+        if result(r):
+            break
+    else:
+        assert False, 'pump failed'
 
 
 @with_setup(patch_urllib3, unpatch_urllib3)
@@ -123,68 +127,16 @@ def test_async_update_images():
     assert_success(r)
     assert_in('id', result(r))
     id = result(r)['id']
-    for i in range(10):
-        r = g.client.get(api('/async/pump'), data=dict(ids=[id], interval=20))
-        if result(r):
-            break
-    else:
-        assert False, 'pump failed'
+    pump([id])
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 712)
-
-
-@with_setup(patch_urllib3, unpatch_urllib3)
-@with_setup(setup_app, teardown_app)
-def test_entries():
-    r = g.client.get(api('/update/20130630'))
-    assert_success(r)
-    r = g.client.get(api('/entry_count'))
-    assert_equal(result(r), 504)
-    r = g.client.get(api('/entries'))
-    assert_equal(len(result(r)), 504)
-    r = g.client.get(
-        api('/entries'),
-        content_type='application/json',
-        data=json.dumps(dict(begin=100, end=200))
-    )
-    assert_equal(len(result(r)), 100)
-
-
-@with_setup(patch_urllib3, unpatch_urllib3)
-@with_setup(setup_app, teardown_app)
-def test_no_duplication():
-    r = g.client.get(api('/image_count'))
-    assert_equal(result(r), 0)
-    r = g.client.get(api('/update/20130630'))
-    assert_success(r)
-    r = g.client.get(api('/image_count'))
-    assert_equal(result(r), 712)
-    r = g.client.get(api('/update/20130630'))
-    assert_success(r)
-    r = g.client.get(api('/image_count'))
-    assert_equal(result(r), 712)
-
-
-@with_setup(patch_urllib3, unpatch_urllib3)
-@with_setup(setup_app, teardown_app)
-def test_clear():
-    r = g.client.get(api('/image_count'))
-    assert_equal(result(r), 0)
-    r = g.client.get(api('/update/20130630'))
-    assert_success(r)
-    r = g.client.get(api('/image_count'))
-    assert_equal(result(r), 712)
-    r = g.client.get(api('/clear'))
-    assert_success(r)
-    r = g.client.get(api('/image_count'))
-    assert_equal(result(r), 0)
 
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
 @with_setup(add_user)
 @with_setup(update)
-def test_plus():
+def test_async_plus():
     r = g.client.get(
         api('/plused'),
         content_type='application/json',
@@ -195,7 +147,7 @@ def test_plus():
     assert_success(r)
     entry_id = result(r)[0]['id']
     r = g.client.post(
-        api('/plus'),
+        api('/async/plus'),
         content_type='application/json',
         data=json.dumps(dict(
             user_openid='openid',
@@ -203,6 +155,9 @@ def test_plus():
         ))
     )
     assert_success(r)
+    assert_in('id', result(r))
+    id = result(r)['id']
+    pump([id])
     r = g.client.get(
         api('/plused'),
         content_type='application/json',
@@ -210,7 +165,7 @@ def test_plus():
     )
     assert_equal(len(result(r)), 1)
     r = g.client.post(
-        api('/minus'),
+        api('/async/minus'),
         content_type='application/json',
         data=json.dumps(dict(
             user_openid='openid',
@@ -218,6 +173,14 @@ def test_plus():
         ))
     )
     assert_success(r)
+    assert_in('id', result(r))
+    id = result(r)['id']
+    pump([id])
+    r = g.client.get(
+        api('/plused'),
+        content_type='application/json',
+        data=json.dumps(dict(user_openid='openid'))
+    )
     r = g.client.get(
         api('/plused'),
         content_type='application/json',
@@ -228,9 +191,12 @@ def test_plus():
 
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
-def test_proxied_url():
+def test_async_proxied_url():
     r = g.client.get(api('/update/20130630'))
     assert_success(r)
     r = result(g.client.get(api('/entries')))
-    r = g.client.get(api('/proxied_url/%s' % r[0]['id']))
+    r = g.client.get(api('/async/proxied_url/%s' % r[0]['id']))
     assert_success(r)
+    assert_in('id', result(r))
+    id = result(r)['id']
+    pump([id])
