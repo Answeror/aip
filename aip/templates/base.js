@@ -14,60 +14,15 @@ $.aip.error_guard = function(r) {
         }
     });
 };
+$.aip.range = function(n) {
+    return Array.apply(0, Array(n)).map(function(e, i) { return i; });
+};
 $.fn.freeze_size = function() {
     var $this = $(this);
     $this.attr('width', $this.width());
     $this.attr('height', $this.width() * $this.data('height') / $this.data('width'));
     $this.width($this.attr('width'));
     $this.height($this.attr('height'));
-};
-$.aip.last_pump = $.aip.now();
-$.aip.pump = function() {
-    $.aip.pump_timer = setTimeout(function() {
-        delete $.aip.pump_timer;
-        var now = $.aip.now();
-        $.ajax({
-            method: 'POST',
-            url: '/api/async/pump',
-            contentType: "application/json",
-            accepts: "application/json",
-            cache: false,
-            dataType: 'json',
-            data: JSON.stringify({
-                ids: Object.keys($.aip.ds),
-                interval: now - $.aip.last_pump + 1
-            })
-        }).then($.aip.error_guard).done(function(r) {
-            $.each(r.result, function(i, e) {
-                if (e.id in $.aip.ds) {
-                    console.log('pump ' + e.id);
-                    $.aip.ds[e.id].resolve(e.result);
-                    delete $.aip.ds[e.id];
-                }
-            });
-        }).fail(function(reason) {
-            console.log('pump failed, reason: ' + JSON.stringify(reason));
-        }).always(function() {
-            if (!$.isEmptyObject($.aip.ds)) {
-                $.aip.pump();
-            }
-        });
-        $.aip.last_pump = now;
-    }, {{ 1000 * config['AIP_PUMP_INTERVAL'] }});
-};
-$.aip.async = function(kargs) {
-    kargs.url = '/api/async' + kargs.url.slice(4);
-    var $d = $.Deferred();
-    $.ajax(kargs).then($.aip.error_guard).done(function(r) {
-        $.aip.ds[r.result.id] = $d;
-        if (!$.aip.pump_timer) {
-            $.aip.pump();
-        }
-    }).fail($d.reject);
-    return $d;
-};
-$.aip.range = function(n) {
-    return Array.apply(0, Array(n)).map(function(e, i) { return i; });
 };
 $.aip.inc = function(name, value) {
     var $t = $('#loading li[name="' + name + '"]');
@@ -76,6 +31,14 @@ $.aip.inc = function(name, value) {
 };
 $.aip.actual_size = function($img, callback) {
     callback($img[0].naturalWidth, $img[0].naturalHeight);
+};
+$.aip.async = function(kargs) {
+    kargs.url = '/api/async/' + $.aip.sid + kargs.url.slice(4);
+    var $d = $.Deferred();
+    $.ajax(kargs).then($.aip.error_guard).done(function(r) {
+        $.aip.ds[r.result.id] = $d;
+    }).fail($d.reject);
+    return $d;
 };
 $.aip.redo = function(kargs) {
     function inner(depth, make, reloads) {
@@ -170,7 +133,7 @@ $.aip.warning = $.aip.error;
 $.aip.disturb = function(x) {
     return x * (Math.random() + 0.5)
 };
-$.aip.is = function(kargs) {
+$.aip.init = function(kargs) {
     defaults = {
         makePageData: $.noop
     };
@@ -319,7 +282,7 @@ $.aip.is = function(kargs) {
                             make: function() {
                                 return $.aip.async({
                                     method: 'GET',
-                                    url: $img.data('proxied-url'),
+                                    url: '/api/proxied_url/' + $img.data('md5'),
                                     accepts: "application/json",
                                     cache: false,
                                     dataType: 'json',
@@ -388,4 +351,22 @@ $.aip.is = function(kargs) {
             offset: 'bottom-in-view'
         }
     );
+};
+$.aip.is = function(kargs) {
+    $.aip.source = new EventSource('/api/async/stream')
+    $.aip.source.onmessage = function(e) {
+        $.Deferred().resolve($.parseJSON(e.data)).then($.aip.error_guard).done(function(r) {
+            if (r.result.id in $.aip.ds) {
+                console.log('pump ' + r.result.id);
+                $.aip.ds[r.result.id].resolve(r.result.result);
+                delete $.aip.ds[r.result.id];
+            } else if (r.result.id == 'sid') {
+                $.aip.sid = r.result.result;
+                console.log('get sid: ' + $.aip.sid);
+                $.aip.init(kargs);
+            }
+        }).fail(function(reason) {
+            console.log('pump failed, reason: ' + JSON.stringify(reason));
+        });
+    };
 };

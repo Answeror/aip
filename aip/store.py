@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
-import logging
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func, and_, desc
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.ext.declarative import declared_attr
 from hashlib import md5
 from functools import partial
 from datetime import datetime
@@ -47,10 +44,12 @@ def make(app):
         plused = db.relationship('Entry', secondary=plus_table, backref=db.backref('plused', lazy=False))
 
         def plus(self, entry):
-            self.plused.append(entry)
+            if entry not in self.plused:
+                self.plused.append(entry)
 
         def minus(self, entry):
-            self.plused.remove(entry)
+            if entry in self.plused:
+                self.plused.remove(entry)
 
         def has_plused(self, entry):
             return Entry.query.filter_by(id=entry.id).with_parent(self, 'plused').count() > 0
