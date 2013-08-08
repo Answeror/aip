@@ -128,32 +128,35 @@ def make(app, api, cached, store):
         @wraps(f)
         def inner(*args, **kargs):
             # save request data
-            environ = request.environ
+            request_kargs = {}
+            for key in (
+                'path',
+                'base_url',
+                'query_string',
+                'method',
+                'data',
+            ):
+                request_kargs[key] = getattr(request, key)
+            request_kargs['query_string'] = request.args if request.args else {}
+            request_kargs['headers'] = request.headers.items()
+            request_kargs['content_type'] = request.headers['Content-Type']
 
             def g():
                 # restore request data
-                with app.request_context(environ):
+                with app.test_request_context(**request_kargs):
                     return f(*args, **kargs)
 
-            if '/async/' not in str(request.url_rule):
-                return g()
+            if args:
+                sid = args[0]
             else:
-                if args:
-                    sid = args[0]
-                else:
-                    sid = kargs['sid']
-                id = str(uuid4())
-
-                def h(a):
-                    # restore request data
-                    with app.request_context(environ):
-                        return api.sp.push(sid, json.dumps(dict(result=dict(
-                            id=id,
-                            result=json.loads(a.data.decode('utf-8'))
-                        ))))
-
-                api.b.function(g, h)
-                return jsonify(dict(result=dict(id=id)))
+                sid = kargs['sid']
+            id = str(uuid4())
+            api.b.function(g, lambda a: api.sp.push(sid, json.dumps(dict(result=dict(
+                id=id,
+                result=json.loads(a.data.decode('utf-8'))
+            )))))
+            print('queue size %d' % api.b.jobs.qsize())
+            return jsonify(dict(result=dict(id=id)))
         return inner
 
     def get_user_bi_someid():
@@ -254,11 +257,15 @@ def make(app, api, cached, store):
         return jsonify(dict())
 
     def plus():
-        user = get_user_bi_someid()
-        entry = store.get_entry_bi_id(request.json['entry_id'])
-        user.plus(entry)
-        store.db.session.commit()
-        return jsonify(dict(count=entry.plus_count))
+        try:
+            user = get_user_bi_someid()
+            entry = store.get_entry_bi_id(request.json['entry_id'])
+            user.plus(entry)
+            store.db.session.commit()
+            return jsonify(dict(count=entry.plus_count))
+        except:
+            store.db.session.rollback()
+            raise
 
     @api.route('/plus', methods=['POST'])
     @guarded
@@ -284,11 +291,15 @@ def make(app, api, cached, store):
         return jsonify(result=[tod(e, ('id',)) for e in user.plused])
 
     def minus():
-        user = get_user_bi_someid()
-        entry = store.get_entry_bi_id(request.json['entry_id'])
-        user.minus(entry)
-        store.db.session.commit()
-        return jsonify(dict(count=entry.plus_count))
+        try:
+            user = get_user_bi_someid()
+            entry = store.get_entry_bi_id(request.json['entry_id'])
+            user.minus(entry)
+            store.db.session.commit()
+            return jsonify(dict(count=entry.plus_count))
+        except:
+            store.db.session.rollback()
+            raise
 
     @api.route('/minus', methods=['POST'])
     @guarded

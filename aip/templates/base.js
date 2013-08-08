@@ -148,7 +148,7 @@ $.aip.init = function(kargs) {
                 $plus.text('+' + $plus.data('count'));
                 if ($plus.data('plused')) {
                     $plus.addClass('btn-primary');
-                    $plus.click(function() {
+                    $plus.unbind('click').click(function() {
                         $.aip.async({
                             method: 'POST',
                             url: '/api/minus',
@@ -167,7 +167,7 @@ $.aip.init = function(kargs) {
                     });
                 } else {
                     $plus.removeClass('btn-primary');
-                    $plus.click(function() {
+                    $plus.unbind('click').click(function() {
                         $.aip.async({
                             method: 'POST',
                             url: '/api/plus',
