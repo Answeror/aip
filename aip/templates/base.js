@@ -39,9 +39,11 @@ $.aip.pump = function() {
             })
         }).then($.aip.error_guard).done(function(r) {
             $.each(r.result, function(i, e) {
-                console.log('pump ' + e.id);
-                $.aip.ds[e.id].resolve(e.result);
-                delete $.aip.ds[e.id];
+                if (e.id in $.aip.ds) {
+                    console.log('pump ' + e.id);
+                    $.aip.ds[e.id].resolve(e.result);
+                    delete $.aip.ds[e.id];
+                }
             });
         }).fail(function(reason) {
             console.log('pump failed, reason: ' + JSON.stringify(reason));
