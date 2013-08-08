@@ -8,17 +8,18 @@ from flask import (
     request,
     render_template,
     current_app,
+    Response,
     g
 )
 from datetime import datetime
 import threading
-from functools import wraps, partial
+from functools import wraps
 from uuid import uuid4
 import pickle
 from ..imgur import Imgur
 from ..bed.immio import Immio
 from ..async.background import Background
-from ..async.queue import EventQueue
+from ..async.subpub import Subpub
 import json
 
 
@@ -101,7 +102,27 @@ def wrap(entries):
 def make(app, api, cached, store):
     api.b = Background(slave_count=app.config.get('AIP_SLAVE_COUNT', 1))
     api.b.start()
-    api.q = EventQueue(maxlen=app.config.get('AIP_EVENT_QUEUE_MAX_LENGTH', 65536))
+    api.sp = Subpub()
+
+    def event_stream(id):
+        try:
+            while True:
+                value = api.sp.pop(id, timeout=app.config['AIP_STREAM_TIMEOUT'])
+                yield ('data: %s\n\n' % value).encode('utf-8')
+        except Exception as e:
+            if str(e) == 'timeout':
+                logging.info('stream timeout: %s' % id)
+            else:
+                raise
+        finally:
+            api.sp.kill(id)
+
+    @api.route('/async/stream')
+    def stream():
+        sid = str(uuid4())
+        logging.info('stream: %s' % sid)
+        api.sp.push(sid, json.dumps(dict(result=dict(id='sid', result=sid))))
+        return Response(event_stream(sid), mimetype='text/event-stream')
 
     def async(f):
         @wraps(f)
@@ -117,29 +138,23 @@ def make(app, api, cached, store):
             if '/async/' not in str(request.url_rule):
                 return g()
             else:
+                if args:
+                    sid = args[0]
+                else:
+                    sid = kargs['sid']
                 id = str(uuid4())
-                api.b.function(g, lambda a: api.q.push((id, a)))
+
+                def h(a):
+                    # restore request data
+                    with app.request_context(environ):
+                        return api.sp.push(sid, json.dumps(dict(result=dict(
+                            id=id,
+                            result=json.loads(a.data.decode('utf-8'))
+                        ))))
+
+                api.b.function(g, h)
                 return jsonify(dict(result=dict(id=id)))
         return inner
-
-    @api.route('/async/pump', methods=['POST'])
-    @guarded
-    def pump():
-        ids = set(request.json['ids'])
-        interval = int(1e6 * request.json['interval'])
-        kargs = {}
-        kargs['microseconds'] = interval % 1000000
-        interval /= 1000000
-        kargs['seconds'] = interval % (24 * 3600)
-        kargs['days'] = interval / (24 * 3600)
-        buf = []
-        for id, value in api.q.pop(**kargs):
-            if id in ids:
-                buf.append(dict(
-                    id=id,
-                    result=json.loads(value.data.decode('utf-8'))
-                ))
-        return jsonify(dict(result=buf))
 
     def get_user_bi_someid():
         if request.json:
@@ -214,12 +229,9 @@ def make(app, api, cached, store):
         r = slice(g.per * id, g.per * (id + 1), 1)
         return jsonify(result=render_template('page.html', entries=wrap(store.get_entries_order_bi_ctime(r))))
 
-    @api.route('/async/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
-    @api.route('/async/update/<begin>')
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
     @guarded
-    @async
     @locked()
     def update(begin=None):
         from datetime import datetime
@@ -241,16 +253,23 @@ def make(app, api, cached, store):
         store.clear()
         return jsonify(dict())
 
-    @api.route('/async/plus', methods=['POST'])
-    @api.route('/plus', methods=['POST'])
-    @guarded
-    @async
     def plus():
         user = get_user_bi_someid()
         entry = store.get_entry_bi_id(request.json['entry_id'])
         user.plus(entry)
         store.db.session.commit()
         return jsonify(dict(count=entry.plus_count))
+
+    @api.route('/plus', methods=['POST'])
+    @guarded
+    def sync_plus():
+        return plus()
+
+    @api.route('/async/<sid>/plus', methods=['POST'])
+    @guarded
+    @async
+    def async_plus(sid):
+        return plus()
 
     @api.route('/plused/page/<int:id>.html', methods=['GET'])
     @guarded
@@ -264,16 +283,23 @@ def make(app, api, cached, store):
         user = get_user_bi_someid()
         return jsonify(result=[tod(e, ('id',)) for e in user.plused])
 
-    @api.route('/async/minus', methods=['POST'])
-    @api.route('/minus', methods=['POST'])
-    @guarded
-    @async
     def minus():
         user = get_user_bi_someid()
         entry = store.get_entry_bi_id(request.json['entry_id'])
         user.minus(entry)
         store.db.session.commit()
         return jsonify(dict(count=entry.plus_count))
+
+    @api.route('/minus', methods=['POST'])
+    @guarded
+    def sync_minus():
+        return minus()
+
+    @api.route('/async/<sid>/minus', methods=['POST'])
+    @guarded
+    @async
+    def async_minus(sid):
+        return minus()
 
     def imgur_url(md5):
         im = store.get_image_bi_md5(md5)
@@ -342,10 +368,6 @@ def make(app, api, cached, store):
             store.db.session.commit()
         return immio_image.uri
 
-    @api.route('/async/proxied_url/<md5>', methods=['GET'])
-    @api.route('/proxied_url/<md5>', methods=['GET'])
-    @guarded
-    @async
     @locked()
     def proxied_url(md5):
         md5 = md5.encode('ascii')
@@ -358,6 +380,17 @@ def make(app, api, cached, store):
             except Exception as e:
                 logging.error(e)
         return jsonify(dict(error=dict(message='all gallery failed')))
+
+    @api.route('/proxied_url/<md5>', methods=['GET'])
+    @guarded
+    def sync_proxied_url(md5):
+        return proxied_url(md5)
+
+    @api.route('/async/<sid>/proxied_url/<md5>', methods=['GET'])
+    @guarded
+    @async
+    def async_proxied_url(sid, md5):
+        return proxied_url(md5)
 
     @api.after_request
     def after_request(response):
