@@ -18,7 +18,6 @@ import pickle
 from ..imgur import Imgur
 from ..bed.immio import Immio
 from ..async.background import Background
-from ..async.queue import EventQueue
 import json
 
 
@@ -98,10 +97,14 @@ def wrap(entries):
     return entries
 
 
-def make(app, api, cached, store):
+def make(app, api, cached, store, red):
     api.b = Background(slave_count=app.config.get('AIP_SLAVE_COUNT', 1))
     api.b.start()
-    api.q = EventQueue(maxlen=app.config.get('AIP_EVENT_QUEUE_MAX_LENGTH', 65536))
+
+    def event_stream():
+        pubsub = red.pubsub()
+        pubsub.subscribe('result')
+        for message in pubsub.listen():
 
     def async(f):
         @wraps(f)

@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 
 
+from flask import Flask
+import redis
+
+
 def make(config=None):
-    from flask import Flask
     app = Flask(
         __name__,
         template_folder='templates',
@@ -32,6 +35,7 @@ def make(config=None):
     views.make(app=app, oid=oid, cached=cached, store=store)
 
     from . import api
-    api.make(app=app, cached=cached, store=store)
+    red = redis.StrictRedis()
+    api.make(app=app, cached=cached, store=store, red=red)
 
     return app
