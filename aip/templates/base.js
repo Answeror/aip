@@ -70,7 +70,7 @@ $.aip.redo = function(kargs) {
         var $d = $.Deferred();
         function reject() {
             console.log('deferred failed, arguments: ' + JSON.stringify(arguments));
-            if (reloads.length > 0) {
+            if (reloads && reloads.length > 0) {
                 setTimeout(function() {
                     console.log('redo');
                     inner(depth + 1, make, reloads.slice(1)).done($d.resolve).fail($d.reject);
@@ -273,6 +273,7 @@ $.aip.init = function(kargs) {
                         }
                     };
                     var dealone = function($item) {
+                        if ($item.data('dealed')) return;
                         try {
                             postprocess($item);
                             $container.append($item);
@@ -293,11 +294,13 @@ $.aip.init = function(kargs) {
                             console.log('postprocess failed');
                             console.log(e);
                         } finally {
+                            $item.data('dealed', true);
                             guarded_doneone($item);
                         }
                     };
                     var proxied = function($item) {
                         $.aip.inc('need-proxied');
+                        dealone($item);
                         var error = function(message) {
                             $.aip.error(message);
                             guarded_doneone($item);
@@ -311,23 +314,22 @@ $.aip.init = function(kargs) {
                                     accepts: "application/json",
                                     cache: false,
                                     dataType: 'json',
-                                    timeout: {{ config['AIP_PROXIED_TIMEOUT'] }},
+                                    timeout: 1e3 * {{ config['AIP_PROXIED_TIMEOUT'] }},
                                     data: { width: $img.width() }
                                 });
                             },
                             reloads: $.aip.range({{ config['AIP_REPROXY_LIMIT'] }}).map(function() {
-                                return $.aip.disturb({{ config['AIP_REPROXY_INTERVAL'] }});
+                                return $.aip.disturb(1e3 * {{ config['AIP_REPROXY_INTERVAL'] }});
                             })
                         }).done(function(r) {
                             $.aip.inc('proxied');
                             try {
-                                dealone($item);
                                 $.aip.load_image({
                                     img: $img,
                                     src: r.result,
-                                    timeout: {{ config['AIP_LOADING_TIMEOUT'] }},
+                                    timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
                                     reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
-                                        return $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }});
+                                        return $.aip.disturb(1e3 * {{ config['AIP_RELOAD_INTERVAL'] }});
                                     })
                                 }).done($.noop).fail(function(reason) {
                                     error('load image failed, reason: ' + JSON.stringify(reason));
@@ -346,14 +348,7 @@ $.aip.init = function(kargs) {
                         var $this = $(this);
                         var $img = $this.find('img.preview');
                         $img.freeze_size();
-                        $.aip.load_image({
-                            img: $img,
-                            src: $img.data('src'),
-                            timeout: {{ config['AIP_LOADING_TIMEOUT'] }},
-                            reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
-                                return $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }});
-                            })
-                        }).done(function() {
+                        var done = function() {
                             console.log($img.attr('src') + 'loaded');
                             $this.attr('data-loading', true);
                             var r = {{ config['AIP_RESOLUTION_LEVEL'] }};
@@ -362,10 +357,32 @@ $.aip.init = function(kargs) {
                             }, function() {
                                 dealone($this);
                             });
-                        }).fail(function(reason) {
+                        };
+                        var fail = function(reason) {
                             console.log('load image failed, reason: ' + reason);
                             $.aip.inc('original-preview-loading-failed');
                             proxied($this);
+                        };
+                        var limit = {{ config['AIP_RELOAD_LIMIT'] }};
+                        $.aip.load_image({
+                            img: $img,
+                            src: $img.data('src'),
+                            timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }}
+                        }).done(done).fail(function(reason) {
+                            if (limit == 0) {
+                                fail(reason);
+                            } else {
+                                // first try failed, show blank image
+                                dealone($this);
+                                $.aip.load_image({
+                                    img: $img,
+                                    src: $img.data('src'),
+                                    timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
+                                    reloads: $.aip.range(limit - 1).map(function() {
+                                        return $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }});
+                                    })
+                                }).done(done).fail(fail);
+                            }
                         });
                     });
                 }).fail(function(reason) {
