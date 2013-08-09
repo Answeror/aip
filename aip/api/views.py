@@ -157,10 +157,9 @@ def make(app, api, cached, store):
         api.sp.push(sid, ('reply', None))
         return jsonify(dict())
 
-    @api.route('/async/stream')
+    @api.route('/async/stream/<sid>')
     @logged
-    def stream():
-        sid = str(uuid4())
+    def stream(sid):
         logging.info('stream: %s' % sid)
         return Response(event_stream(sid), mimetype='text/event-stream')
 

@@ -7,6 +7,13 @@ $.aip.calls = {};
 $.aip.now = function() {
     return new Date().getTime() / 1000;
 };
+// http://stackoverflow.com/a/2117523/238472
+$.aip.uuid = function() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
+    });
+};
 $.aip.error_guard = function(r) {
     return $.Deferred(function($d) {
         if (r && 'error' in r) {
@@ -364,10 +371,9 @@ $.aip.init = function(kargs) {
     $.aip.inited = true;
 };
 $.aip.is = function(kargs) {
-    $.aip.source = new EventSource('/api/async/stream')
+    $.aip.source = new EventSource('/api/async/stream/' + $.aip.uuid());
     $.aip.source.onmessage = function(e) {
         $.Deferred().resolve($.parseJSON(e.data)).then($.aip.error_guard).done(function(r) {
-            console.log(r);
             if (r.key == 'hello') {
                 $.aip.sid = r.value;
                 console.log('hello: ' + $.aip.sid);
