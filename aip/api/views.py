@@ -54,8 +54,19 @@ def guarded(f):
     @wraps(f)
     def inner(*args, **kargs):
         try:
+            return f(*args, **kargs)
+        except Exception as e:
+            return jsonify(dict(error=dict(message=str(e))))
+    return inner
+
+
+def logged(f):
+    @wraps(f)
+    def inner(*args, **kargs):
+        try:
+            logging.info('%s start' % f.__name__)
             r = f(*args, **kargs)
-            logging.debug('%s done' % f.__name__)
+            logging.info('%s done' % f.__name__)
             return r
         except Exception as e:
             failed(
@@ -65,7 +76,7 @@ def guarded(f):
                 json=request.json,
                 e=e
             )
-            return jsonify(dict(error=dict(message=str(e))))
+            raise
     return inner
 
 
@@ -108,6 +119,7 @@ def make(app, api, cached, store):
         try:
             while True:
                 value = api.sp.pop(id, timeout=app.config['AIP_STREAM_TIMEOUT'])
+                logging.info('stream(%s) event' % id)
                 yield ('data: %s\n\n' % value).encode('utf-8')
         except Exception as e:
             if str(e) == 'timeout':
@@ -118,10 +130,11 @@ def make(app, api, cached, store):
             api.sp.kill(id)
 
     @api.route('/async/stream')
+    @logged
     def stream():
         sid = str(uuid4())
-        logging.info('stream: %s' % sid)
         api.sp.push(sid, json.dumps(dict(result=dict(id='sid', result=sid))))
+        logging.info('stream: %s' % sid)
         return Response(event_stream(sid), mimetype='text/event-stream')
 
     def async(f):
@@ -192,6 +205,7 @@ def make(app, api, cached, store):
 
     @api.route('/add_user', methods=['POST'])
     @guarded
+    @logged
     def add_user():
         store.add_user(store.User(
             openid=request.json['openid'],
@@ -202,31 +216,37 @@ def make(app, api, cached, store):
 
     @api.route('/user_count')
     @guarded
+    @logged
     def user_count():
         return jsonify(dict(result=store.user_count()))
 
     @api.route('/image_count')
     @guarded
+    @logged
     def image_count():
         return jsonify(dict(result=store.image_count()))
 
     @api.route('/unique_image_count')
     @guarded
+    @logged
     def unique_image_count():
         return jsonify(dict(result=store.unique_image_count()))
 
     @api.route('/entry_count')
     @guarded
+    @logged
     def entry_count():
         return jsonify(dict(result=store.entry_count()))
 
     @api.route('/entries', methods=['GET'])
     @guarded
+    @logged
     def entries():
         return jsonify(result=[tod(im, ('id',)) for im in store.get_entries_order_bi_ctime(get_slice())])
 
     @api.route('/page/<int:id>', methods=['GET'])
     @guarded
+    @logged
     def page(id):
         #r = slice(g.per * (2 ** id - 1), g.per * (2 ** (id + 1) - 1), 1)
         r = slice(g.per * id, g.per * (id + 1), 1)
@@ -235,6 +255,7 @@ def make(app, api, cached, store):
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
     @guarded
+    @logged
     @locked()
     def update(begin=None):
         from datetime import datetime
@@ -245,6 +266,7 @@ def make(app, api, cached, store):
 
     @api.route('/last_update_time')
     @guarded
+    @logged
     def last_update_time():
         value = store.get_meta('last_update_time')
         value = '' if value is None else pickle.loads(value).strftime('%Y-%m-%d %H:%M:%S')
@@ -252,6 +274,7 @@ def make(app, api, cached, store):
 
     @api.route('/clear')
     @guarded
+    @logged
     def clear():
         store.clear()
         return jsonify(dict())
@@ -269,23 +292,27 @@ def make(app, api, cached, store):
 
     @api.route('/plus', methods=['POST'])
     @guarded
+    @logged
     def sync_plus():
         return plus()
 
     @api.route('/async/<sid>/plus', methods=['POST'])
     @guarded
+    @logged
     @async
     def async_plus(sid):
         return plus()
 
     @api.route('/plused/page/<int:id>.html', methods=['GET'])
     @guarded
+    @logged
     def plused_page_html(id):
         user = get_user_bi_someid()
         return jsonify(result=render_template('page.html', entries=wrap(user.plused)))
 
     @api.route('/plused', methods=['GET'])
     @guarded
+    @logged
     def plused():
         user = get_user_bi_someid()
         return jsonify(result=[tod(e, ('id',)) for e in user.plused])
@@ -303,11 +330,13 @@ def make(app, api, cached, store):
 
     @api.route('/minus', methods=['POST'])
     @guarded
+    @logged
     def sync_minus():
         return minus()
 
     @api.route('/async/<sid>/minus', methods=['POST'])
     @guarded
+    @logged
     @async
     def async_minus(sid):
         return minus()
@@ -394,11 +423,13 @@ def make(app, api, cached, store):
 
     @api.route('/proxied_url/<md5>', methods=['GET'])
     @guarded
+    @logged
     def sync_proxied_url(md5):
         return proxied_url(md5)
 
     @api.route('/async/<sid>/proxied_url/<md5>', methods=['GET'])
     @guarded
+    @logged
     @async
     def async_proxied_url(sid, md5):
         return proxied_url(md5)
