@@ -38,13 +38,13 @@ $.aip.async = function(kargs) {
     kargs.url = '/api/async/' + $.aip.sid + kargs.url.slice(4);
     var $d = $.Deferred();
     $.ajax(kargs).then($.aip.error_guard).done(function(r) {
-        if (r.result.id in $.aip.calls) {
+        if (!(r.result.id in $.aip.calls)) {
             $.aip.calls[r.result.id] = $d;
         } else {
             console.log('async call ' + r.result.id + ' arrive later than its result');
             // result is already here
-            $d.resolve($.aip.calls[r.value.id]);
-            delete $.aip.calls[r.value.id];
+            $d.resolve($.aip.calls[r.result.id]);
+            delete $.aip.calls[r.result.id];
         }
     }).fail($d.reject);
     return $d;
@@ -320,6 +320,7 @@ $.aip.init = function(kargs) {
                             } catch (e) {
                                 console.log('fatal error');
                                 console.log(JSON.stringify(e));
+                                console.trace();
                             }
                         }).fail(function(reason) {
                             error('proxy failed, reason: ' + JSON.stringify(reason));
