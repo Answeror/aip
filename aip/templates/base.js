@@ -36,6 +36,7 @@ $.aip.async = function(kargs) {
     kargs.url = '/api/async/' + $.aip.sid + kargs.url.slice(4);
     var $d = $.Deferred();
     $.ajax(kargs).then($.aip.error_guard).done(function(r) {
+        console.log(r.result.id + ' done');
         $.aip.ds[r.result.id] = $d;
     }).fail($d.reject);
     return $d;
@@ -48,13 +49,13 @@ $.aip.redo = function(kargs) {
             if (reloads.length > 0) {
                 setTimeout(function() {
                     console.log('redo');
-                    inner(depth + 1, make, reloads.slice(1)).then($.aip.error_guard).done($d.resolve).fail($d.reject);
+                    inner(depth + 1, make, reloads.slice(1)).done($d.resolve).fail($d.reject);
                 }, reloads[0]);
             } else {
                 $d.reject(arguments);
             }
         };
-        make(depth).then($.aip.error_guard).done($d.resolve).fail(reject);
+        make(depth).done($d.resolve).fail(reject);
         return $d.promise();
     };
     return inner(0, kargs.make, kargs.reloads);
@@ -98,7 +99,7 @@ $.aip.load_image = function(kargs) {
                     clearTimeout(tid);
                     reject('unknown');
                 });
-                return $d.then($.aip.error_guard).promise();
+                return $d.promise();
             },
             reloads: reloads
         });
@@ -157,7 +158,7 @@ $.aip.init = function(kargs) {
                             cache: false,
                             dataType: 'json',
                             data: JSON.stringify({ user_id: user, entry_id: entry })
-                        }).then($.aip.error_guard).done(function(data) {
+                        }).done(function(data) {
                             $plus.data('count', data.count);
                             $plus.data('plused', false);
                             $plus.update();
@@ -176,7 +177,7 @@ $.aip.init = function(kargs) {
                             cache: false,
                             dataType: 'json',
                             data: JSON.stringify({ user_id: user, entry_id: entry })
-                        }).then($.aip.error_guard).done(function(data) {
+                        }).done(function(data) {
                             $plus.data('count', data.count);
                             $plus.data('plused', true);
                             $plus.update();
@@ -288,12 +289,12 @@ $.aip.init = function(kargs) {
                                     dataType: 'json',
                                     timeout: {{ config['AIP_PROXIED_TIMEOUT'] }},
                                     data: { width: $img.width() }
-                                }).then($.aip.error_guard);
+                                });
                             },
                             reloads: $.aip.range({{ config['AIP_REPROXY_LIMIT'] }}).map(function() {
                                 return $.aip.disturb({{ config['AIP_REPROXY_INTERVAL'] }});
                             })
-                        }).then($.aip.error_guard).done(function(r) {
+                        }).done(function(r) {
                             $.aip.inc('proxied');
                             try {
                                 dealone($item);
@@ -328,7 +329,7 @@ $.aip.init = function(kargs) {
                                 return $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }});
                             })
                         }).done(function() {
-                            console.log('done: ' + $img.attr('src'));
+                            console.log($img.attr('src') + 'loaded');
                             $this.attr('data-loading', true);
                             var r = {{ config['AIP_RESOLUTION_LEVEL'] }};
                             $.aip.super_resolution($img, function() {
@@ -375,6 +376,8 @@ $.aip.is = function(kargs) {
                     console.log('result: ' + r.value.id);
                     $.aip.ds[r.value.id].resolve(r.value.result);
                     delete $.aip.ds[r.value.id];
+                } else {
+                    console.log(r.value.id + ' not in ' + JSON.stringify($.aip.ds));
                 }
             } else {
                 console.log('unknown event: ' + r.key);
