@@ -1,7 +1,9 @@
 // http://stackoverflow.com/a/3326655/238472
 if (!window.console) console = {log: function() {}};
 $.aip = {};
-$.aip.ds = {};
+// store async calls' deferred object or their result when their result comes
+// earlier than their ids
+$.aip.calls = {};
 $.aip.now = function() {
     return new Date().getTime() / 1000;
 };
@@ -36,8 +38,14 @@ $.aip.async = function(kargs) {
     kargs.url = '/api/async/' + $.aip.sid + kargs.url.slice(4);
     var $d = $.Deferred();
     $.ajax(kargs).then($.aip.error_guard).done(function(r) {
-        console.log(r.result.id + ' done');
-        $.aip.ds[r.result.id] = $d;
+        if (r.result.id in $.aip.calls) {
+            $.aip.calls[r.result.id] = $d;
+        } else {
+            console.log('async call ' + r.result.id + ' arrive later than its result');
+            // result is already here
+            $d.resolve($.aip.calls[r.value.id]);
+            delete $.aip.calls[r.value.id];
+        }
     }).fail($d.reject);
     return $d;
 };
@@ -372,12 +380,14 @@ $.aip.is = function(kargs) {
                     cache: false
                 });
             } else if (r.key == 'result') {
-                if (r.value.id in $.aip.ds) {
+                if (r.value.id in $.aip.calls) {
                     console.log('result: ' + r.value.id);
-                    $.aip.ds[r.value.id].resolve(r.value.result);
-                    delete $.aip.ds[r.value.id];
+                    $.aip.calls[r.value.id].resolve(r.value.result);
+                    delete $.aip.calls[r.value.id];
                 } else {
-                    console.log(r.value.id + ' not in ' + JSON.stringify($.aip.ds));
+                    // async call id arrive later than its result
+                    // store its result first
+                    $.aip.calls[r.value.id] = r.value.result;
                 }
             } else {
                 console.log('unknown event: ' + r.key);
