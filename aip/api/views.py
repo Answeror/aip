@@ -139,6 +139,8 @@ def make(app, api, cached, store):
                         hello(sid)
                         hello_count += 1
                 else:
+                    logging.error('event stream failed')
+                    logging.exception(e)
                     api.sp.kill(sid)
                     again = False
                     raise

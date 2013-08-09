@@ -357,6 +357,7 @@ $.aip.is = function(kargs) {
     $.aip.source = new EventSource('/api/async/stream')
     $.aip.source.onmessage = function(e) {
         $.Deferred().resolve($.parseJSON(e.data)).then($.aip.error_guard).done(function(r) {
+            console.log(r);
             if (r.key == 'hello') {
                 $.aip.sid = r.value;
                 console.log('hello: ' + $.aip.sid);
