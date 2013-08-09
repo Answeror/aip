@@ -351,19 +351,32 @@ $.aip.init = function(kargs) {
             offset: 'bottom-in-view'
         }
     );
+    $.aip.inited = true;
 };
 $.aip.is = function(kargs) {
     $.aip.source = new EventSource('/api/async/stream')
     $.aip.source.onmessage = function(e) {
         $.Deferred().resolve($.parseJSON(e.data)).then($.aip.error_guard).done(function(r) {
-            if (r.result.id in $.aip.ds) {
-                console.log('pump ' + r.result.id);
-                $.aip.ds[r.result.id].resolve(r.result.result);
-                delete $.aip.ds[r.result.id];
-            } else if (r.result.id == 'sid') {
-                $.aip.sid = r.result.result;
-                console.log('get sid: ' + $.aip.sid);
-                $.aip.init(kargs);
+            if (r.key == 'hello') {
+                $.aip.sid = r.value;
+                console.log('hello: ' + $.aip.sid);
+                if (!$.aip.inited) {
+                    console.log('init');
+                    $.aip.init(kargs);
+                }
+                $.ajax({
+                    method: 'POST',
+                    url: '/api/async/reply/' + $.aip.sid,
+                    cache: false
+                });
+            } else if (r.key == 'result') {
+                if (r.value.id in $.aip.ds) {
+                    console.log('result: ' + r.value.id);
+                    $.aip.ds[r.value.id].resolve(r.value.result);
+                    delete $.aip.ds[r.value.id];
+                }
+            } else {
+                console.log('unknown event: ' + r.key);
             }
         }).fail(function(reason) {
             console.log('pump failed, reason: ' + JSON.stringify(reason));

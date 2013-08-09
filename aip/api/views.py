@@ -115,25 +115,50 @@ def make(app, api, cached, store):
     api.b.start()
     api.sp = Subpub()
 
-    def event_stream(id):
-        try:
-            while True:
-                value = api.sp.pop(id, timeout=app.config['AIP_STREAM_TIMEOUT'])
-                logging.info('stream(%s) event' % id)
-                yield ('data: %s\n\n' % value).encode('utf-8')
-        except Exception as e:
-            if str(e) == 'timeout':
-                logging.info('stream timeout: %s' % id)
-            else:
-                raise
-        finally:
-            api.sp.kill(id)
+    def event_stream(sid):
+        hello_count = 0
+        again = True
+        timeout = 1
+        while again:
+            try:
+                key, value = api.sp.pop(sid, timeout=timeout)
+                timeout = app.config['AIP_STREAM_EVENT_TIMEOUT']
+                logging.info('stream(%s) event: %s' % (sid, key))
+                if key == 'reply':
+                    hello_count = 0
+                else:
+                    yield b'data: ' + value + b'\n\n'
+            except Exception as e:
+                if str(e) == 'timeout':
+                    logging.info('stream event timeout: %s' % sid)
+                    if hello_count >= app.config['AIP_STREAM_HELLO_LIMIT']:
+                        logging.info('close stream %s' % sid)
+                        api.sp.kill(sid)
+                        again = False
+                    else:
+                        hello(sid)
+                        hello_count += 1
+                else:
+                    api.sp.kill(sid)
+                    again = False
+                    raise
+
+    def hello(sid):
+        data = json.dumps(dict(
+            key='hello',
+            value=sid
+        )).encode('utf-8')
+        api.sp.push(sid, ('hello', data))
+
+    @api.route('/async/reply/<sid>', methods=['POST'])
+    def reply(sid):
+        api.sp.push(sid, ('reply', None))
+        return jsonify(dict())
 
     @api.route('/async/stream')
     @logged
     def stream():
         sid = str(uuid4())
-        api.sp.push(sid, json.dumps(dict(result=dict(id='sid', result=sid))))
         logging.info('stream: %s' % sid)
         return Response(event_stream(sid), mimetype='text/event-stream')
 
@@ -164,10 +189,18 @@ def make(app, api, cached, store):
             else:
                 sid = kargs['sid']
             id = str(uuid4())
-            api.b.function(g, lambda a: api.sp.push(sid, json.dumps(dict(result=dict(
-                id=id,
-                result=json.loads(a.data.decode('utf-8'))
-            )))))
+            api.b.function(g, lambda a: api.sp.push(
+                sid, (
+                    'result',
+                    json.dumps(dict(
+                        key='result',
+                        value=dict(
+                            id=id,
+                            result=json.loads(a.data.decode('utf-8'))
+                        )
+                    )).encode('utf-8')
+                )
+            ))
             print('queue size %d' % api.b.jobs.qsize())
             return jsonify(dict(result=dict(id=id)))
         return inner
