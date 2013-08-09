@@ -47,6 +47,15 @@ $.aip.async = function(kargs) {
     $.ajax(kargs).then($.aip.error_guard).done(function(r) {
         if (!(r.result.id in $.aip.calls)) {
             $.aip.calls[r.result.id] = $d;
+            if (kargs.timeout) {
+                setTimeout(function() {
+                    if (r.result.id in $.aip.calls) {
+                        console.log(r.result.id + ' timeout');
+                        $.aip.calls[r.result.id].reject('timeout');
+                        delete $.aip.calls[r.result.id];
+                    }
+                }, kargs.timeout);
+            }
         } else {
             console.log('async call ' + r.result.id + ' arrive later than its result');
             // result is already here
