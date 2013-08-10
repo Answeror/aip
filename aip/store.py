@@ -24,20 +24,20 @@ def make(app):
     @stored
     class Meta(db.Model):
 
-        id = db.Column(db.String(128), primary_key=True)
+        id = db.Column(db.Unicode(128), primary_key=True)
         value = db.Column(db.LargeBinary)
 
     class Plus(db.Model):
 
-        user_id = db.Column(db.String(128), db.ForeignKey('user.id'), primary_key=True)
-        entry_id = db.Column(db.String(128), db.ForeignKey('entry.id'), primary_key=True)
+        user_id = db.Column(db.Unicode(128), db.ForeignKey('user.id'), primary_key=True)
+        entry_id = db.Column(db.Unicode(128), db.ForeignKey('entry.id'), primary_key=True)
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
 
     @stored
     class Openid(db.Model):
 
-        uri = db.Column(db.Text, primary_key=True)
-        user_id = db.Column(db.String(128), db.ForeignKey('user.id'), index=True)
+        uri = db.Column(db.UnicodeText, primary_key=True)
+        user_id = db.Column(db.Unicode(128), db.ForeignKey('user.id'), index=True)
 
         @classmethod
         def exists(cls, uri):
@@ -46,10 +46,10 @@ def make(app):
     @stored
     class User(db.Model):
 
-        id = db.Column(db.String(128), primary_key=True)
+        id = db.Column(db.Unicode(128), primary_key=True)
         openids = db.relationship(Openid, lazy=False)
-        name = db.Column(db.String(128), unique=True, index=True)
-        email = db.Column(db.String(256), unique=True, index=True)
+        name = db.Column(db.Unicode(128), unique=True, index=True)
+        email = db.Column(db.Unicode(256), unique=True, index=True)
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
         plused = db.relationship('Plus', backref=db.backref('user', lazy=False))
 
@@ -94,7 +94,7 @@ def make(app):
     @stored
     class Entry(db.Model):
 
-        id = db.Column(db.String(128), primary_key=True)
+        id = db.Column(db.Unicode(128), primary_key=True)
         posts = db.relationship('Post', lazy=False)
         plused = db.relationship('Plus', lazy=False, backref=db.backref('entry'))
 
@@ -127,37 +127,37 @@ def make(app):
     @stored
     class Post(db.Model):
 
-        id = db.Column(db.String(128), primary_key=True)
-        image_url = db.Column(db.Text)
+        id = db.Column(db.Unicode(128), primary_key=True)
+        image_url = db.Column(db.UnicodeText)
         width = db.Column(db.Integer)
         height = db.Column(db.Integer)
-        rating = db.Column(db.String(128))
+        rating = db.Column(db.Unicode(128))
         score = db.Column(db.Float)
-        preview_url = db.Column(db.Text)
-        sample_url = db.Column(db.Text)
-        tags = db.Column(db.Text)
+        preview_url = db.Column(db.UnicodeText)
+        sample_url = db.Column(db.UnicodeText)
+        tags = db.Column(db.UnicodeText)
         ctime = db.Column(db.DateTime)
         mtime = db.Column(db.DateTime)
-        site_id = db.Column(db.String(128), index=True)
-        post_id = db.Column(db.String(128))
-        post_url = db.Column(db.Text)
-        md5 = db.Column(db.String(128), db.ForeignKey('entry.id'), index=True)
+        site_id = db.Column(db.Unicode(128), index=True)
+        post_id = db.Column(db.Unicode(128))
+        post_url = db.Column(db.UnicodeText)
+        md5 = db.Column(db.Unicode(128), db.ForeignKey('entry.id'), index=True)
 
     @stored
     class Imgur(db.Model):
 
-        md5 = db.Column(db.String(128), primary_key=True)
-        id = db.Column(db.String(16))
-        deletehash = db.Column(db.String(32))
-        link = db.Column(db.Text)
+        md5 = db.Column(db.Unicode(128), primary_key=True)
+        id = db.Column(db.Unicode(16))
+        deletehash = db.Column(db.Unicode(32))
+        link = db.Column(db.UnicodeText)
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
 
     @stored
     class Immio(db.Model):
 
-        md5 = db.Column(db.String(128), primary_key=True)
-        uid = db.Column(db.String(16))
-        uri = db.Column(db.Text)
+        md5 = db.Column(db.Unicode(128), primary_key=True)
+        uid = db.Column(db.Unicode(16))
+        uri = db.Column(db.UnicodeText)
         width = db.Column(db.Integer)
         height = db.Column(db.Integer)
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
