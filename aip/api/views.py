@@ -100,13 +100,6 @@ def get_slice():
 
 
 def wrap(entries):
-    entries = list(entries)
-    if entries:
-        for e in entries:
-            e.ideal_width = g.column_width
-        sm = sorted(entries, key=lambda e: e.score, reverse=True)
-        for e in sm[:max(1, int(len(sm) / g.per))]:
-            e.ideal_width = g.gutter + 2 * g.column_width
     return entries
 
 
@@ -202,7 +195,6 @@ def make(app, api, cached, store):
                     )).encode('utf-8')
                 )
             ))
-            print('queue size %d' % api.b.jobs.qsize())
             return jsonify(dict(result=dict(id=id)))
         return inner
 
@@ -284,7 +276,8 @@ def make(app, api, cached, store):
     def page(id):
         #r = slice(g.per * (2 ** id - 1), g.per * (2 ** (id + 1) - 1), 1)
         r = slice(g.per * id, g.per * (id + 1), 1)
-        return jsonify(result=render_template('page.html', entries=wrap(store.get_entries_order_bi_ctime(r))))
+        es = wrap(store.get_entries_order_bi_ctime(r))
+        return jsonify(result=render_template('page.html', entries=es))
 
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
     @api.route('/update/<begin>')
@@ -318,7 +311,6 @@ def make(app, api, cached, store):
             user = get_user_bi_someid()
             entry = store.get_entry_bi_id(request.json['entry_id'])
             user.plus(entry)
-            store.db.session.commit()
             return jsonify(dict(count=entry.plus_count))
         except:
             store.db.session.rollback()
@@ -342,7 +334,7 @@ def make(app, api, cached, store):
     @logged
     def plused_page_html(id):
         user = get_user_bi_someid()
-        return jsonify(result=render_template('page.html', entries=wrap(user.plused)))
+        return jsonify(result=render_template('page.html', entries=wrap(user.plused_entries)))
 
     @api.route('/plused', methods=['GET'])
     @guarded
@@ -356,7 +348,6 @@ def make(app, api, cached, store):
             user = get_user_bi_someid()
             entry = store.get_entry_bi_id(request.json['entry_id'])
             user.minus(entry)
-            store.db.session.commit()
             return jsonify(dict(count=entry.plus_count))
         except:
             store.db.session.rollback()
@@ -424,7 +415,7 @@ def make(app, api, cached, store):
             http=g.http
         )
         if immio_image:
-            logging.info('hit %s' % md5.decode('ascii'))
+            logging.info('hit %s' % md5)
         else:
             immio_image = immio.upload(im)
             if immio_image is not None:
@@ -444,7 +435,6 @@ def make(app, api, cached, store):
 
     @locked()
     def proxied_url(md5):
-        md5 = md5.encode('ascii')
         for make in (immio_url, imgur_url):
             logging.info('use %s' % make.__name__)
             try:

@@ -18,6 +18,7 @@ from operator import attrgetter as attr
 from io import BytesIO
 from PIL import Image
 from collections import namedtuple
+from urllib.parse import urlparse, urlunparse
 
 
 Post = namedtuple('Post', (
@@ -136,6 +137,8 @@ def make(app, oid, cached, store):
         g.user = None
         if 'openid' in session:
             g.user = store.get_user_bi_openid(session['openid'])
+        elif 'id' in session:
+            g.user = store.get_user_bi_id(session['id'])
 
     @app.route('/login', methods=['GET', 'POST'])
     @oid.loginhandler
@@ -143,23 +146,43 @@ def make(app, oid, cached, store):
         if g.user is not None:
             return redirect(oid.get_next_url())
         openid = 'https://www.google.com/accounts/o8/id'
-        return oid.try_login(
-            openid,
-            ask_for=['email', 'fullname', 'nickname']
-        )
+        return try_login()
 
     @oid.after_login
     def create_or_login(resp):
-        session['openid'] = resp.identity_url
         if g.user is not None:
-            flash(u'Successfully signed in')
+            flash('Successfully signed in')
             return redirect(oid.get_next_url())
+
+        if 'openid' in session:
+            logging.info('openid %s already in session' % session['openid'])
+            if store.Openid.exists(resp.identity_url):
+                logging.info('group openid %s with %s' % (resp.identity_url, session['openid']))
+                store.User.group_openid(resp.identity_url, session['openid'])
+                return redirect(url_for('.posts'))
+
+        session['openid'] = resp.identity_url
         return redirect(url_for(
             '.create_profile',
             next=oid.get_next_url(),
             name=resp.fullname or resp.nickname,
             email=resp.email
         ))
+
+    def replace_base_url(uri):
+        p = list(urlparse(uri))
+        p[0] = app.config.get('AIP_SCHEME', p[0])
+        p[1] = app.config.get('AIP_NETLOC', p[1])
+        return urlunparse(p)
+
+    def try_login():
+        request.base_url = replace_base_url(request.base_url)
+        request.host_url = replace_base_url(request.host_url)
+        openid = 'https://www.google.com/accounts/o8/id'
+        return oid.try_login(
+            openid,
+            ask_for=['email', 'fullname', 'nickname']
+        )
 
     @app.route('/create_profile', methods=['GET', 'POST'])
     def create_profile():
@@ -169,26 +192,30 @@ def make(app, oid, cached, store):
             name = request.form['name']
             email = request.form['email']
             if not name:
-                flash(u'Error: you have to provide a name')
+                flash('Error: you have to provide a name')
             elif '@' not in email:
-                flash(u'Error: you have to enter a valid email address')
+                flash('Error: you have to enter a valid email address')
             else:
-                flash(u'Profile successfully created')
-                store.add_user(store.User(name=name, email=email, openid=session['openid']))
-                store.db.session.commit()
-                return redirect(oid.get_next_url())
+                user = store.User.get_bi_email(email)
+                if user:
+                    return try_login()
+                else:
+                    flash('Profile successfully created')
+                    user = store.User(name=name, email=email)
+                    user.openids.append(store.Openid(uri=session['openid']))
+                    store.add_user(user)
+                    return redirect(oid.get_next_url())
         return render_template('create_profile.html', next_url=oid.get_next_url())
 
     @app.route('/logout')
     def logout():
         session.pop('openid', None)
-        flash(u'You were signed out')
+        flash('You were signed out')
         return redirect(oid.get_next_url())
 
     @app.route('/sample/<md5>')
     @cached(timeout=24 * 60 * 60)
     def sample(md5):
-        md5 = md5.encode('ascii')
         im = store.get_image_bi_md5(md5)
         url = im.sample_url if im.sample_url else im.image_url
         height = im.height

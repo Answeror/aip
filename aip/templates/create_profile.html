@@ -1,21 +1,44 @@
 {% extends "layout.html" %}
 {% block title %}Create Profile{% endblock %}
-{% block body %}
-    <h2>Create Profile</h2>
-    <p>
-        Hey!  This is the first time you signed in on this website.  In
-        order to proceed we need a couple of more information from you:
-    </p>
-    <form action="" method=post>
-        <dl>
-            <dt>Name:
-            <dd><input type=text name=name size=30 value="{{ request.values.name }}">
-            <dt>E-Mail:
-            <dd><input type=text name=email size=30 value="{{ request.values.email }}">
-        </dl>
-        <p>
-        <input type=submit value="Create profile">
-        <input type=hidden name=next value="{{ next }}">
-    </form>
-    <p>If you don't want to proceed, you can <a href="{{ url_for('.logout') }}">sign out</a> again.</p>
+{% block middle %}
+    <div class=row>
+        <div class='page-header span12'>
+            <div class=row>
+                <div class='span8 offset2'>
+                    <h1>Create Profile</h1>
+                </div>
+            </div>
+        </div>
+        <div class='span8 offset2'>
+            <form action='' method=post class=form-horizontal>
+                <fieldset>
+                    <div class=control-group>
+                        <label class=control-label for=name>name</label>
+                        <div class=controls>
+                            <div class=input-prepend>
+                                <span class=add-on><i class=icon-user></i></span>
+                                <input id=name name=name type=text size=30 placeholder=name value='{{ request.values.name }}'>
+                            </div>
+                        </div>
+                    </div>
+                    <div class=control-group>
+                        <label class=control-label for=email>email</label>
+                        <div class=controls>
+                            <div class=input-prepend>
+                                <span class=add-on><i class=icon-envelope></i></span>
+                                <input id=email name=email type=text size=30 placeholder=email value='{{ request.values.email }}'>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+                <div class=form-actions>
+                    <div class=from-submit>
+                        <input type=submit class='btn btn-success' value='create'>
+                        <a class=btn href="{{ url_for('.logout') }}">cancel</a>
+                    </div>
+                </div>
+                <input type=hidden name=next value='{{ next }}'>
+            </form>
+        </div>
+    </div>
 {% endblock %}

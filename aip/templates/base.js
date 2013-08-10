@@ -35,7 +35,7 @@ $.fn.freeze_size = function() {
 };
 $.aip.inc = function(name, value) {
     var $t = $('#loading li[name="' + name + '"]');
-    if (!value) value = 1;
+    if (value == undefined) value = 1;
     $t.text(parseInt($t.text()) + value);
 };
 $.aip.actual_size = function($img, callback) {
@@ -158,16 +158,23 @@ $.aip.warning = $.aip.error;
 $.aip.disturb = function(x) {
     return x * (Math.random() + 0.5)
 };
+$.aip._user_id = $('#user-id');
+$.aip.user_id = function() {
+    if ($.aip._user_id.length) {
+        return $.aip._user_id.attr('value');
+    } else {
+        return undefined;
+    }
+};
 $.aip.init = function(kargs) {
     defaults = {
         makePageData: $.noop
     };
     kargs = $.extend({}, defaults, kargs);
-    function postprocess($this) {
-        var $preview = $this.find('img.preview');
+    function dealplus($this) {
+        if (!$.aip.user_id()) return;
         $this.find('.plus').each(function() {
             var $plus = $(this);
-            var user = $plus.data('user');
             var entry = $plus.data('entry');
             $plus.update = function() {
                 $plus.text('+' + $plus.data('count'));
@@ -181,7 +188,7 @@ $.aip.init = function(kargs) {
                             accepts: "application/json",
                             cache: false,
                             dataType: 'json',
-                            data: JSON.stringify({ user_id: user, entry_id: entry })
+                            data: JSON.stringify({ user_id: $.aip.user_id(), entry_id: entry })
                         }).done(function(data) {
                             $plus.data('count', data.count);
                             $plus.data('plused', false);
@@ -200,7 +207,7 @@ $.aip.init = function(kargs) {
                             accepts: "application/json",
                             cache: false,
                             dataType: 'json',
-                            data: JSON.stringify({ user_id: user, entry_id: entry })
+                            data: JSON.stringify({ user_id: $.aip.user_id(), entry_id: entry })
                         }).done(function(data) {
                             $plus.data('count', data.count);
                             $plus.data('plused', true);
@@ -239,14 +246,8 @@ $.aip.init = function(kargs) {
                 }).then($.aip.error_guard).done(function(data) {
                     var $items = $(data.result).find('.item');
                     var n = $items.length;
-                    $.aip.inc('in-json', n);
-                    $items.each(function() {
-                        $(this).attr('data-loading', false).attr('data-done', false);
-                    });
-                    $buffer.append($items);
-                    var loaded = 0;
                     var cleanup = function() {
-                        if ($items.length) {
+                        if (n) {
                             $this.waypoint('enable');
                         } else {
                             console.log('destroy waypoint');
@@ -256,6 +257,16 @@ $.aip.init = function(kargs) {
                         $('#alert_box').html('');
                         page += 1;
                     };
+                    if (!n) {
+                        cleanup();
+                        return;
+                    }
+                    $.aip.inc('in-json', n);
+                    $items.each(function() {
+                        $(this).attr('data-loading', false).attr('data-done', false);
+                    });
+                    $buffer.append($items);
+                    var loaded = 0;
                     // no exception
                     var doneone = function($item) {
                         ++loaded;
@@ -275,7 +286,7 @@ $.aip.init = function(kargs) {
                     var dealone = function($item) {
                         if ($item.data('dealed')) return;
                         try {
-                            postprocess($item);
+                            dealplus($item);
                             $container.append($item);
                             if (!marsed) {
                                 console.log('initialize masonry');
@@ -291,7 +302,7 @@ $.aip.init = function(kargs) {
                             }
                             $.aip.inc('done');
                         } catch (e) {
-                            console.log('postprocess failed');
+                            console.log('dealplus failed');
                             console.log(e);
                         } finally {
                             $item.data('dealed', true);

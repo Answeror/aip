@@ -27,38 +27,76 @@ def make(app):
         id = db.Column(db.String(128), primary_key=True)
         value = db.Column(db.LargeBinary)
 
-    plus_table = db.Table(
-        'plus',
-        db.Model.metadata,
-        db.Column('user_id', db.LargeBinary(128), db.ForeignKey('user.id')),
-        db.Column('entry_id', db.LargeBinary(128), db.ForeignKey('entry.id'))
-    )
+    class Plus(db.Model):
+
+        user_id = db.Column(db.String(128), db.ForeignKey('user.id'), primary_key=True)
+        entry_id = db.Column(db.String(128), db.ForeignKey('entry.id'), primary_key=True)
+        ctime = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @stored
+    class Openid(db.Model):
+
+        uri = db.Column(db.Text, primary_key=True)
+        user_id = db.Column(db.String(128), db.ForeignKey('user.id'), index=True)
+
+        @classmethod
+        def exists(cls, uri):
+            return db.session.query(db.exists().where(cls.uri == uri)).scalar()
 
     @stored
     class User(db.Model):
 
-        id = db.Column(db.LargeBinary(128), primary_key=True)
-        openid = db.Column(db.Text, unique=True, index=True)
+        id = db.Column(db.String(128), primary_key=True)
+        openids = db.relationship(Openid, lazy=False)
         name = db.Column(db.String(128), unique=True, index=True)
         email = db.Column(db.String(256), unique=True, index=True)
-        plused = db.relationship('Entry', secondary=plus_table, backref=db.backref('plused', lazy=False))
+        ctime = db.Column(db.DateTime, default=datetime.utcnow)
+        plused = db.relationship('Plus', backref=db.backref('user', lazy=False))
+
+        @property
+        def primary_openid(self):
+            return self.openids[0]
+
+        @property
+        def plused_entries(self):
+            from operator import attrgetter as attr
+            return [p.entry for p in sorted(self.plused, key=attr('ctime'), reverse=True)]
 
         def plus(self, entry):
-            if entry not in self.plused:
-                self.plused.append(entry)
+            if entry not in [p.entry for p in self.plused]:
+                self.plused.append(Plus(entry=entry))
+            db.session.commit()
 
         def minus(self, entry):
-            if entry in self.plused:
-                self.plused.remove(entry)
+            for p in self.plused:
+                if p.entry == entry:
+                    db.session.delete(p)
+                    break
+            db.session.commit()
 
         def has_plused(self, entry):
-            return Entry.query.filter_by(id=entry.id).with_parent(self, 'plused').count() > 0
+            return db.session.query(db.exists().where(and_(
+                Plus.user_id == self.id,
+                Plus.entry_id == entry.id
+            ))).scalar()
+
+        @classmethod
+        def get_bi_email(cls, email):
+            return cls.query.filter_by(email=email).first()
+
+        @classmethod
+        def group_openid(cls, primary, secondary):
+            db.session.execute(Openid.__table__.insert({
+                'uri': secondary,
+                'user_id': db.select([Openid.user_id]).where(Openid.uri == primary)
+            }))
 
     @stored
     class Entry(db.Model):
 
-        id = db.Column(db.LargeBinary(128), primary_key=True)
+        id = db.Column(db.String(128), primary_key=True)
         posts = db.relationship('Post', lazy=False)
+        plused = db.relationship('Plus', lazy=False, backref=db.backref('entry'))
 
         @classmethod
         def __declare_last__(cls):
@@ -103,22 +141,22 @@ def make(app):
         site_id = db.Column(db.String(128), index=True)
         post_id = db.Column(db.String(128))
         post_url = db.Column(db.Text)
-        md5 = db.Column(db.LargeBinary(128), db.ForeignKey('entry.id'), index=True)
+        md5 = db.Column(db.String(128), db.ForeignKey('entry.id'), index=True)
 
     @stored
     class Imgur(db.Model):
 
-        md5 = db.Column(db.LargeBinary(128), primary_key=True)
-        id = db.Column(db.LargeBinary(16))
-        deletehash = db.Column(db.LargeBinary(32))
+        md5 = db.Column(db.String(128), primary_key=True)
+        id = db.Column(db.String(16))
+        deletehash = db.Column(db.String(32))
         link = db.Column(db.Text)
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
 
     @stored
     class Immio(db.Model):
 
-        md5 = db.Column(db.LargeBinary(128), primary_key=True)
-        uid = db.Column(db.LargeBinary(16))
+        md5 = db.Column(db.String(128), primary_key=True)
+        uid = db.Column(db.String(16))
         uri = db.Column(db.Text)
         width = db.Column(db.Integer)
         height = db.Column(db.Integer)
@@ -137,8 +175,6 @@ def make(app):
 
     @stored
     def get_entry_bi_id(id):
-        if type(id) is str:
-            id = id.encode('utf-8')
         return Entry.query.filter_by(id=id).first()
 
     @stored
@@ -214,25 +250,20 @@ def make(app):
 
     @stored
     def get_user_bi_id(id):
-        if type(id) is str:
-            id = id.encode('utf-8')
         return User.query.filter_by(id=id).first()
 
     @stored
     def add_user(user):
         if user.id is None:
-            assert user.openid is not None
             m = md5()
-            m.update(user.openid.encode('utf-8'))
-            user.id = m.hexdigest().encode('ascii')
+            m.update(_random_name().encode('ascii'))
+            user.id = m.hexdigest()
         db.session.add(user)
         db.session.commit()
 
     @stored
     def get_user_bi_openid(openid):
-        m = md5()
-        m.update(openid.encode('utf-8'))
-        return get_user_bi_id(m.hexdigest().encode('ascii'))
+        return User.query.join(Openid).filter(Openid.uri == openid).first()
 
     @stored
     def clear():

@@ -1,34 +1,37 @@
-<div id='main' class='main container'>
+{% extends 'layout.html' %}
+{% block middle %}
     <div id='buffer' style='height:0;overflow:hidden' class='row thumbnails'></div>
     <div id='items' class='row thumbnails'></div>
     <div id='alert_box'></div>
-</div>
-<div id='loading' style='display:none' class="navbar navbar-fixed-bottom">
-    <div class="navbar-inner">
-        <div class='container'>
-            <div id=barout class='span8 offset2'>
-                <ul class='text-info inline text-center'>
-                    {% for field in (
-                        'in-json',
-                        'done',
-                        'need-enlarge',
-                        'original-preview-loading-failed',
-                        'proxied-preview-loading-failed',
-                        'need-proxied',
-                        'proxied'
-                    ) %}
-                        <li class=detail name='{{ field }}'>0</li>
-                    {% endfor %}
-                </ul>
-                <div class="progress progress-striped active">
-                    <div id='bar' class="bar"></div>
+{% endblock %}
+{% block bottom %}
+    <div id='loading' style='display:none' class="navbar navbar-fixed-bottom">
+        <div class="navbar-inner">
+            <div class='container'>
+                <div id=barout class='span8 offset2'>
+                    <ul class='text-info inline text-center'>
+                        {% for field in (
+                            'in-json',
+                            'done',
+                            'need-enlarge',
+                            'original-preview-loading-failed',
+                            'proxied-preview-loading-failed',
+                            'need-proxied',
+                            'proxied'
+                        ) %}
+                            <li class=detail name='{{ field }}'>0</li>
+                        {% endfor %}
+                    </ul>
+                    <div class="progress progress-striped active">
+                        <div id='bar' class="bar"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-<script src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js'></script>
-<script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
-<script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
-<script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
-<script src="{{ url_for('.js') }}"></script>
+    <script src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js'></script>
+    <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
+    <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
+    <script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
+    <script src="{{ url_for('.js') }}"></script>
+{% endblock %}

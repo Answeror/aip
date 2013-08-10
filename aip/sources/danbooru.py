@@ -50,5 +50,5 @@ class Source(booru.Source):
             site_id=self.id,
             post_id=d['id'],
             post_url=urljoin(self.url, '/post/show/{}'.format(d['id'])),
-            md5=d['md5'].encode('ascii')
+            md5=d['md5']
         )

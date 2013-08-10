@@ -1,11 +1,11 @@
-{% extends "layout.html" %}
-{% block body %}
-    {% include 'wall.html' %}
+{% extends 'wall.html' %}
+{% block bottom %}
+    {{ super() }}
     <script>
         $(function() {
             $.aip.is({
                 makePageUrl: function(page) { return '/api/plused/page/' + page + '.html'; },
-                makePageData: function(page) { return { user_id: '{{ g.user.id.decode('ascii') }}' }; }
+                makePageData: function(page) { return { user_id: '{{ g.user.id }}' }; }
             });
         });
     </script>

@@ -1,6 +1,6 @@
-{% extends "layout.html" %}
-{% block body %}
-    {% include 'wall.html' %}
+{% extends 'wall.html' %}
+{% block bottom %}
+    {{ super() }}
     <script>
         $(function() {
             $.aip.is({

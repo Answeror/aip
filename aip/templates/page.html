@@ -1,6 +1,6 @@
 <div>
     {% for e in entries %}
-    <div class='item span2' data-md5={{ e.md5.decode('ascii') }}>
+    <div class='item span2' data-md5={{ e.md5 }}>
         <div class='thumbnail'>
             <p class=preview>
                 <a class='preview' href='{{ e.post_url }}' target='_blank'>
@@ -8,7 +8,7 @@
                         class='preview lazy'
                         alt=loading
                         data-src='{{ e.preview_url }}'
-                        data-md5={{ e.md5.decode('ascii') }}
+                        data-md5={{ e.md5 }}
                         data-width={{ e.width }}
                         data-height={{ e.height }}
                     >
@@ -20,8 +20,7 @@
                         class='plus btn btn-mini'
                         data-plused={{ 'true' if g.user.has_plused(e) else 'false' }}
                         data-count='{{ e.plus_count }}'
-                        data-user="{{ g.user.id.decode('utf-8') }}"
-                        data-entry="{{ e.id.decode('utf-8') }}"
+                        data-entry="{{ e.id }}"
                     ></a>
                 {% else %}
                     <a class='btn btn-mini'>+{{ e.plus_count }}</a>

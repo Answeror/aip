@@ -24,5 +24,5 @@ class Source(danbooru.Source):
             site_id=self.id,
             post_id=d['id'],
             post_url=urljoin(self.url, '/posts/{}'.format(d['id'])),
-            md5=d['md5'].encode('ascii')
+            md5=d['md5']
         )
