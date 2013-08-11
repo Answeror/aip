@@ -31,7 +31,7 @@
         <div class='tags' style='display:none'>
             {% for tag in e.tags %}
                 {% if tag.name %}
-                    <span class='tag label label-info'>{{ tag.name }}</span>
+                    <a class='tag label label-info' href='/?q={{ tag.name | urlencode }}'>{{ tag.name }}</a>
                 {% endif %}
             {% endfor %}
             <div class=clearfix></div>
