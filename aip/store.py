@@ -5,8 +5,12 @@
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func, and_, desc
 from hashlib import md5
-from functools import partial
+from functools import partial, wraps
 from datetime import datetime
+import threading
+import pickle
+import logging
+from .dag import Dag
 
 
 def make(app):
@@ -124,10 +128,21 @@ def make(app):
         def md5(self):
             return self.id
 
+        @property
+        def tags(self):
+            return set().union(*[p.tags for p in self.posts])
+
+    tagged_table = db.Table(
+        'tagged',
+        db.Model.metadata,
+        db.Column('post_id', db.Integer, db.ForeignKey('post.id'), primary_key=True),
+        db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+    )
+
     @stored
     class Post(db.Model):
 
-        id = db.Column(db.Unicode(128), primary_key=True)
+        id = db.Column(db.Integer, primary_key=True)
         image_url = db.Column(db.UnicodeText)
         width = db.Column(db.Integer)
         height = db.Column(db.Integer)
@@ -135,13 +150,26 @@ def make(app):
         score = db.Column(db.Float)
         preview_url = db.Column(db.UnicodeText)
         sample_url = db.Column(db.UnicodeText)
-        tags = db.Column(db.UnicodeText)
         ctime = db.Column(db.DateTime)
         mtime = db.Column(db.DateTime)
         site_id = db.Column(db.Unicode(128), index=True)
         post_id = db.Column(db.Unicode(128))
         post_url = db.Column(db.UnicodeText)
         md5 = db.Column(db.Unicode(128), db.ForeignKey('entry.id'), index=True)
+        tags = db.relationship('Tag', secondary=tagged_table, lazy=False)
+
+        @classmethod
+        def from_tag_names(cls, **kargs):
+            if 'tags' in kargs:
+                tags = kargs['tags']
+                del kargs['tags']
+                inst = cls(**kargs)
+                for name in set(tags):
+                    tag = Tag.add(name)
+                    inst.tags.append(tag)
+            else:
+                inst = cls(**kargs)
+            return inst
 
     @stored
     class Imgur(db.Model):
@@ -162,14 +190,107 @@ def make(app):
         height = db.Column(db.Integer)
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
 
+    class MetaDag(type):
+
+        @property
+        def impl(self):
+            if not hasattr(self, '_impl'):
+                data = get_meta(app.config['AIP_META_DAG'])
+                if data is None:
+                    self._impl = Dag()
+                else:
+                    self._impl = Dag.from_dict(pickle.loads(data))
+            return self._impl
+
+        def save(self):
+            set_meta(app.config['AIP_META_DAG'], pickle.dumps(self.impl.to_dict()))
+
+        def add(self, id):
+            self.impl.add(id)
+
+        def link(self, child, parent):
+            self.impl.link(child, parent)
+
+        def remove(self, id):
+            self.impl.remove(id)
+
+        def unlink(self, child, parent):
+            self.impl.unlink(child, parent)
+
+    class MetaTag(type(db.Model)):
+
+        @property
+        def dag(self):
+            if not hasattr(self, '_dag'):
+                self._dag = MetaDag('dag', (object,), {})
+            return self._dag
+
+    @stored
+    class Tag(db.Model, metaclass=MetaTag):
+
+        id = db.Column(db.Integer, primary_key=True)
+        name = db.Column(db.UnicodeText, unique=True, index=True)
+        lock = threading.RLock()
+
+        @property
+        def short_name(self):
+            n = app.config['AIP_TAG_SHORT_NAME_LIMIT']
+            return self.name if len(self.name) <= n else self.name[:n - 3] + '...'
+
+        def locked(f):
+            @wraps(f)
+            def inner(self, *args, **kargs):
+                with self.lock:
+                    return f(self, *args, **kargs)
+            return inner
+
+        @classmethod
+        @locked
+        def add(cls, name):
+            tag = Tag.query.filter_by(name=name).first()
+            if tag is None:
+                # http://stackoverflow.com/a/5083472
+                tag = Tag(name=name)
+                db.session.add(tag)
+                db.session.flush()
+                db.session.refresh(tag)
+                cls.dag.add(tag.id)
+                cls.dag.save()
+                #logging.debug('new tag (%d, %s)' % (tag.id, tag.name))
+            return tag
+
+        @classmethod
+        @locked
+        def remove(cls, id):
+            db.session.execute(db.delete(cls.__table__, db.where(cls.id == id)))
+            db.flush()
+            cls.dag.remove(id)
+            cls.dag.save()
+
+        @classmethod
+        @locked
+        def link(cls, child, parent):
+            cls.dag.link(child, parent)
+            cls.dag.save()
+
+        @classmethod
+        @locked
+        def unlink(cls, child, parent):
+            cls.dag.unlink(child, parent)
+            cls.dag.save()
+
+        @classmethod
+        @locked
+        def entries(cls, ids):
+            down = set().union(*[cls.dag.down[i] for i in ids])
+            return Entry.query.join(Post).join(tagged_table).filter(tagged_table.c.tag_id.in_(list(down))).all()
+
     def _random_name():
         import uuid
         return str(uuid.uuid4())
 
     @stored
     def put(o):
-        if o.id is None:
-            o.id = _random_name()
         o = db.session.merge(o)
         db.session.add(o)
 
@@ -179,9 +300,6 @@ def make(app):
 
     @stored
     def put_image(im):
-        if im.id is None:
-            im.id = _random_name()
-
         origin = Post.query.filter_by(site_id=im.site_id, post_id=im.post_id).first()
         if origin is not None:
             im.id = origin.id

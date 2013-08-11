@@ -221,7 +221,7 @@ def make(app, api, cached, store):
 
     def _update_images(begin=None, limit=65536):
         for make in g.sources:
-            source = make(store.Post)
+            source = make(store.Post.from_tag_names)
             tags = []
             for i, im in zip(list(range(limit)), source.get_images(tags)):
                 if begin is not None and im.ctime <= begin:

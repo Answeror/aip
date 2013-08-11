@@ -166,14 +166,33 @@ $.aip.user_id = function() {
         return undefined;
     }
 };
+$.aip.overflown = function($tag) {
+    return $tag[0].scrollWidth >  $tag.innerWidth();
+};
 $.aip.init = function(kargs) {
     defaults = {
         makePageData: $.noop
     };
     kargs = $.extend({}, defaults, kargs);
+    function dealtags($item) {
+        $item.find('.tag').each(function() {
+            var $this = $(this);
+            if ($.aip.overflown($this)) {
+                $this.attr('title', $this.text());
+            }
+        });
+        $item.find('.btn[name="tags"]').popover({
+            html: true,
+            content: $item.find('.tags').html()
+        });
+    };
     function dealplus($this) {
-        if (!$.aip.user_id()) return;
-        $this.find('.plus').each(function() {
+        var $plus = $this.find('.plus');
+        if (!$.aip.user_id()) {
+            $plus.tooltip();
+            return;
+        }
+        $plus.each(function() {
             var $plus = $(this);
             var entry = $plus.data('entry');
             $plus.update = function() {
@@ -287,6 +306,7 @@ $.aip.init = function(kargs) {
                         if ($item.data('dealed')) return;
                         try {
                             dealplus($item);
+                            dealtags($item);
                             $container.append($item);
                             if (!marsed) {
                                 console.log('initialize masonry');
@@ -302,7 +322,7 @@ $.aip.init = function(kargs) {
                             }
                             $.aip.inc('done');
                         } catch (e) {
-                            console.log('dealplus failed');
+                            console.log('dealone failed');
                             console.log(e);
                         } finally {
                             $item.data('dealed', true);
