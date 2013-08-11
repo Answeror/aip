@@ -109,7 +109,7 @@ def make(app):
                 setattr(cls, key, property(partial(lambda key, self: getattr(self.best_post, key), key)))
 
             cls.ctime = db.column_property(
-                db.select([func.min(Post.ctime)]).where(Post.md5 == cls.id)
+                db.select([func.min(Post.ctime)]).where(Post.md5 == cls.id).correlate(cls.__table__)
             )
 
         @property
@@ -131,6 +131,19 @@ def make(app):
         @property
         def tags(self):
             return set().union(*[p.tags for p in self.posts])
+
+        @classmethod
+        def get_bi_tags_order_bi_ctime(cls, tags, r):
+            # http://stackoverflow.com/a/7546802
+            tagnames = db.union(*[db.select([db.bindparam(_random_name(), t).label('name')]) for t in tags])
+            hastag = ~db.exists().where(~tagnames.c.name.in_(db.select([Tag.name])))
+            sub = db.select([Tag.id]).where(Tag.name.in_(tags))
+            # http://docs.sqlalchemy.org/en/rel_0_8/core/tutorial.html#correlated-subqueries
+            posts = db.select([Post.id]).where(Post.md5 == Entry.id).correlate(Entry.__table__)
+            sup = db.select([tagged_table.c.tag_id]).where(tagged_table.c.post_id.in_(posts))
+            contains = ~db.exists().where(~sub.c.id.in_(sup))
+            q = Entry.query.filter(db.and_(hastag, contains)).order_by(desc(Entry.ctime))
+            return q if r is None else q[r]
 
     tagged_table = db.Table(
         'tagged',

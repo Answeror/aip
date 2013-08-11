@@ -226,9 +226,10 @@ def make(app, oid, cached, store):
         im.save(output_stream, format='JPEG')
         return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
 
-    @app.route('/')
+    @app.route('/', methods=['GET'])
     def posts():
-        return render_template('index.html')
+        tags = request.args.get('q', '')
+        return render_template('index.html', tags=tags)
 
     @app.route('/plused')
     def plused():

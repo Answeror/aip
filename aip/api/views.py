@@ -276,7 +276,12 @@ def make(app, api, cached, store):
     def page(id):
         #r = slice(g.per * (2 ** id - 1), g.per * (2 ** (id + 1) - 1), 1)
         r = slice(g.per * id, g.per * (id + 1), 1)
-        es = wrap(store.get_entries_order_bi_ctime(r))
+        logging.debug('request args {}'.format(request.args))
+        if request.args and 'tags' in request.args:
+            tags = request.args['tags'].split(';')
+            es = store.Entry.get_bi_tags_order_bi_ctime(tags=tags, r=r)
+        else:
+            es = wrap(store.get_entries_order_bi_ctime(r))
         return jsonify(result=render_template('page.html', entries=es))
 
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
