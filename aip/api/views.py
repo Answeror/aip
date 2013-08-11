@@ -50,17 +50,6 @@ def failed(name, args=None, form=None, json=None, e=None):
         logging.exception(e)
 
 
-def guarded(f):
-    @wraps(f)
-    def inner(*args, **kargs):
-        try:
-            return f(*args, **kargs)
-        except Exception as e:
-            store.db.session.rollback()
-            return jsonify(dict(error=dict(message=str(e))))
-    return inner
-
-
 def logged(f):
     @wraps(f)
     def inner(*args, **kargs):
@@ -108,6 +97,16 @@ def make(app, api, cached, store):
     api.b = Background(slave_count=app.config.get('AIP_SLAVE_COUNT', 1))
     api.b.start()
     api.sp = Subpub()
+
+    def guarded(f):
+        @wraps(f)
+        def inner(*args, **kargs):
+            try:
+                return f(*args, **kargs)
+            except Exception as e:
+                store.db.session.rollback()
+                return jsonify(dict(error=dict(message=str(e))))
+        return inner
 
     def event_stream(sid):
         hello_count = 0
@@ -157,47 +156,49 @@ def make(app, api, cached, store):
         logging.info('stream: %s' % sid)
         return Response(event_stream(sid), mimetype='text/event-stream')
 
-    def async(f):
-        @wraps(f)
-        def inner(*args, **kargs):
-            # save request data
-            request_kargs = {}
-            for key in (
-                'path',
-                'base_url',
-                'query_string',
-                'method',
-                'data',
-            ):
-                request_kargs[key] = getattr(request, key)
-            request_kargs['query_string'] = request.args if request.args else {}
-            request_kargs['headers'] = request.headers.items()
-            request_kargs['content_type'] = request.headers['Content-Type']
+    def async(rank=0):
+        def yainner(f):
+            @wraps(f)
+            def inner(*args, **kargs):
+                # save request data
+                request_kargs = {}
+                for key in (
+                    'path',
+                    'base_url',
+                    'query_string',
+                    'method',
+                    'data',
+                ):
+                    request_kargs[key] = getattr(request, key)
+                request_kargs['query_string'] = request.args if request.args else {}
+                request_kargs['headers'] = request.headers.items()
+                request_kargs['content_type'] = request.headers['Content-Type']
 
-            def g():
-                # restore request data
-                with app.test_request_context(**request_kargs):
-                    return f(*args, **kargs)
+                def g():
+                    # restore request data
+                    with app.test_request_context(**request_kargs):
+                        return f(*args, **kargs)
 
-            if args:
-                sid = args[0]
-            else:
-                sid = kargs['sid']
-            id = str(uuid4())
-            api.b.function(g, lambda a: api.sp.push(
-                sid, (
-                    'result',
-                    json.dumps(dict(
-                        key='result',
-                        value=dict(
-                            id=id,
-                            result=json.loads(a.data.decode('utf-8'))
-                        )
-                    )).encode('utf-8')
-                )
-            ))
-            return jsonify(dict(result=dict(id=id)))
-        return inner
+                if args:
+                    sid = args[0]
+                else:
+                    sid = kargs['sid']
+                id = str(uuid4())
+                api.b.function(g, lambda a: api.sp.push(
+                    sid, (
+                        'result',
+                        json.dumps(dict(
+                            key='result',
+                            value=dict(
+                                id=id,
+                                result=json.loads(a.data.decode('utf-8'))
+                            )
+                        )).encode('utf-8')
+                    )
+                ), rank=rank)
+                return jsonify(dict(result=dict(id=id)))
+            return inner
+        return yainner
 
     def get_user_bi_someid():
         if request.json:
@@ -329,7 +330,7 @@ def make(app, api, cached, store):
     @api.route('/async/<sid>/plus', methods=['POST'])
     @guarded
     @logged
-    @async
+    @async(rank=app.config['AIP_RANK_PLUS'])
     def async_plus(sid):
         return plus()
 
@@ -367,7 +368,7 @@ def make(app, api, cached, store):
     @api.route('/async/<sid>/minus', methods=['POST'])
     @guarded
     @logged
-    @async
+    @async(rank=app.config['AIP_RANK_MINUS'])
     def async_minus(sid):
         return minus()
 
@@ -459,7 +460,7 @@ def make(app, api, cached, store):
     @api.route('/async/<sid>/proxied_url/<md5>', methods=['GET'])
     @guarded
     @logged
-    @async
+    @async()
     def async_proxied_url(sid, md5):
         return proxied_url(md5)
 
