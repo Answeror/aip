@@ -195,11 +195,18 @@ $.aip.init = function(kargs) {
         $plus.each(function() {
             var $plus = $(this);
             var entry = $plus.data('entry');
+            var disable = function() {
+                $plus.unbind('click').addClass('disabled');
+            };
+            var enable = function(call) {
+                $plus.unbind('click').click(call).removeClass('disabled');
+            };
             $plus.update = function() {
                 $plus.text('+' + $plus.data('count'));
                 if ($plus.data('plused')) {
                     $plus.addClass('btn-primary');
-                    $plus.unbind('click').click(function() {
+                    function minus() {
+                        disable();
                         $.aip.async({
                             method: 'POST',
                             url: '/api/minus',
@@ -214,11 +221,14 @@ $.aip.init = function(kargs) {
                             $plus.update();
                         }).fail(function(reason) {
                             console.log('minus failed, reason: ' + JSON.stringify(reason));
+                            enable(minus);
                         });
-                    });
+                    };
+                    enable(minus);
                 } else {
                     $plus.removeClass('btn-primary');
-                    $plus.unbind('click').click(function() {
+                    function plus() {
+                        disable();
                         $.aip.async({
                             method: 'POST',
                             url: '/api/plus',
@@ -233,8 +243,10 @@ $.aip.init = function(kargs) {
                             $plus.update();
                         }).fail(function(reason) {
                             console.log('plus failed, reason: ' + JSON.stringify(reason));
+                            enable(plus);
                         });
-                    });
+                    };
+                    enable(plus);
                 }
             };
             $plus.update();
