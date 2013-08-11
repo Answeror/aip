@@ -28,12 +28,13 @@
                                 <span class="icon-bar"></span>
                                 <span class="icon-bar"></span>
                             </button>
-                            <a class="brand" href="/">AIP Instrumentality Project</a>
+                            <a class="brand" href="/" title="current version: {{ config['AIP_VERSION'] }}">AIP Instrumentality Project</a>
                             <div class='nav-collapse collapse'>
                                 <ul class="nav">
                                     {% if g.user %}
                                         <li><a href="/plused">plused</a></li>
                                     {% endif %}
+                                    <li><a href="/about">about</a></li>
                                 </ul>
                                 <div class=pull-right>
                                     {% if g.user %}
@@ -60,6 +61,11 @@
             {% endblock %}
         {% endblock %}
         <script src="{{ url_for('.static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
+        <script>
+            $('.brand').tooltip({
+                placement: 'bottom'
+            });
+        </script>
         <script>
             (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
             (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),

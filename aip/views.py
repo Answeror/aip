@@ -271,3 +271,7 @@ def make(app, oid, cached, store):
     def log():
         with open(app.config['AIP_LOG_FILE_PATH'], 'rb') as f:
             return f.read()
+
+    @app.route('/about')
+    def about():
+        return render_template('about.html')
