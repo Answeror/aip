@@ -204,6 +204,7 @@ def make(app, oid, cached, store):
                     user = store.User(name=name, email=email)
                     user.openids.append(store.Openid(uri=session['openid']))
                     store.add_user(user)
+                    store.db.session.commit()
                     return redirect(oid.get_next_url())
         return render_template('create_profile.html', next_url=oid.get_next_url())
 

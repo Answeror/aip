@@ -69,14 +69,12 @@ def make(app):
         def plus(self, entry):
             if entry not in [p.entry for p in self.plused]:
                 self.plused.append(Plus(entry=entry))
-            db.session.commit()
 
         def minus(self, entry):
             for p in self.plused:
                 if p.entry == entry:
                     db.session.delete(p)
                     break
-            db.session.commit()
 
         def has_plused(self, entry):
             return db.session.query(db.exists().where(and_(
@@ -309,7 +307,7 @@ def make(app):
 
     @stored
     def get_entry_bi_id(id):
-        return Entry.query.filter_by(id=id).first()
+        return Entry.query.get(id)
 
     @stored
     def put_image(im):
@@ -317,13 +315,11 @@ def make(app):
         if origin is not None:
             im.id = origin.id
             im = db.session.merge(im)
-        db.session.add(im)
+        else:
+            db.session.add(im)
 
         # add entry
-        entry = get_entry_bi_id(im.md5)
-        if entry is None:
-            entry = Entry(id=im.md5)
-            db.session.add(entry)
+        db.session.merge(Entry(id=im.md5))
 
     @stored
     def get_images_order_bi_ctime(r=None):
@@ -373,7 +369,8 @@ def make(app):
 
     @stored
     def get_meta(id):
-        return Meta.query.filter_by(id=id).first()
+        meta = Meta.query.get(id)
+        return meta.value if meta else None
 
     @stored
     def get_image_bi_md5(md5):
@@ -390,7 +387,6 @@ def make(app):
             m.update(_random_name().encode('ascii'))
             user.id = m.hexdigest()
         db.session.add(user)
-        db.session.commit()
 
     @stored
     def get_user_bi_openid(openid):

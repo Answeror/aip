@@ -56,6 +56,7 @@ def guarded(f):
         try:
             return f(*args, **kargs)
         except Exception as e:
+            store.db.session.rollback()
             return jsonify(dict(error=dict(message=str(e))))
     return inner
 
@@ -238,6 +239,7 @@ def make(app, api, cached, store):
             name=request.json['name'],
             email=request.json['email']
         ))
+        store.db.session.commit()
         return jsonify(dict())
 
     @api.route('/user_count')
@@ -312,14 +314,11 @@ def make(app, api, cached, store):
         return jsonify(dict())
 
     def plus():
-        try:
-            user = get_user_bi_someid()
-            entry = store.get_entry_bi_id(request.json['entry_id'])
-            user.plus(entry)
-            return jsonify(dict(count=entry.plus_count))
-        except:
-            store.db.session.rollback()
-            raise
+        user = get_user_bi_someid()
+        entry = store.get_entry_bi_id(request.json['entry_id'])
+        user.plus(entry)
+        store.db.session.commit()
+        return jsonify(dict(count=entry.plus_count))
 
     @api.route('/plus', methods=['POST'])
     @guarded
@@ -353,6 +352,7 @@ def make(app, api, cached, store):
             user = get_user_bi_someid()
             entry = store.get_entry_bi_id(request.json['entry_id'])
             user.minus(entry)
+            store.db.session.commit()
             return jsonify(dict(count=entry.plus_count))
         except:
             store.db.session.rollback()
