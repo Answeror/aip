@@ -56,6 +56,7 @@ def guarded(f):
         try:
             return f(*args, **kargs)
         except Exception as e:
+            store.db.session.rollback()
             return jsonify(dict(error=dict(message=str(e))))
     return inner
 
@@ -221,7 +222,7 @@ def make(app, api, cached, store):
 
     def _update_images(begin=None, limit=65536):
         for make in g.sources:
-            source = make(store.Post)
+            source = make(store.Post.from_tag_names)
             tags = []
             for i, im in zip(list(range(limit)), source.get_images(tags)):
                 if begin is not None and im.ctime <= begin:
@@ -238,6 +239,7 @@ def make(app, api, cached, store):
             name=request.json['name'],
             email=request.json['email']
         ))
+        store.db.session.commit()
         return jsonify(dict())
 
     @api.route('/user_count')
@@ -276,7 +278,12 @@ def make(app, api, cached, store):
     def page(id):
         #r = slice(g.per * (2 ** id - 1), g.per * (2 ** (id + 1) - 1), 1)
         r = slice(g.per * id, g.per * (id + 1), 1)
-        es = wrap(store.get_entries_order_bi_ctime(r))
+        logging.debug('request args {}'.format(request.args))
+        if request.args and 'tags' in request.args:
+            tags = request.args['tags'].split(';')
+            es = store.Entry.get_bi_tags_order_bi_ctime(tags=tags, r=r)
+        else:
+            es = wrap(store.get_entries_order_bi_ctime(r))
         return jsonify(result=render_template('page.html', entries=es))
 
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
@@ -307,14 +314,11 @@ def make(app, api, cached, store):
         return jsonify(dict())
 
     def plus():
-        try:
-            user = get_user_bi_someid()
-            entry = store.get_entry_bi_id(request.json['entry_id'])
-            user.plus(entry)
-            return jsonify(dict(count=entry.plus_count))
-        except:
-            store.db.session.rollback()
-            raise
+        user = get_user_bi_someid()
+        entry = store.get_entry_bi_id(request.json['entry_id'])
+        user.plus(entry)
+        store.db.session.commit()
+        return jsonify(dict(count=entry.plus_count))
 
     @api.route('/plus', methods=['POST'])
     @guarded
@@ -348,6 +352,7 @@ def make(app, api, cached, store):
             user = get_user_bi_someid()
             entry = store.get_entry_bi_id(request.json['entry_id'])
             user.minus(entry)
+            store.db.session.commit()
             return jsonify(dict(count=entry.plus_count))
         except:
             store.db.session.rollback()

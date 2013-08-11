@@ -35,12 +35,17 @@
                                         <li><a href="/plused">plused</a></li>
                                     {% endif %}
                                 </ul>
-                                <div class='pull-right'>
+                                <div class=pull-right>
                                     {% if g.user %}
                                         <a href='/logout' class='btn'>logout</a>
                                     {% else %}
                                         <a href='/login' class='btn'>login</a>
                                     {% endif %}
+                                </div>
+                                <div id='search-area' class=pull-right>
+                                    <form class=navbar-form action='/'>
+                                        <input type='text' name=q class='span2'>
+                                    </form>
                                 </div>
                             </div>
                         </div>

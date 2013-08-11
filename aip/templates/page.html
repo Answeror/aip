@@ -16,16 +16,25 @@
             </p>
             <p>
                 {% if g.user %}
-                    <a
+                    <button
                         class='plus btn btn-mini'
                         data-plused={{ 'true' if g.user.has_plused(e) else 'false' }}
                         data-count='{{ e.plus_count }}'
                         data-entry="{{ e.id }}"
-                    ></a>
+                    >+{{ e.plus_count }}</button>
                 {% else %}
-                    <a class='btn btn-mini'>+{{ e.plus_count }}</a>
+                    <a class='plus disabled btn btn-mini' title='login to plus' href='/login'>+{{ e.plus_count }}</a>
                 {% endif %}
+                <button name=tags class='btn btn-mini btn-success' data-toggle=button>tags</button>
             </p>
+        </div>
+        <div class='tags' style='display:none'>
+            {% for tag in e.tags %}
+                {% if tag.name %}
+                    <a class='tag label label-info' href='/?q={{ tag.name | urlencode }}'>{{ tag.name }}</a>
+                {% endif %}
+            {% endfor %}
+            <div class=clearfix></div>
         </div>
     </div>
     {% endfor %}

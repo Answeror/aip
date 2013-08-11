@@ -204,6 +204,7 @@ def make(app, oid, cached, store):
                     user = store.User(name=name, email=email)
                     user.openids.append(store.Openid(uri=session['openid']))
                     store.add_user(user)
+                    store.db.session.commit()
                     return redirect(oid.get_next_url())
         return render_template('create_profile.html', next_url=oid.get_next_url())
 
@@ -226,9 +227,10 @@ def make(app, oid, cached, store):
         im.save(output_stream, format='JPEG')
         return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
 
-    @app.route('/')
+    @app.route('/', methods=['GET'])
     def posts():
-        return render_template('index.html')
+        tags = request.args.get('q', '')
+        return render_template('index.html', tags=tags)
 
     @app.route('/plused')
     def plused():

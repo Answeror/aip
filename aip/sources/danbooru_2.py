@@ -18,7 +18,7 @@ class Source(danbooru.Source):
             score=float(d['score']),
             preview_url=urljoin(self.url, d['preview_url']),
             sample_url=None,
-            tags=d['tags'].replace(' ', ';'),
+            tags=d['tags'].split(' '),
             ctime=datetime.strptime(d['created_at'], '%Y-%m-%d %H:%M:%S'),
             mtime=None,
             site_id=self.id,

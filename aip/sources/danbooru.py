@@ -44,7 +44,7 @@ class Source(booru.Source):
             score=float(d['score']),
             preview_url=urljoin(self.url, d['preview_url']),
             sample_url=d['sample_url'],
-            tags=d['tags'].replace(' ', ';'),
+            tags=d['tags'].split(' '),
             ctime=datetime.utcfromtimestamp(int(d['created_at'])),
             mtime=None,
             site_id=self.id,

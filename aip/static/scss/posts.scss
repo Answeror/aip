@@ -32,7 +32,14 @@ p:last-child {
 .form-actions {
     background-color: inherit;
 }
-
+.tag {
+    float: left;
+    display: block;
+    margin: 3px 0 0 3px;
+}
+#search-area {
+    margin-right: 10px;
+}
 /* Responsive
 -------------------------------------------------- */
 
