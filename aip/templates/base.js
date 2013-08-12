@@ -252,6 +252,15 @@ $.aip.init = function(kargs) {
         html: true,
         content: function() {
             return $(this).closest('.item').find('.tags').html();
+        },
+        placement: function(context, source) {
+            var $s = $(source);
+            var p = $s.offset();
+            p.right = ($(window).width() - (p.left + $s.outerWidth()));
+            if (p.right > 276) return 'right';
+            if (p.left > 276) return 'left';
+            if (p.top > 110) return 'top';
+            return 'bottom';
         }
     });
     $container.waypoint(

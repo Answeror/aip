@@ -14,6 +14,7 @@ $violet:    #6c71c4;
 $blue:      #268bd2;
 $cyan:      #2aa198;
 $green:     #859900;
+$light:     #fdf6e3;
 
 html * {
     color-profile: sRGB;
@@ -28,7 +29,7 @@ body.solarized {
     * {
         color: inherit;
         box-shadow: none;
-        text-shadow:none;
+        text-shadow: none;
     }
 
     /* Based on kate's own default colors for Haskell */
@@ -47,12 +48,14 @@ body.solarized {
     code.sourceCode span.re { }
     code.sourceCode span.er { color: $red; font-weight: bold; }
 
-    h2{ color: $green; }
+    strong {
+        color: $yellow;
+    }
 
     /*input*/
     select, textarea, input, .uneditable-input {
         background: $base03;
-        border-color: $base03;
+        border-color: $base02;
     }
     textarea, input, .uneditable-input {
         &:focus {
@@ -61,22 +64,80 @@ body.solarized {
         }
     }
 
+    /* addon */
+    .add-on {
+        background: $base02;
+        border-color: $base02;
+        color: $base0;
+        text-shadow: none;
+    }
+
     /* Buttons */
     .btn {
-        background: $base2;
         border:none;
-        font-weight:bold;
+        background: $base01;
+        color: $base2;
+        &:hover {
+            background: $base1;
+            color: $base03;
+        }
     }
-    .btn:hover { background: $base01; color:#eee8d5;}
-    .btn-primary { &, &:hover{ background: $red; color:#fff; } }
-    .navbar .btn { background: $base01; color:#fff;}
-    .navbar .btn:hover { background:#93a1a1;}
+    .btn-primary {
+        &, &:hover {
+            background: $red;
+            color:#fff;
+        }
+    }
+    .btn-success {
+        &, &:hover {
+            background: $green;
+            color: #fff;
+        }
+    }
+
+    /* label */
+    .label {
+        background: $base2;
+        &:hover {
+            background: $base01;
+            color: $base2;
+        };
+    }
+    .label-info {
+        background: $blue;
+    }
+
+    /* popover */
+    .popover {
+        background: $light;
+    }
+
+    /* header */
+    .page-header {
+        color: $green;
+        border-bottom: 1px dashed $green;
+    }
+
+    /* form */
+    .form-actions {
+        border-top: 1px dashed $green;
+    }
 
     /* Nav */
-    .navbar{ margin-bottom:0;}
-    .navbar .brand {
+    .navbar {
         color: $base1;
-        font-weight:bold;
+        .brand { color: $yellow; }
+        .input-prepend { margin-bottom: 0; }
+        select, textarea, input, .uneditable-input {
+            background: $base03;
+            border-color: $base03;
+        }
+        .add-on {
+            background: $base02;
+            border-color: $base03;
+            color: $base0;
+            text-shadow: none;
+        }
     }
     .navbar .navbar-inner{ background:$base02; border:none; border-radius:0; }
     .navbar .nav > li > a{ color: $base01; }
@@ -98,12 +159,27 @@ body.solarized {
     .dropdown-menu .divider{ background:#eee8d5;}
     .nav-header{ color:#859900;}
 
-    /* Hero */
-    .hero-unit{ background:$base03; border-bottom:1px solid $base03; border-radius:0; color: $base1; padding:0;}
-    .hero-unit h1{ color:#fff; font-size:52px; margin-bottom:10px;}
-    .hero-unit .container{ background:url(/i/firefox-logo.png) no-repeat right bottom; padding:80px 420px 79px 0; width:520px;}
-
     .thumbnail {
         background: #fff;
+        .btn {
+            color: $base0;
+            background: $base2;
+            &:hover {
+                background: $base01;
+                color: $base2;
+            }
+        }
+        .btn-primary {
+            &, &:hover {
+                background: $red;
+                color:#fff;
+            }
+        }
+        .btn-success {
+            &, &:hover {
+                background: $green;
+                color: #fff;
+            }
+        }
     }
 }
