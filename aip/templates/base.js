@@ -115,7 +115,6 @@ $.aip.load_image = function(kargs) {
                             console.log('sized(' + width + 'x' + height + '): ' + preview_src);
                             $img.data('preview-width', width);
                             $img.data('preview-height', height);
-                            $img.freeze_size();
                             $d.resolve();
                         });
                     }
@@ -174,18 +173,6 @@ $.aip.init = function(kargs) {
         makePageData: $.noop
     };
     kargs = $.extend({}, defaults, kargs);
-    function dealtags($item) {
-        $item.find('.tag').each(function() {
-            var $this = $(this);
-            if ($.aip.overflown($this)) {
-                $this.attr('title', $this.text());
-            }
-        });
-        $item.find('.btn[name="tags"]').popover({
-            html: true,
-            content: $item.find('.tags').html()
-        });
-    };
     function dealplus($this) {
         var $plus = $this.find('.plus');
         if (!$.aip.user_id()) {
@@ -259,6 +246,14 @@ $.aip.init = function(kargs) {
     };
     var marsed = false;
     var $buffer = $('#buffer');
+    $container.popover({
+        selector: '.btn[name="tags"]',
+        container: 'body',
+        html: true,
+        content: function() {
+            return $(this).closest('.item').find('.tags').html();
+        }
+    });
     $container.waypoint(
         function(direction){
             if (direction === 'down' || direction === 'right') {
@@ -318,7 +313,6 @@ $.aip.init = function(kargs) {
                         if ($item.data('dealed')) return;
                         try {
                             dealplus($item);
-                            dealtags($item);
                             $container.append($item);
                             if (!marsed) {
                                 console.log('initialize masonry');
