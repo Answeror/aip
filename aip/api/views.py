@@ -282,6 +282,7 @@ def make(app, api, cached, store):
         logging.debug('request args {}'.format(request.args))
         if request.args and 'tags' in request.args:
             tags = request.args['tags'].split(';')
+            logging.debug('query tags: {}'.format(tags))
             es = store.Entry.get_bi_tags_order_bi_ctime(tags=tags, r=r)
         else:
             es = wrap(store.get_entries_order_bi_ctime(r))

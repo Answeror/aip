@@ -141,6 +141,7 @@ def make(app):
             sup = db.select([tagged_table.c.tag_id]).where(tagged_table.c.post_id.in_(posts))
             contains = ~db.exists().where(~sub.c.id.in_(sup))
             q = Entry.query.filter(db.and_(hastag, contains)).order_by(desc(Entry.ctime))
+            logging.debug(str(q))
             return q if r is None else q[r]
 
     tagged_table = db.Table(
