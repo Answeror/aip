@@ -1,0 +1,109 @@
+$base03:    #002b36;
+$base02:    #073642;
+$base01:    #586e75;
+$base00:    #657b83;
+$base0:     #839496;
+$base1:     #93a1a1;
+$base2:     #eee8d5;
+$base3:     #fdf6e3;
+$yellow:    #b58900;
+$orange:    #cb4b16;
+$red:       #dc322f;
+$magenta:   #d33682;
+$violet:    #6c71c4;
+$blue:      #268bd2;
+$cyan:      #2aa198;
+$green:     #859900;
+
+html * {
+    color-profile: sRGB;
+    rendering-intent: auto;
+}
+
+
+body.solarized {
+    background: $base03;
+    color: $base0;
+
+    * {
+        color: inherit;
+        box-shadow: none;
+        text-shadow:none;
+    }
+
+    /* Based on kate's own default colors for Haskell */
+    pre.sourceCode, table.sourceCode, table.sourceCode * { font-family: monospace; }
+    code.sourceCode span.kw { color: $yellow; font-weight: bold; }
+    code.sourceCode span.dt { color: $cyan; }
+    code.sourceCode span.dv { color: $base01; }
+    code.sourceCode span.bn { color: $orange; }
+    code.sourceCode span.fl { color: $cyan; }
+    code.sourceCode span.ch { color: $red; }
+    code.sourceCode span.st { color: $magenta; }
+    code.sourceCode span.co { color: $base01; font-style: italic; }
+    code.sourceCode span.ot { }
+    code.sourceCode span.al { color: $green; font-weight: bold; }
+    code.sourceCode span.fu { color: $blue; }
+    code.sourceCode span.re { }
+    code.sourceCode span.er { color: $red; font-weight: bold; }
+
+    h2{ color: $green; }
+
+    /*input*/
+    select, textarea, input, .uneditable-input {
+        background: $base03;
+        border-color: $base03;
+    }
+    textarea, input, .uneditable-input {
+        &:focus {
+            border-color: $base02;
+            color: #fff;
+        }
+    }
+
+    /* Buttons */
+    .btn {
+        background: $base2;
+        border:none;
+        font-weight:bold;
+    }
+    .btn:hover { background: $base01; color:#eee8d5;}
+    .btn-primary { &, &:hover{ background: $red; color:#fff; } }
+    .navbar .btn { background: $base01; color:#fff;}
+    .navbar .btn:hover { background:#93a1a1;}
+
+    /* Nav */
+    .navbar{ margin-bottom:0;}
+    .navbar .brand {
+        color: $base1;
+        font-weight:bold;
+    }
+    .navbar .navbar-inner{ background:$base02; border:none; border-radius:0; }
+    .navbar .nav > li > a{ color: $base01; }
+    .navbar .brand:hover,
+    .navbar-inverse .nav > li > a:hover,
+    .navbar .nav > li > a:focus,
+    .navbar .nav > li > a:hover{ color:#fff;}
+    .navbar .nav li.dropdown.open > .dropdown-toggle { color: $base1; }
+    .navbar .nav .active > a,
+    .navbar .nav .active > a:hover,
+    .navbar .nav .active > a:focus{ background:none; color: $base1;}
+    /* Caret */
+    .navbar .nav li.dropdown > .dropdown-toggle .caret{ border-top-color: $base01;}
+    .navbar .nav li.dropdown > a:hover .caret,
+    .navbar-inverse .nav li.dropdown.open > .dropdown-toggle .caret{ border-top-color: $base1;}
+    /* Dropdown */
+    .navbar .nav li.dropdown.open > .dropdown-toggle{ background:#fdf6e3;}
+    .dropdown-menu li > a:hover{ background:#e63a3a;}
+    .dropdown-menu .divider{ background:#eee8d5;}
+    .nav-header{ color:#859900;}
+
+    /* Hero */
+    .hero-unit{ background:$base03; border-bottom:1px solid $base03; border-radius:0; color: $base1; padding:0;}
+    .hero-unit h1{ color:#fff; font-size:52px; margin-bottom:10px;}
+    .hero-unit .container{ background:url(/i/firefox-logo.png) no-repeat right bottom; padding:80px 420px 79px 0; width:520px;}
+
+    .thumbnail {
+        background: #fff;
+    }
+}

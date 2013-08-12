@@ -4,6 +4,7 @@
 
 import logging
 import os
+import re
 from flask import (
     g,
     render_template,
@@ -252,7 +253,7 @@ def make(app, oid, cached, store):
         )
         sources = []
         for filename in os.listdir(root):
-            if filename.endswith('.scss'):
+            if re.match(r'aip-\w+\.scss', filename):
                 with open(os.path.join(root, filename), 'rb') as f:
                     content = f.read().decode('utf-8')
                 sources.append((filename, content))

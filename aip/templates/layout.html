@@ -14,7 +14,7 @@
         <link rel='stylesheet' href="{{ url_for('.style') }}">
         {% block head %}{% endblock %}
     </head>
-    <body>
+    <body class='solarized'>
         {% block body %}
             {% if g.user %}
                 <input id=user-id type=hidden value={{ g.user.id }}>
