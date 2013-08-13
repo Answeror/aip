@@ -193,7 +193,7 @@ def make(app):
                 post = cls(**kargs)
                 db.session.add(post)
                 db.session.flush()
-                db.session.expire(post)
+                db.session.expire(post, ['id'])
 
             db.session.merge(Entry(id=kargs['md5']))
 
@@ -241,7 +241,7 @@ def make(app):
                 inst = cls(name=name)
                 cls.add(inst)
                 db.session.flush()
-                db.session.expire(inst)
+                db.session.expire(inst, ['id'])
                 return inst
 
         @property
@@ -293,7 +293,7 @@ def make(app):
             # http://stackoverflow.com/a/5083472
             db.session.add(tag)
             db.session.flush()
-            db.session.refresh(tag)
+            db.session.refresh(tag, ['id'])
             dag.add(tag.id)
             #logging.debug('new tag (%d, %s)' % (tag.id, tag.name))
             return tag
@@ -394,7 +394,7 @@ def make(app):
     def add_user(user):
         db.session.add(user)
         db.session.flush()
-        db.session.expire(user)
+        db.session.expire(user, ['id'])
 
     @stored
     @flushed
