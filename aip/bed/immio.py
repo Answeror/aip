@@ -74,7 +74,7 @@ class Immio(object):
         data = r['payload']
         return Image(
             md5=image.md5,
-            uid=data['uid'].encode('ascii'),
+            uid=data['uid'],
             uri=data['uri'],
             width=int(data['width']),
             height=int(data['height'])

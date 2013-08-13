@@ -121,7 +121,7 @@ class Imgur(object):
                     data={
                         'image': image_url,
                         'type': 'URL',
-                        'title': image.md5.decode('ascii'),
+                        'title': image.md5,
                         'album': self.album_deletehash
                     }
                 )
