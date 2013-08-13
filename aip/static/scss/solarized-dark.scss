@@ -14,7 +14,6 @@ $violet:    #6c71c4;
 $blue:      #268bd2;
 $cyan:      #2aa198;
 $green:     #859900;
-$light:     #fdf6e3;
 
 html * {
     color-profile: sRGB;
@@ -109,7 +108,11 @@ body.solarized {
 
     /* popover */
     .popover {
-        background: $light;
+        background: $base3;
+        $positions: top right bottom left;
+        @each $position in $positions {
+            &.#{$position} .arrow:after { border-#{$position}-color: $base3; }
+        }
     }
 
     /* header */
