@@ -7,6 +7,7 @@ from queue import PriorityQueue
 from threading import Thread
 from functools import wraps, partial
 from datetime import datetime
+from uuid import uuid4
 
 
 class Background(object):
@@ -27,7 +28,7 @@ class Background(object):
 
     def _run(self):
         while True:
-            job = self.jobs.get()[2]
+            job = self.jobs.get()[-1]
             try:
                 job()
             except Exception as e:
@@ -36,7 +37,7 @@ class Background(object):
                 self.jobs.task_done()
 
     def action(self, job, rank=0):
-        self.jobs.put((rank, datetime.utcnow(), job))
+        self.jobs.put((rank, datetime.utcnow(), str(uuid4()), job))
 
     def function(self, job, callback, rank=0):
         @wraps(job)

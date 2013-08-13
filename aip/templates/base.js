@@ -149,7 +149,6 @@ $.aip.super_resolution = function($img, callback, otherwise) {
     }
 };
 $.aip.error = function(message) {
-    message = JSON.stringify(message);
     console.log(message);
     $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
 };
@@ -362,7 +361,7 @@ $.aip.init = function(kargs) {
                                     dataType: 'json',
                                     timeout: 1e3 * {{ config['AIP_PROXIED_TIMEOUT'] }},
                                     data: { width: $img.width() }
-                                });
+                                }).then($.aip.error_guard);
                             },
                             reloads: $.aip.range({{ config['AIP_REPROXY_LIMIT'] }}).map(function() {
                                 return $.aip.disturb(1e3 * {{ config['AIP_REPROXY_INTERVAL'] }});

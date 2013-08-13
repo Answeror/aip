@@ -108,7 +108,7 @@ class Imgur(object):
                         data={
                             'image': b64encode(output_stream.getvalue()),
                             'type': 'base64',
-                            'title': image.md5.decode('ascii'),
+                            'title': image.md5,
                             'album': self.album_deletehash
                         }
                     )
@@ -137,8 +137,8 @@ class Imgur(object):
             data = r['data']
             return Image(
                 md5=image.md5,
-                id=data['id'].encode('ascii'),
-                deletehash=data['deletehash'].encode('ascii'),
+                id=data['id'],
+                deletehash=data['deletehash'],
                 link=data['link']
             )
 

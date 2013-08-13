@@ -31,5 +31,8 @@ AIP_TAG_SHORT_NAME_LIMIT = 16
 AIP_RANK_PLUS = -1
 AIP_RANK_MINUS = -1
 
-import pkg_resources
-AIP_VERSION = pkg_resources.require('aip.core')[0].version
+try:
+    import pkg_resources
+    AIP_VERSION = pkg_resources.require('aip.core')[0].version
+except:
+    AIP_VERSION = '0.1.0'
