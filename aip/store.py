@@ -310,16 +310,18 @@ def make(app):
         return str(uuid.uuid4())
 
     @stored
-    def put(o):
+    def put(o, flush=True):
         o = db.session.merge(o)
         db.session.add(o)
+        if flush:
+            db.session.flush()
 
     @stored
     def get_entry_bi_id(id):
         return Entry.query.get(id)
 
     @stored
-    def put_image(im):
+    def put_image(im, flush=True):
         origin = Post.query.filter_by(site_id=im.site_id, post_id=im.post_id).first()
         if origin is not None:
             im.id = origin.id
@@ -329,6 +331,13 @@ def make(app):
 
         # add entry
         db.session.merge(Entry(id=im.md5))
+
+        # Flask-SQLAlchemy do not auto flush by default
+        # references:
+        # https://groups.google.com/forum/#!topic/sqlalchemy/d3k4Vwl0xno
+        # https://github.com/mitsuhiko/flask-sqlalchemy/issues/45
+        if flush:
+            db.session.flush()
 
     @stored
     def get_images_order_bi_ctime(r=None):
@@ -390,12 +399,14 @@ def make(app):
         return User.query.filter_by(id=id).first()
 
     @stored
-    def add_user(user):
+    def add_user(user, flush=True):
         if user.id is None:
             m = md5()
             m.update(_random_name().encode('ascii'))
             user.id = m.hexdigest()
         db.session.add(user)
+        if flush:
+            db.session.flush()
 
     @stored
     def get_user_bi_openid(openid):
