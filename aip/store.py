@@ -249,6 +249,14 @@ def make(app):
             n = app.config['AIP_TAG_SHORT_NAME_LIMIT']
             return self.name if len(self.name) <= n else self.name[:n - 3] + '...'
 
+        @property
+        def display_name(self):
+            return self.name.replace('_', ' ')
+
+        @classmethod
+        def escape_name(cls, name):
+            return name.replace(' ', '_')
+
         def locked(f):
             @wraps(f)
             def inner(self, *args, **kargs):
