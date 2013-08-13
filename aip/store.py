@@ -4,12 +4,12 @@
 
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func, and_, desc
-from hashlib import md5
+from sqlalchemy.orm.exc import NoResultFound
 from functools import partial, wraps
 from datetime import datetime
 import threading
 import pickle
-import logging
+#import logging
 from .dag import Dag
 
 
@@ -25,6 +25,12 @@ def make(app):
         setattr(store, f.__name__, f)
         return f
 
+    def flushed(f):
+        @wraps(f)
+        def inner(*args, **kargs):
+            return f(*args, **kargs)
+        return inner
+
     @stored
     class Meta(db.Model):
 
@@ -33,7 +39,7 @@ def make(app):
 
     class Plus(db.Model):
 
-        user_id = db.Column(db.Unicode(128), db.ForeignKey('user.id'), primary_key=True)
+        user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
         entry_id = db.Column(db.Unicode(128), db.ForeignKey('entry.id'), primary_key=True)
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -41,7 +47,7 @@ def make(app):
     class Openid(db.Model):
 
         uri = db.Column(db.UnicodeText, primary_key=True)
-        user_id = db.Column(db.Unicode(128), db.ForeignKey('user.id'), index=True)
+        user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
 
         @classmethod
         def exists(cls, uri):
@@ -50,7 +56,7 @@ def make(app):
     @stored
     class User(db.Model):
 
-        id = db.Column(db.Unicode(128), primary_key=True)
+        id = db.Column(db.Integer, primary_key=True)
         openids = db.relationship(Openid, lazy=False)
         name = db.Column(db.Unicode(128), unique=True, index=True)
         email = db.Column(db.Unicode(256), unique=True, index=True)
@@ -141,7 +147,7 @@ def make(app):
             sup = db.select([tagged_table.c.tag_id]).where(tagged_table.c.post_id.in_(posts))
             contains = ~db.exists().where(~sub.c.id.in_(sup))
             q = Entry.query.filter(db.and_(hastag, contains)).order_by(desc(Entry.ctime))
-            logging.debug(str(q))
+            #logging.debug(str(q))
             return q if r is None else q[r]
 
     tagged_table = db.Table(
@@ -170,18 +176,26 @@ def make(app):
         md5 = db.Column(db.Unicode(128), db.ForeignKey('entry.id'), index=True)
         tags = db.relationship('Tag', secondary=tagged_table, lazy=False)
 
+        __table_args__ = (
+            db.UniqueConstraint('site_id', 'post_id'),
+        )
+
         @classmethod
-        def from_tag_names(cls, **kargs):
-            if 'tags' in kargs:
-                tags = kargs['tags']
-                del kargs['tags']
-                inst = cls(**kargs)
-                for name in set(tags):
-                    tag = Tag.add(name)
-                    inst.tags.append(tag)
-            else:
-                inst = cls(**kargs)
-            return inst
+        def put(cls, **kargs):
+            db.session.flush()
+            kargs['tags'] = [Tag.get_or_add_bi_name(name) for name in set(kargs['tags'])]
+
+            try:
+                post = cls.query.filter_by(site_id=kargs['site_id'], post_id=kargs['post_id']).one()
+                for key, value in kargs.items():
+                    setattr(post, key, value)
+            except NoResultFound:
+                post = cls(**kargs)
+                db.session.add(post)
+                db.session.flush()
+                db.session.expire(post)
+
+            db.session.merge(Entry(id=kargs['md5']))
 
     @stored
     class Imgur(db.Model):
@@ -202,47 +216,33 @@ def make(app):
         height = db.Column(db.Integer)
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
 
-    class MetaDag(type):
-
-        @property
-        def impl(self):
-            if not hasattr(self, '_impl'):
-                data = get_meta(app.config['AIP_META_DAG'])
-                if data is None:
-                    self._impl = Dag()
-                else:
-                    self._impl = Dag.from_dict(pickle.loads(data))
-            return self._impl
-
-        def save(self):
-            set_meta(app.config['AIP_META_DAG'], pickle.dumps(self.impl.to_dict()))
-
-        def add(self, id):
-            self.impl.add(id)
-
-        def link(self, child, parent):
-            self.impl.link(child, parent)
-
-        def remove(self, id):
-            self.impl.remove(id)
-
-        def unlink(self, child, parent):
-            self.impl.unlink(child, parent)
-
-    class MetaTag(type(db.Model)):
-
-        @property
-        def dag(self):
-            if not hasattr(self, '_dag'):
-                self._dag = MetaDag('dag', (object,), {})
-            return self._dag
+    @stored
+    def get_dag():
+        data = get_meta(app.config['AIP_META_DAG'])
+        return Dag() if data is None else Dag.from_dict(pickle.loads(data))
 
     @stored
-    class Tag(db.Model, metaclass=MetaTag):
+    def set_dag(dag):
+        set_meta(app.config['AIP_META_DAG'], pickle.dumps(dag.to_dict()))
+
+    @stored
+    class Tag(db.Model):
 
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.UnicodeText, unique=True, index=True)
         lock = threading.RLock()
+
+        @classmethod
+        def get_or_add_bi_name(cls, name):
+            try:
+                db.session.flush()
+                return cls.query.filter_by(name=name).one()
+            except NoResultFound:
+                inst = cls(name=name)
+                cls.add(inst)
+                db.session.flush()
+                db.session.expire(inst)
+                return inst
 
         @property
         def short_name(self):
@@ -264,44 +264,63 @@ def make(app):
                     return f(self, *args, **kargs)
             return inner
 
+        def dagw(f):
+            '''dag for write'''
+            @wraps(f)
+            def inner(*args, **kargs):
+                if 'dag' in kargs:
+                    return f(*args, **kargs)
+                else:
+                    dag = kargs['dag'] = get_dag()
+                    ret = f(*args, **kargs)
+                    set_dag(dag)
+                    return ret
+            return inner
+
+        def dagr(f):
+            '''dag for read'''
+            @wraps(f)
+            def inner(*args, **kargs):
+                if 'dag' in kargs:
+                    kargs['dag'] = get_dag()
+                return f(*args, **kargs)
+            return inner
+
         @classmethod
         @locked
-        def add(cls, name):
-            tag = Tag.query.filter_by(name=name).first()
-            if tag is None:
-                # http://stackoverflow.com/a/5083472
-                tag = Tag(name=name)
-                db.session.add(tag)
-                db.session.flush()
-                db.session.refresh(tag)
-                cls.dag.add(tag.id)
-                cls.dag.save()
-                #logging.debug('new tag (%d, %s)' % (tag.id, tag.name))
+        @dagw
+        def add(cls, tag, dag):
+            # http://stackoverflow.com/a/5083472
+            db.session.add(tag)
+            db.session.flush()
+            db.session.refresh(tag)
+            dag.add(tag.id)
+            #logging.debug('new tag (%d, %s)' % (tag.id, tag.name))
             return tag
 
         @classmethod
         @locked
-        def remove(cls, id):
+        @dagw
+        def remove(cls, id, dag):
             db.session.execute(db.delete(cls.__table__, db.where(cls.id == id)))
-            db.flush()
-            cls.dag.remove(id)
-            cls.dag.save()
+            dag.remove(id)
 
         @classmethod
         @locked
-        def link(cls, child, parent):
-            cls.dag.link(child, parent)
-            cls.dag.save()
+        @dagw
+        def link(cls, child, parent, dag):
+            dag.link(child, parent)
 
         @classmethod
         @locked
-        def unlink(cls, child, parent):
-            cls.dag.unlink(child, parent)
-            cls.dag.save()
+        @dagw
+        def unlink(cls, child, parent, dag):
+            dag.unlink(child, parent)
 
         @classmethod
         @locked
-        def entries(cls, ids):
+        @dagr
+        def entries(cls, ids, dag):
             down = set().union(*[cls.dag.down[i] for i in ids])
             return Entry.query.join(Post).join(tagged_table).filter(tagged_table.c.tag_id.in_(list(down))).all()
 
@@ -310,118 +329,91 @@ def make(app):
         return str(uuid.uuid4())
 
     @stored
-    def put(o, flush=True):
+    @flushed
+    def put(o):
         o = db.session.merge(o)
-        db.session.add(o)
-        if flush:
-            db.session.flush()
 
     @stored
+    @flushed
     def get_entry_bi_id(id):
         return Entry.query.get(id)
 
     @stored
-    def put_image(im, flush=True):
-        origin = Post.query.filter_by(site_id=im.site_id, post_id=im.post_id).first()
-        if origin is not None:
-            im.id = origin.id
-            im = db.session.merge(im)
-        else:
-            db.session.add(im)
-
-        # add entry
-        db.session.merge(Entry(id=im.md5))
-
-        # Flask-SQLAlchemy do not auto flush by default
-        # references:
-        # https://groups.google.com/forum/#!topic/sqlalchemy/d3k4Vwl0xno
-        # https://github.com/mitsuhiko/flask-sqlalchemy/issues/45
-        if flush:
-            db.session.flush()
-
-    @stored
-    def get_images_order_bi_ctime(r=None):
-        q = Post.query.order_by(Post.ctime.desc())
-        return q if r is None else q[r]
-
-    @stored
+    @flushed
     def get_entries_order_bi_ctime(r=None):
         q = Entry.query.order_by(desc(Entry.ctime))
         return q if r is None else q[r]
 
     @stored
-    def get_unique_images_order_bi_ctime(r=None):
-        sub = db.session.query(
-            func.max(Post.score),
-            Post.id.label('best_id')
-        ).group_by(Post.md5).subquery()
-        q = Post.query.join(
-            sub,
-            and_(Post.id == sub.c.best_id)
-        ).order_by(Post.ctime.desc())
-        return q if r is None else q[r]
-
-    @stored
+    @flushed
     def latest_ctime_bi_site_id(id):
-        return db.session.query(func.max(Post.ctime)).first()[0]
+        return db.session.query(func.max(Post.ctime)).scalar()
 
     @stored
+    @flushed
     def image_count():
-        return db.session.query(func.count(Post.id)).first()[0]
+        return db.session.query(func.count(Post.id)).scalar()
 
     @stored
+    @flushed
     def user_count():
-        return db.session.query(func.count(User.id)).first()[0]
+        return db.session.query(func.count(User.id)).scalar()
 
     @stored
+    @flushed
     def unique_image_count():
         return Post.query.group_by(Post.md5).count()
 
     @stored
+    @flushed
     def entry_count():
-        return db.session.query(func.count(Entry.id)).first()[0]
+        return db.session.query(func.count(Entry.id)).scalar()
 
     @stored
     def set_meta(id, value):
         put(Meta(id=id, value=value))
 
     @stored
+    @flushed
     def get_meta(id):
         meta = Meta.query.get(id)
         return meta.value if meta else None
 
     @stored
+    @flushed
     def get_image_bi_md5(md5):
         return Post.query.filter_by(md5=md5).first()
 
     @stored
+    @flushed
     def get_user_bi_id(id):
         return User.query.filter_by(id=id).first()
 
     @stored
-    def add_user(user, flush=True):
-        if user.id is None:
-            m = md5()
-            m.update(_random_name().encode('ascii'))
-            user.id = m.hexdigest()
+    @flushed
+    def add_user(user):
         db.session.add(user)
-        if flush:
-            db.session.flush()
+        db.session.flush()
+        db.session.expire(user)
 
     @stored
+    @flushed
     def get_user_bi_openid(openid):
         return User.query.join(Openid).filter(Openid.uri == openid).first()
 
     @stored
+    @flushed
     def clear():
         db.drop_all()
         db.create_all()
 
     @stored
+    @flushed
     def get_imgur_bi_md5(md5):
         return Imgur.query.get(md5)
 
     @stored
+    @flushed
     def get_immio_bi_md5(md5):
         return Immio.query.get(md5)
 

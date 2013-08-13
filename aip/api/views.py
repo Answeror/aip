@@ -223,12 +223,12 @@ def make(app, api, cached, store):
 
     def _update_images(begin=None, limit=65536):
         for make in g.sources:
-            source = make(store.Post.from_tag_names)
+            source = make(dict)
             tags = []
             for i, im in zip(list(range(limit)), source.get_images(tags)):
-                if begin is not None and im.ctime <= begin:
+                if begin is not None and im['ctime'] <= begin:
                     break
-                store.put_image(im)
+                store.Post.put(**im)
             store.db.session.commit()
 
     @api.route('/add_user', methods=['POST'])
