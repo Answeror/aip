@@ -21,6 +21,7 @@ from ..bed.immio import Immio
 from ..async.background import Background
 from ..async.subpub import Subpub
 import json
+import time
 
 
 def locked(lock=None):
@@ -54,6 +55,7 @@ def logged(f):
     @wraps(f)
     def inner(*args, **kargs):
         try:
+            start = time.time()
             logging.info('%s start' % f.__name__)
             r = f(*args, **kargs)
             logging.info('%s done' % f.__name__)
@@ -67,6 +69,8 @@ def logged(f):
                 e=e
             )
             raise
+        finally:
+            logging.info('%s take %.3fs' % (f.__name__, time.time() - start))
     return inner
 
 
@@ -285,7 +289,7 @@ def make(app, api, cached, store):
             tags = [store.Tag.escape_name(tag) for tag in tags]
             es = store.Entry.get_bi_tags_order_bi_ctime(tags=tags, r=r)
         else:
-            es = wrap(store.get_entries_order_bi_ctime(r))
+            es = store.Entry.get_bi_tags_order_bi_ctime(tags=[], r=r)
         return jsonify(result=render_template('page.html', entries=es))
 
     @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})

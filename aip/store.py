@@ -10,7 +10,7 @@ from datetime import datetime
 import threading
 import pickle
 from contextlib import contextmanager
-#import logging
+import logging
 from .dag import Dag
 
 
@@ -104,7 +104,7 @@ def make(app):
     class Entry(db.Model):
 
         id = db.Column(db.Unicode(128), primary_key=True)
-        posts = db.relationship('Post', lazy=False)
+        posts = db.relationship('Post', lazy=False, backref=db.backref('entry'))
         plused = db.relationship('Plus', lazy=False, backref=db.backref('entry'))
 
         @classmethod
@@ -139,17 +139,50 @@ def make(app):
 
         @classmethod
         def get_bi_tags_order_bi_ctime(cls, tags, r):
-            # http://stackoverflow.com/a/7546802
-            tagnames = db.union(*[db.select([db.bindparam(_random_name(), t).label('name')]) for t in tags])
-            hastag = ~db.exists().where(~tagnames.c.name.in_(db.select([Tag.name])))
-            sub = db.select([Tag.id]).where(Tag.name.in_(tags))
-            # http://docs.sqlalchemy.org/en/rel_0_8/core/tutorial.html#correlated-subqueries
-            posts = db.select([Post.id]).where(Post.md5 == Entry.id).correlate(Entry.__table__)
-            sup = db.select([tagged_table.c.tag_id]).where(tagged_table.c.post_id.in_(posts))
-            contains = ~db.exists().where(~sub.c.id.in_(sup))
-            q = Entry.query.filter(db.and_(hastag, contains)).order_by(desc(Entry.ctime))
+            ## http://stackoverflow.com/a/7546802
+            #tagnames = db.union(*[db.select([db.bindparam(_random_name(), t).label('name')]) for t in tags])
+            #hastag = ~db.exists().where(~tagnames.c.name.in_(db.select([Tag.name])))
+            #sub = db.select([Tag.id]).where(Tag.name.in_(tags))
+            ## http://docs.sqlalchemy.org/en/rel_0_8/core/tutorial.html#correlated-subqueries
+            #posts = db.select([Post.id]).where(Post.md5 == Entry.id).correlate(Entry.__table__)
+            #sup = db.select([tagged_table.c.tag_id]).where(tagged_table.c.post_id.in_(posts))
+            #contains = ~db.exists().where(~sub.c.id.in_(sup))
+            #q = Entry.query.filter(db.and_(hastag, contains)).order_by(desc(Entry.ctime))
             #logging.debug(str(q))
-            return q if r is None else q[r]
+            #return q if r is None else q[r]
+
+            db.session.flush()
+
+            if tags:
+                sub_tag_names = db.union(*[db.select([db.bindparam(_random_name(), t).label('name')]) for t in tags])
+                has_tag = ~db.exists().where(~sub_tag_names.c.name.in_(db.select([Tag.name])))
+                if not db.session.query(has_tag).scalar():
+                    return []
+
+            # not use group by here
+            # because aggregation function cannot take advantage of indexing
+            # use select + order + distinct instead
+            p1 = db.aliased(Post)
+            qmd5 = db.select([p1.md5]).order_by(db.desc(p1.ctime))
+            qpost = db.select([db.distinct(qmd5.c.md5).label('best_md5')])
+
+            if tags:
+                p2 = db.aliased(Post, name='p2')
+                # recursive dependence
+                # use ugly text based condition statement here
+                qsup = db.select([tagged_table.c.tag_id]).select_from(tagged_table.join(p2)).where('p2.md5 = best_md5').correlate(qmd5)
+                qsub = db.select([Tag.id]).where(Tag.name.in_(sub_tag_names))
+                qin = ~db.exists().where(~qsub.c.id.in_(qsup))
+                qpost = qpost.where(qin)
+
+            if r is not None:
+                # offset and limit must be set here
+                # to archive huge performance improvement
+                qpost = qpost.offset(r.start).limit(r.stop - r.start)
+
+            q = Entry.query.join(qpost, Entry.id == qpost.c.best_md5)
+            logging.debug(str(q))
+            return q
 
     tagged_table = db.Table(
         'tagged',
@@ -198,7 +231,7 @@ def make(app):
         score = db.Column(db.Float)
         preview_url = db.Column(db.UnicodeText)
         sample_url = db.Column(db.UnicodeText)
-        ctime = db.Column(db.DateTime)
+        ctime = db.Column(db.DateTime, index=True)
         mtime = db.Column(db.DateTime)
         site_id = db.Column(db.Unicode(128), index=True)
         post_id = db.Column(db.Unicode(128))
