@@ -219,27 +219,26 @@ def make(app, api, cached, store):
 
     def _set_last_update_time(value):
         store.set_meta('last_update_time', pickle.dumps(value))
-        store.db.session.commit()
 
     def _update_images(begin=None, limit=65536):
-        for make in g.sources:
-            source = make(dict)
-            tags = []
-            for i, im in zip(list(range(limit)), source.get_images(tags)):
-                if begin is not None and im['ctime'] <= begin:
-                    break
-                store.Post.put(**im)
-            store.db.session.commit()
+        with store.autodag() as dag:
+            for make in g.sources:
+                source = make(dict)
+                tags = []
+                for i, im in zip(list(range(limit)), source.get_images(tags)):
+                    if begin is not None and im['ctime'] <= begin:
+                        break
+                    store.Post.put(dag=dag, **im)
 
     @api.route('/add_user', methods=['POST'])
     @guarded
     @logged
     def add_user():
-        store.add_user(store.User(
+        store.add_user(
             openid=request.json['openid'],
             name=request.json['name'],
             email=request.json['email']
-        ))
+        )
         store.db.session.commit()
         return jsonify(dict())
 
@@ -294,11 +293,12 @@ def make(app, api, cached, store):
     @guarded
     @logged
     @locked()
-    def update(begin=None):
+    def update(begin):
         from datetime import datetime
         begin = datetime.strptime(begin, '%Y%m%d')
         _set_last_update_time(datetime.now())
         _update_images(begin)
+        store.db.session.commit()
         return jsonify(dict())
 
     @api.route('/last_update_time')
@@ -348,7 +348,7 @@ def make(app, api, cached, store):
     @logged
     def plused():
         user = get_user_bi_someid()
-        return jsonify(result=[tod(e, ('id',)) for e in user.plused])
+        return jsonify(result=[dict(id=p.entry.id, ctime=p.ctime) for p in user.plused])
 
     def minus():
         try:

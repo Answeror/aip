@@ -9,6 +9,7 @@ from functools import partial, wraps
 from datetime import datetime
 import threading
 import pickle
+from contextlib import contextmanager
 #import logging
 from .dag import Dag
 
@@ -157,6 +158,35 @@ def make(app):
         db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
     )
 
+    def dagw(f):
+        '''dag for write'''
+        @wraps(f)
+        def inner(*args, **kargs):
+            if 'dag' in kargs and kargs['dag'] is not None:
+                return f(*args, **kargs)
+            else:
+                dag = kargs['dag'] = get_dag()
+                ret = f(*args, **kargs)
+                set_dag(dag)
+                return ret
+        return inner
+
+    def dagr(f):
+        '''dag for read'''
+        @wraps(f)
+        def inner(*args, **kargs):
+            if 'dag' in kargs and kargs['dag'] is not None:
+                kargs['dag'] = get_dag()
+            return f(*args, **kargs)
+        return inner
+
+    @stored
+    @contextmanager
+    def autodag():
+        dag = get_dag()
+        yield dag
+        set_dag(dag)
+
     @stored
     class Post(db.Model):
 
@@ -181,9 +211,10 @@ def make(app):
         )
 
         @classmethod
-        def put(cls, **kargs):
+        @dagw
+        def put(cls, dag, **kargs):
             db.session.flush()
-            kargs['tags'] = [Tag.get_or_add_bi_name(name) for name in set(kargs['tags'])]
+            kargs['tags'] = [Tag.get_or_add_bi_name(name, dag=dag) for name in set(kargs['tags'])]
 
             try:
                 post = cls.query.filter_by(site_id=kargs['site_id'], post_id=kargs['post_id']).one()
@@ -232,18 +263,6 @@ def make(app):
         name = db.Column(db.UnicodeText, unique=True, index=True)
         lock = threading.RLock()
 
-        @classmethod
-        def get_or_add_bi_name(cls, name):
-            try:
-                db.session.flush()
-                return cls.query.filter_by(name=name).one()
-            except NoResultFound:
-                inst = cls(name=name)
-                cls.add(inst)
-                db.session.flush()
-                db.session.expire(inst, ['id'])
-                return inst
-
         @property
         def short_name(self):
             n = app.config['AIP_TAG_SHORT_NAME_LIMIT']
@@ -264,28 +283,6 @@ def make(app):
                     return f(self, *args, **kargs)
             return inner
 
-        def dagw(f):
-            '''dag for write'''
-            @wraps(f)
-            def inner(*args, **kargs):
-                if 'dag' in kargs:
-                    return f(*args, **kargs)
-                else:
-                    dag = kargs['dag'] = get_dag()
-                    ret = f(*args, **kargs)
-                    set_dag(dag)
-                    return ret
-            return inner
-
-        def dagr(f):
-            '''dag for read'''
-            @wraps(f)
-            def inner(*args, **kargs):
-                if 'dag' in kargs:
-                    kargs['dag'] = get_dag()
-                return f(*args, **kargs)
-            return inner
-
         @classmethod
         @locked
         @dagw
@@ -297,6 +294,19 @@ def make(app):
             dag.add(tag.id)
             #logging.debug('new tag (%d, %s)' % (tag.id, tag.name))
             return tag
+
+        @classmethod
+        @dagw
+        def get_or_add_bi_name(cls, name, dag):
+            try:
+                db.session.flush()
+                return cls.query.filter_by(name=name).one()
+            except NoResultFound:
+                inst = cls(name=name)
+                cls.add(inst, dag=dag)
+                db.session.flush()
+                db.session.expire(inst, ['id'])
+                return inst
 
         @classmethod
         @locked
@@ -391,10 +401,13 @@ def make(app):
 
     @stored
     @flushed
-    def add_user(user):
+    def add_user(name, email, openid):
+        user = store.User(name=name, email=email)
+        user.openids.append(store.Openid(uri=openid))
         db.session.add(user)
         db.session.flush()
         db.session.expire(user, ['id'])
+        return user
 
     @stored
     @flushed
