@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 
-from nose.tools import assert_equal, assert_in, with_setup
+from nose.tools import assert_equal, with_setup
 from bs4 import BeautifulSoup as Soup
 from mock import patch, Mock
 import os
-import json
 
 
 RESPONSE_FILE_PATH = os.path.join(os.path.dirname(__file__), 'response.pkl')
@@ -34,7 +33,8 @@ def patch_urllib3():
             d = pickle.load(f)
         r = Mock()
         assert_equal(method, 'GET')
-        assert_in(url, d)
+        if url not in d:
+            raise Exception('url %s not in cache' % url)
         r.data = d[url]
         return r
 

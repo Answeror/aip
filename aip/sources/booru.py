@@ -26,15 +26,19 @@ class Source(base.Source, metaclass=MetaWithFields):
 
     def _fetch(self, request_url):
         try:
-            return self._http.request('GET', request_url)
+            r = self._http.request('GET', request_url)
+            if r.status != 200:
+                logging.error('fetch %s failed, status %d' % (request_url, r.status))
+                return None
+            return r
         except Exception as e:
-            logging.info('fetch failed: %s' % request_url)
+            logging.error('fetch failed: %s' % request_url)
             logging.exception(e)
             return None
 
     def _get(self, request_url):
         r = self._fetch(request_url)
-        return self.parse(r) if r is not None else []
+        return self.parse(r) if r is not None else None
 
     @abc.abstractmethod
     def parse(self, response):
@@ -45,21 +49,50 @@ class Source(base.Source, metaclass=MetaWithFields):
         return
 
     def _request_images(self, tags):
+        logging.debug('fetch %s' % self.url)
         limit = LIMIT_MIN
         page = self.start_page
         end = False
-        fetched = 0
+        increasing = True
+        offset = 0
         while not end:
             logging.debug('fetch list, limit %d' % limit)
             page_link = self.image_url_template % ('+'.join(tags), limit, page)
-            images = list(self._get(page_link))
+
+            try:
+                images = self._get(page_link)
+            except Exception as e:
+                logging.exception(e)
+                images = None
+
+            if images is None:
+                failed = True
+                images = []
+            else:
+                failed = False
+
             if len(images) < limit:
-                end = True
-            for im in images[fetched:]:
-                yield im
-            fetched = len(images)
+                if increasing:
+                    increasing = False
+                    if limit > LIMIT_MIN:
+                        limit //= 2
+                    else:
+                        end = True
+                else:
+                    end = True
             # doubling next fetch
-            limit += limit
+            if increasing:
+                logging.debug('doubling fetching length')
+                limit += limit
+            else:
+                if failed:
+                    logging.debug('fetch failed, stay on page %d' % page)
+                else:
+                    logging.debug('yield %d posts in page %d' % (len(images) - offset, page))
+                    for im in images[offset:]:
+                        yield im
+                    offset = max(0, len(images) - limit)
+                    page += 1
 
     def _request_paged_images(self, tags, page, per):
         page = self.start_page + page

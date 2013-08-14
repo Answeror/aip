@@ -57,7 +57,8 @@ def patch_urllib3():
         with open(RESPONSE_FILE_PATH, 'rb') as f:
             d = pickle.load(f)
         r = Mock()
-        assert_in(url, d)
+        if url not in d:
+            raise Exception('url %s not in cache' % url)
         r.data = d[url]
         return r
 
