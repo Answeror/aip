@@ -41,7 +41,7 @@ def make(app):
     class Plus(db.Model):
 
         user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
-        entry_id = db.Column(db.Unicode(128), db.ForeignKey('entry.id'), primary_key=True)
+        entry_id = db.Column(db.Integer, db.ForeignKey('entry.id'), primary_key=True)
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
 
     @stored
@@ -100,22 +100,29 @@ def make(app):
                 'user_id': db.select([Openid.user_id]).where(Openid.uri == primary)
             }))
 
+    tagged_table = db.Table(
+        'tagged',
+        db.Model.metadata,
+        db.Column('post_id', db.Integer, db.ForeignKey('post.id'), primary_key=True),
+        db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True),
+        db.Column('entry_id', db.Integer, db.ForeignKey('entry.id'), index=True)
+    )
+
     @stored
     class Entry(db.Model):
 
-        id = db.Column(db.Unicode(128), primary_key=True)
-        posts = db.relationship('Post', lazy=False, backref=db.backref('entry'))
-        plused = db.relationship('Plus', lazy=False, backref=db.backref('entry'))
+        id = db.Column(db.Integer, primary_key=True)
+        md5 = db.Column(db.Unicode(128), unique=True)
+        ctime = db.Column(db.DateTime, index=True)
+        posts = db.relationship('Post', backref=db.backref('entry'))
+        plused = db.relationship('Plus', backref=db.backref('entry'))
+        tags = db.relationship('Tag', secondary=tagged_table, backref=db.backref('entries'))
 
         @classmethod
         def __declare_last__(cls):
             cls.best_post = property(lambda self: max(self.posts, key=lambda p: p.score))
             for key in ('post_url', 'preview_url', 'height', 'width', 'score'):
                 setattr(cls, key, property(partial(lambda key, self: getattr(self.best_post, key), key)))
-
-            cls.ctime = db.column_property(
-                db.select([func.min(Post.ctime)]).where(Post.md5 == cls.id).correlate(cls.__table__)
-            )
 
         @property
         def plus_count(self):
@@ -129,67 +136,36 @@ def make(app):
         def preview_height(self):
             return int(self.ideal_width * self.height / self.width)
 
-        @property
-        def md5(self):
-            return self.id
-
-        @property
-        def tags(self):
-            return set().union(*[p.tags for p in self.posts])
+        @classmethod
+        def get_or_add_bi_md5(cls, md5, ctime=datetime.utcnow()):
+            try:
+                db.session.flush()
+                return cls.query.filter_by(md5=md5).one()
+            except NoResultFound:
+                inst = cls(md5=md5, ctime=ctime)
+                db.session.flush()
+                db.session.expire(inst, ['id'])
+                return inst
 
         @classmethod
         def get_bi_tags_order_bi_ctime(cls, tags, r):
-            ## http://stackoverflow.com/a/7546802
-            #tagnames = db.union(*[db.select([db.bindparam(_random_name(), t).label('name')]) for t in tags])
-            #hastag = ~db.exists().where(~tagnames.c.name.in_(db.select([Tag.name])))
-            #sub = db.select([Tag.id]).where(Tag.name.in_(tags))
-            ## http://docs.sqlalchemy.org/en/rel_0_8/core/tutorial.html#correlated-subqueries
-            #posts = db.select([Post.id]).where(Post.md5 == Entry.id).correlate(Entry.__table__)
-            #sup = db.select([tagged_table.c.tag_id]).where(tagged_table.c.post_id.in_(posts))
-            #contains = ~db.exists().where(~sub.c.id.in_(sup))
-            #q = Entry.query.filter(db.and_(hastag, contains)).order_by(desc(Entry.ctime))
-            #logging.debug(str(q))
-            #return q if r is None else q[r]
-
             db.session.flush()
 
             if tags:
-                sub_tag_names = db.union(*[db.select([db.bindparam(_random_name(), t).label('name')]) for t in tags])
-                has_tag = ~db.exists().where(~sub_tag_names.c.name.in_(db.select([Tag.name])))
-                if not db.session.query(has_tag).scalar():
+                qsubname = db.union(*[db.select([db.bindparam(_random_name(), t).label('name')]) for t in tags])
+                qhas = ~db.exists().where(~qsubname.c.name.in_(db.select([Tag.name])))
+                if not db.session.query(qhas).scalar():
                     return []
+                qsub = db.select([Tag.id.label('tid')]).where(Tag.name.in_(qsubname))
+                #q = db.session.query(Tag.entries).filter(Tag.id.in_(qsub)).order_by(Entry.ctime)
+                qsup = db.select([tagged_table.c.tag_id]).where(tagged_table.c.entry_id == Entry.id).correlate(Entry)
+                qcont = ~db.exists().where(~qsub.c.tid.in_(qsup))
+                q = Entry.query.filter(qcont).order_by(Entry.ctime)
+            else:
+                q = Entry.query.order_by(Entry.ctime)
 
-            # not use group by here
-            # because aggregation function cannot take advantage of indexing
-            # use select + order + distinct instead
-            p1 = db.aliased(Post)
-            qmd5 = db.select([p1.md5]).order_by(db.desc(p1.ctime))
-            qpost = db.select([db.distinct(qmd5.c.md5).label('best_md5')])
-
-            if tags:
-                p2 = db.aliased(Post, name='p2')
-                # recursive dependence
-                # use ugly text based condition statement here
-                qsup = db.select([tagged_table.c.tag_id]).select_from(tagged_table.join(p2)).where('p2.md5 = best_md5').correlate(qmd5)
-                qsub = db.select([Tag.id]).where(Tag.name.in_(sub_tag_names))
-                qin = ~db.exists().where(~qsub.c.id.in_(qsup))
-                qpost = qpost.where(qin)
-
-            if r is not None:
-                # offset and limit must be set here
-                # to archive huge performance improvement
-                qpost = qpost.offset(r.start).limit(r.stop - r.start)
-
-            q = Entry.query.join(qpost, Entry.id == qpost.c.best_md5)
             logging.debug(str(q))
-            return q
-
-    tagged_table = db.Table(
-        'tagged',
-        db.Model.metadata,
-        db.Column('post_id', db.Integer, db.ForeignKey('post.id'), primary_key=True),
-        db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
-    )
+            return q if r is None else q[r]
 
     def dagw(f):
         '''dag for write'''
@@ -227,39 +203,32 @@ def make(app):
         image_url = db.Column(db.UnicodeText)
         width = db.Column(db.Integer)
         height = db.Column(db.Integer)
-        rating = db.Column(db.Unicode(128))
+        rating = db.Column(db.Unicode(16))
         score = db.Column(db.Float)
         preview_url = db.Column(db.UnicodeText)
         sample_url = db.Column(db.UnicodeText)
         ctime = db.Column(db.DateTime, index=True)
-        mtime = db.Column(db.DateTime)
-        site_id = db.Column(db.Unicode(128), index=True)
-        post_id = db.Column(db.Unicode(128))
         post_url = db.Column(db.UnicodeText)
-        md5 = db.Column(db.Unicode(128), db.ForeignKey('entry.id'), index=True)
-        tags = db.relationship('Tag', secondary=tagged_table, lazy=False)
-
-        __table_args__ = (
-            db.UniqueConstraint('site_id', 'post_id'),
-        )
+        entry_id = db.Column(db.Integer, db.ForeignKey('entry.id'), index=True)
+        tags = db.relationship('Tag', secondary=tagged_table)
 
         @classmethod
+        @flushed
         @dagw
         def put(cls, dag, **kargs):
-            db.session.flush()
             kargs['tags'] = [Tag.get_or_add_bi_name(name, dag=dag) for name in set(kargs['tags'])]
-
             try:
-                post = cls.query.filter_by(site_id=kargs['site_id'], post_id=kargs['post_id']).one()
+                post = cls.query.filter_by(post_url=kargs['post_url']).one()
+                if post.md5 != kargs['md5']:
+                    raise Exception('md5 changed %s -> %s' % (post.md5, kargs['md5']))
                 for key, value in kargs.items():
                     setattr(post, key, value)
             except NoResultFound:
                 post = cls(**kargs)
+                post.entry = Entry.get_or_add_bi_md5(md5=kargs['md5'], ctime=kargs['ctime'])
                 db.session.add(post)
                 db.session.flush()
                 db.session.expire(post, ['id'])
-
-            db.session.merge(Entry(id=kargs['md5']))
 
     @stored
     class Imgur(db.Model):
@@ -360,12 +329,12 @@ def make(app):
         def unlink(cls, child, parent, dag):
             dag.unlink(child, parent)
 
-        @classmethod
-        @locked
-        @dagr
-        def entries(cls, ids, dag):
-            down = set().union(*[cls.dag.down[i] for i in ids])
-            return Entry.query.join(Post).join(tagged_table).filter(tagged_table.c.tag_id.in_(list(down))).all()
+        #@classmethod
+        #@locked
+        #@dagr
+        #def entries(cls, ids, dag):
+            #down = set().union(*[cls.dag.down[i] for i in ids])
+            #return Entry.query.join(Post).join(tagged_table).filter(tagged_table.c.tag_id.in_(list(down))).all()
 
     def _random_name():
         import uuid
@@ -470,6 +439,7 @@ def make(app):
     event.listen(db.engine, 'connect', _pragma_on_connect)
 
     db.create_all()
+    db.configure_mappers()
 
     store.db = db
     return store
