@@ -8,6 +8,7 @@
 *.css text eol=lf
 *.scss text eol=lf
 *.json text eol=lf
+*.sql text eol=lf
 
 # Custom for Visual Studio
 *.cs     diff=csharp
