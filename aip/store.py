@@ -10,7 +10,7 @@ from datetime import datetime
 import threading
 import pickle
 from contextlib import contextmanager
-import logging
+#import logging
 from .dag import Dag
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import exc as orm_exc
@@ -117,13 +117,11 @@ def make(app):
                 'user_id': db.select([Openid.user_id]).where(Openid.uri == primary)
             }))
 
-    tagged_table = db.Table(
-        'tagged',
-        db.Model.metadata,
-        db.Column('post_id', db.Integer, db.ForeignKey('post.id'), primary_key=True),
-        db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True),
-        db.Column('entry_id', db.Integer, db.ForeignKey('entry.id'), index=True)
-    )
+    class Tagged(db.Model):
+
+        post_id = db.Column(db.Integer, db.ForeignKey('post.id'), primary_key=True)
+        tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+        entry_id = db.Column(db.Integer, db.ForeignKey('entry.id'), index=True)
 
     @stored
     class Entry(db.Model):
@@ -133,7 +131,7 @@ def make(app):
         ctime = db.Column(db.DateTime, index=True)
         posts = db.relationship('Post', backref=db.backref('entry'))
         plused = db.relationship('Plus', backref=db.backref('entry'))
-        tags = db.relationship('Tag', secondary=tagged_table, backref=db.backref('entries'))
+        tags = db.relationship('Tag', secondary=Tagged.__table__, backref=db.backref('entries'))
 
         @classmethod
         def __declare_last__(cls):
@@ -165,6 +163,7 @@ def make(app):
                 return cls.query.filter_by(md5=md5).one()
             except NoResultFound:
                 inst = cls(md5=md5, ctime=ctime)
+                db.session.add(inst)
                 db.session.flush()
                 db.session.expire(inst, ['id'])
                 return inst
@@ -175,7 +174,7 @@ def make(app):
 
             if tags:
                 qsub = db.select([Tag.id]).where(Tag.name.in_(tags)).correlate()
-                tt = tagged_table.alias()
+                tt = Tagged.__table__.alias()
                 qcount = (
                     db.select([db.func.count('*')])
                     .select_from(Tag.__table__)
@@ -195,7 +194,7 @@ def make(app):
                     .options(db.subqueryload(Entry.plused))
                     .options(db.subqueryload(Entry.tags))
                 )
-                logging.debug(str(q))
+                #logging.debug(str(q))
                 q = q[r]
             else:
                 q = Entry.query.order_by(Entry.ctime.desc())[r]
@@ -245,25 +244,36 @@ def make(app):
         ctime = db.Column(db.DateTime, index=True)
         post_url = db.Column(db.UnicodeText)
         entry_id = db.Column(db.Integer, db.ForeignKey('entry.id'), index=True)
-        tags = db.relationship('Tag', secondary=tagged_table)
+        tags = db.relationship('Tag', secondary=Tagged.__table__)
+
+        def from_dict(self, d):
+            for key, value in d.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
 
         @classmethod
         @flushed
         @dagw
         def put(cls, dag, **kargs):
-            kargs['tags'] = [Tag.get_or_add_bi_name(name, dag=dag) for name in set(kargs['tags'])]
+            entry = Entry.get_or_add_bi_md5(md5=kargs['md5'], ctime=kargs['ctime'])
+
+            tags = [Tag.get_or_add_bi_name(name, dag=dag) for name in set(kargs['tags'])]
+            del kargs['tags']
+
             try:
                 post = cls.query.filter_by(post_url=kargs['post_url']).options(db.joinedload(cls.entry)).one()
                 if post.entry.md5 != kargs['md5']:
                     raise Exception('md5 changed %s -> %s' % (post.md5, kargs['md5']))
-                for key, value in kargs.items():
-                    setattr(post, key, value)
+                post.from_dict(kargs)
             except NoResultFound:
-                post = cls(**kargs)
-                post.entry = Entry.get_or_add_bi_md5(md5=kargs['md5'], ctime=kargs['ctime'])
+                post = cls(entry=entry)
+                post.from_dict(kargs)
                 db.session.add(post)
                 db.session.flush()
                 db.session.expire(post, ['id'])
+
+            for tag in tags:
+                db.session.merge(Tagged(post_id=post.id, tag_id=tag.id, entry_id=entry.id))
 
     @stored
     class Imgur(db.Model):

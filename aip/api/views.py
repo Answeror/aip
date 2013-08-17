@@ -11,7 +11,7 @@ from flask import (
     Response,
     g
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 import threading
 from functools import wraps
 from uuid import uuid4
@@ -292,15 +292,15 @@ def make(app, api, cached, store):
             es = store.Entry.get_bi_tags_order_bi_ctime(tags=[], r=r)
         return jsonify(result=render_template('page.html', entries=es))
 
-    @api.route('/update', defaults={'begin': datetime.today().strftime('%Y%m%d')})
+    @api.route('/update', defaults={'begin': (datetime.utcnow() - timedelta(days=1)).strftime('%Y%m%d%H%M%S')})
     @api.route('/update/<begin>')
     @guarded
     @logged
     @locked()
     def update(begin):
         from datetime import datetime
-        begin = datetime.strptime(begin, '%Y%m%d')
-        _set_last_update_time(datetime.now())
+        begin = datetime.strptime(begin, '%Y%m%d%H%M%S')
+        _set_last_update_time(datetime.utcnow())
         _update_images(begin)
         store.db.session.commit()
         return jsonify(dict())
