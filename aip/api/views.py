@@ -379,7 +379,7 @@ def make(app, api, cached, store):
         return minus()
 
     def imgur_url(md5):
-        im = store.get_image_bi_md5(md5)
+        im = store.Entry.get_bi_md5(md5)
         imgur_image = store.get_imgur_bi_md5(md5)
         limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
         imgur = Imgur(
@@ -419,7 +419,7 @@ def make(app, api, cached, store):
         return url
 
     def immio_url(md5):
-        im = store.get_image_bi_md5(md5)
+        im = store.Entry.get_bi_md5(md5)
         immio_image = store.get_immio_bi_md5(md5)
         immio = Immio(
             max_size=current_app.config['AIP_IMMIO_RESIZE_MAX_SIZE'],

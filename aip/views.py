@@ -146,7 +146,6 @@ def make(app, oid, cached, store):
     def login():
         if g.user is not None:
             return redirect(oid.get_next_url())
-        openid = 'https://www.google.com/accounts/o8/id'
         return try_login()
 
     @oid.after_login
@@ -202,9 +201,11 @@ def make(app, oid, cached, store):
                     return try_login()
                 else:
                     flash('Profile successfully created')
-                    user = store.User(name=name, email=email)
-                    user.openids.append(store.Openid(uri=session['openid']))
-                    store.add_user(user)
+                    user = store.add_user(
+                        name=name,
+                        email=email,
+                        openid=session['openid']
+                    )
                     store.db.session.commit()
                     return redirect(oid.get_next_url())
         return render_template('create_profile.html', next_url=oid.get_next_url())

@@ -138,7 +138,7 @@ def make(app):
         @classmethod
         def __declare_last__(cls):
             cls.best_post = property(lambda self: max(self.posts, key=lambda p: p.score))
-            for key in ('post_url', 'preview_url', 'height', 'width', 'score'):
+            for key in ('post_url', 'preview_url', 'image_url', 'sample_url', 'height', 'width', 'score'):
                 setattr(cls, key, property(partial(lambda key, self: getattr(self.best_post, key), key)))
 
         @property
@@ -152,6 +152,11 @@ def make(app):
         @property
         def preview_height(self):
             return int(self.ideal_width * self.height / self.width)
+
+        @classmethod
+        @flushed
+        def get_bi_md5(self, md5):
+            return Entry.query.filter_by(md5=md5).first()
 
         @classmethod
         def get_or_add_bi_md5(cls, md5, ctime=datetime.utcnow()):
@@ -169,18 +174,31 @@ def make(app):
             db.session.flush()
 
             if tags:
-                qsub = db.select([Tag.id]).where(Tag.name.in_(tags))
+                qsub = db.select([Tag.id]).where(Tag.name.in_(tags)).correlate()
                 tt = tagged_table.alias()
+                qcount = (
+                    db.select([db.func.count('*')])
+                    .select_from(Tag.__table__)
+                    .where(db.and_(Tag.id.in_(qsub), db.exists(
+                        db.select('*')
+                        .select_from(tt)
+                        .where(db.and_(tt.c.entry_id == Entry.id, tt.c.tag_id == Tag.id))
+                        .correlate(Entry)
+                        .correlate(Tag)
+                    ))).as_scalar()
+                )
                 q = (
-                    Entry.query.join(tt, db.and_(Entry.id == tt.c.entry_id, tt.c.tag_id.in_(qsub)))
-                    .group_by(Entry.id)
-                    .having(db.func.count('*') == len(tags))
-                    .order_by(Entry.ctime)
+                    Entry.query
+                    .filter(qcount == len(tags))
+                    .order_by(Entry.ctime.desc())
+                    .options(db.subqueryload(Entry.posts))
+                    .options(db.subqueryload(Entry.plused))
+                    .options(db.subqueryload(Entry.tags))
                 )
                 logging.debug(str(q))
                 q = q[r]
             else:
-                q = Entry.query.order_by(Entry.ctime)[r]
+                q = Entry.query.order_by(Entry.ctime.desc())[r]
 
             return q
 
@@ -235,8 +253,8 @@ def make(app):
         def put(cls, dag, **kargs):
             kargs['tags'] = [Tag.get_or_add_bi_name(name, dag=dag) for name in set(kargs['tags'])]
             try:
-                post = cls.query.filter_by(post_url=kargs['post_url']).one()
-                if post.md5 != kargs['md5']:
+                post = cls.query.filter_by(post_url=kargs['post_url']).options(db.joinedload(cls.entry)).one()
+                if post.entry.md5 != kargs['md5']:
                     raise Exception('md5 changed %s -> %s' % (post.md5, kargs['md5']))
                 for key, value in kargs.items():
                     setattr(post, key, value)
@@ -391,7 +409,7 @@ def make(app):
     @stored
     @flushed
     def unique_image_count():
-        return Post.query.group_by(Post.md5).count()
+        return Post.query.group_by(Post.entry_id).count()
 
     @stored
     @flushed
@@ -407,11 +425,6 @@ def make(app):
     def get_meta(id):
         meta = Meta.query.get(id)
         return meta.value if meta else None
-
-    @stored
-    @flushed
-    def get_image_bi_md5(md5):
-        return Post.query.filter_by(md5=md5).first()
 
     @stored
     @flushed
