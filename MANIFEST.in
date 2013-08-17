@@ -1,1 +1,2 @@
 recursive-include aip *.py *.js *.json *.html *.css *.scss *.jpg *.gif *.png
+recursive-include migrate *.sql
