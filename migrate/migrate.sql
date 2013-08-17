@@ -23,9 +23,9 @@ create table plus_ (
     foreign key(user_id) references user (id), 
     foreign key(entry_id) references entry (id)
 );
-insert into plus_ (user_id, entry_id)
-select p1.user_id, e1.id
-from plus as p1 inner join entry as e1 on p1.entry_id = e1.id;
+insert into plus_ (user_id, entry_id, ctime)
+select p1.user_id, e1.id, p1.ctime
+from plus as p1 inner join entry as e1 on p1.entry_id = e1.md5;
 drop table plus;
 alter table plus_ rename to plus;
 create index ix_plus_ctime on plus (ctime);
