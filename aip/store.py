@@ -12,6 +12,23 @@ import pickle
 from contextlib import contextmanager
 import logging
 from .dag import Dag
+from sqlalchemy.orm.query import Query
+from sqlalchemy.orm import exc as orm_exc
+
+
+def _scalar_all(self):
+    """Same as scalar, but all() instead of one()
+
+    Example:
+    ids = Session.query(User.id).filter(User.username.in_(["joe", "sam"])).scalar_all()
+    """
+    try:
+        return [ret if not isinstance(ret, tuple) else ret[0] for ret in self.all()]
+    except orm_exc.NoResultFound:
+        return []
+
+
+Query.scalar_all = _scalar_all
 
 
 def make(app):
@@ -152,20 +169,20 @@ def make(app):
             db.session.flush()
 
             if tags:
-                qsubname = db.union(*[db.select([db.bindparam(_random_name(), t).label('name')]) for t in tags])
-                qhas = ~db.exists().where(~qsubname.c.name.in_(db.select([Tag.name])))
-                if not db.session.query(qhas).scalar():
-                    return []
-                qsub = db.select([Tag.id.label('tid')]).where(Tag.name.in_(qsubname))
-                #q = db.session.query(Tag.entries).filter(Tag.id.in_(qsub)).order_by(Entry.ctime)
-                qsup = db.select([tagged_table.c.tag_id]).where(tagged_table.c.entry_id == Entry.id).correlate(Entry)
-                qcont = ~db.exists().where(~qsub.c.tid.in_(qsup))
-                q = Entry.query.filter(qcont).order_by(Entry.ctime)
+                qsub = db.select([Tag.id]).where(Tag.name.in_(tags))
+                tt = tagged_table.alias()
+                q = (
+                    Entry.query.join(tt, db.and_(Entry.id == tt.c.entry_id, tt.c.tag_id.in_(qsub)))
+                    .group_by(Entry.id)
+                    .having(db.func.count('*') == len(tags))
+                    .order_by(Entry.ctime)
+                )
+                logging.debug(str(q))
+                q = q[r]
             else:
-                q = Entry.query.order_by(Entry.ctime)
+                q = Entry.query.order_by(Entry.ctime)[r]
 
-            logging.debug(str(q))
-            return q if r is None else q[r]
+            return q
 
     def dagw(f):
         '''dag for write'''
