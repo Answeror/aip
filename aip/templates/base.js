@@ -263,6 +263,8 @@ $.aip.init = function(kargs) {
         }
     });
     function pull() {
+        if ($.aip.pulling) return;
+        $.aip.pulling = true;
         $this = $(this);
         progress(0);
         $('#loading').show();
@@ -288,6 +290,7 @@ $.aip.init = function(kargs) {
                 $('#loading').hide();
                 $('#alert_box').html('');
                 page += 1;
+                $.aip.pulling = false;
                 $.waypoints('refresh');
                 if ($container.outerHeight() <= $.waypoints('viewportHeight')) pull();
             };
