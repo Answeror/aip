@@ -16,7 +16,7 @@ import threading
 from functools import wraps
 from uuid import uuid4
 import pickle
-from ..imgur import Imgur
+from ..bed.imgur import Imgur
 from ..bed.immio import Immio
 from ..async.background import Background
 from ..async.subpub import Subpub
@@ -109,6 +109,7 @@ def make(app, api, cached, store):
                 return f(*args, **kargs)
             except Exception as e:
                 store.db.session.rollback()
+
                 return jsonify(dict(error=dict(message=str(e))))
         return inner
 
@@ -295,8 +296,8 @@ def make(app, api, cached, store):
     @api.route('/update', defaults={'begin': (datetime.utcnow() - timedelta(days=1)).strftime('%Y%m%d%H%M%S')})
     @api.route('/update/<begin>')
     @guarded
-    @logged
     @locked()
+    @logged
     def update(begin):
         from datetime import datetime
         begin = datetime.strptime(begin, '%Y%m%d%H%M%S')
@@ -320,6 +321,8 @@ def make(app, api, cached, store):
         store.clear()
         return jsonify(dict())
 
+    @guarded
+    @logged
     def plus():
         user = get_user_bi_someid()
         entry = store.get_entry_bi_id(request.json['entry_id'])
@@ -354,6 +357,8 @@ def make(app, api, cached, store):
         user = get_user_bi_someid()
         return jsonify(result=[dict(id=p.entry.id, ctime=p.ctime) for p in user.plused])
 
+    @guarded
+    @logged
     def minus():
         try:
             user = get_user_bi_someid()
@@ -390,24 +395,16 @@ def make(app, api, cached, store):
             album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH'],
             http=g.http
         )
-        if not imgur_image:
-            fail_count = 0
-            while True:
-                imgur_image = imgur.upload(im)
-                if imgur_image is not None:
-                    imgur_image = store.Imgur(
-                        id=imgur_image.id,
-                        md5=imgur_image.md5,
-                        link=imgur_image.link,
-                        deletehash=imgur_image.deletehash
-                    )
-                    break
-                if fail_count >= current_app.config['AIP_UPLOAD_IMGUR_RETRY_LIMIT']:
-                    break
-                logging.info('upload %s to imgur failed, retry' % md5)
-                ++fail_count
-            if not imgur_image:
-                raise Exception('upload to imgur failed')
+        if imgur_image:
+            logging.info('hit %s' % md5)
+        else:
+            imgur_image = imgur.upload(im)
+            imgur_image = store.Imgur(
+                id=imgur_image.id,
+                md5=imgur_image.md5,
+                link=imgur_image.link,
+                deletehash=imgur_image.deletehash
+            )
             store.db.session.add(imgur_image)
             store.db.session.commit()
         if 'width' in request.args:
@@ -430,32 +427,30 @@ def make(app, api, cached, store):
             logging.info('hit %s' % md5)
         else:
             immio_image = immio.upload(im)
-            if immio_image is not None:
-                immio_image = store.Immio(
-                    uid=immio_image.uid,
-                    md5=immio_image.md5,
-                    uri=immio_image.uri,
-                    width=immio_image.width,
-                    height=immio_image.height
-                )
-            if not immio_image:
-                raise Exception('upload to immio failed')
+            immio_image = store.Immio(
+                uid=immio_image.uid,
+                md5=immio_image.md5,
+                uri=immio_image.uri,
+                width=immio_image.width,
+                height=immio_image.height
+            )
+            store.db.session.flush()
             immio_image = store.db.session.merge(immio_image)
-            store.db.session.add(immio_image)
             store.db.session.commit()
         return immio_image.uri
 
-    @locked()
+    @guarded
+    @logged
     def proxied_url(md5):
-        for make in (immio_url, imgur_url):
+        for make in (imgur_url, immio_url):
             logging.info('use %s' % make.__name__)
             try:
                 uri = make(md5)
                 logging.info('get %s' % uri)
                 return jsonify(dict(result=uri))
             except Exception as e:
-                logging.error(e)
-        return jsonify(dict(error=dict(message='all gallery failed')))
+                logging.exception(e)
+        raise Exception('all gallery failed')
 
     @api.route('/proxied_url/<md5>', methods=['GET'])
     @guarded

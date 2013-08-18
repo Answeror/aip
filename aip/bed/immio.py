@@ -2,19 +2,18 @@
 # -*- coding: utf-8 -*-
 
 
-import PIL
 import json
 import logging
-from io import BytesIO
 from base64 import b64encode
 from collections import namedtuple
 from urllib.error import HTTPError
+from .base import FetchImageMixin
 
 
 Image = namedtuple('Image', ('md5', 'uid', 'uri', 'width', 'height'))
 
 
-class Immio(object):
+class Immio(FetchImageMixin):
 
     def __init__(
         self,
@@ -22,22 +21,10 @@ class Immio(object):
         timeout,
         http
     ):
+        super(Immio, self).__init__(http=http, timeout=timeout)
         self.max_size = max_size
         self.timeout = timeout
         self.http = http
-
-    def _fetch(self, url):
-        return self.http.request('GET', url)
-
-    def _fetch_image(self, url):
-        try:
-            logging.info('fetch image: %s' % url)
-            r = self._fetch(url)
-            return r.data
-        except Exception as e:
-            logging.error('fetch image failed: %s' % url)
-            logging.exception(e)
-            return None
 
     def call(self, md5, data):
         try:
@@ -45,31 +32,29 @@ class Immio(object):
                 method='POST',
                 url='http://imm.io/store/',
                 fields={
-                    'image': b'data:image/png;base64,' + b64encode(data),
+                    'image': b'data:image/jpeg;base64,' + b64encode(data),
                     'name': md5
                 },
-                timeout=self.timeout
+                timeout=self.timeout,
+                retries=0
             )
             return json.loads(r.data.decode('utf-8'))
         except HTTPError as e:
             return json.loads(e.read().decode('utf-8'))
 
     def upload(self, image):
-        def download(uri):
-            input_stream = BytesIO(self._fetch_image(uri))
-            pim = PIL.Image.open(input_stream)
-            pim.thumbnail(
-                self.max_size,
-                PIL.Image.ANTIALIAS
-            )
-            output_stream = BytesIO()
-            pim.convert('RGB').save(output_stream, format='JPEG')
-            return output_stream.getvalue()
+        def fail():
+            raise Exception('upload %s failed' % image.md5)
 
-        r = self.call(image.md5, download(image.sample_url if image.sample_url else image.image_url))
+        try:
+            r = self.call(image.md5, self.download(image.sample_url if image.sample_url else image.image_url))
+        except Exception as e:
+            logging.exception(e)
+            fail()
 
         if not r['success']:
-            return None
+            logging.error('upload failed, response: {}'.format(r))
+            fail()
 
         data = r['payload']
         return Image(
