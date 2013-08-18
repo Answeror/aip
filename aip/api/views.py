@@ -405,7 +405,8 @@ def make(app, api, cached, store):
                 link=imgur_image.link,
                 deletehash=imgur_image.deletehash
             )
-            store.db.session.add(imgur_image)
+            store.db.session.flush()
+            imgur_image = store.db.session.merge(imgur_image)
             store.db.session.commit()
         if 'width' in request.args:
             width = float(request.args['width'])
