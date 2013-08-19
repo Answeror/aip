@@ -18,5 +18,21 @@ setup(
     packages=['aip'],
     description='AIP Instrumentality Project',
     include_package_data=True,
-    zip_safe=False
+    zip_safe=False,
+    install_requires=[
+        'Flask==0.10.1',
+        'urllib3',
+        'pyScss==1.2.0',
+        'SQLAlchemy==0.8.2',
+        'Flask-SQLAlchemy==0.17',
+        'Pillow==2.1.0',
+        'Flask-OpenID==1.42.1',
+        'python3-openid==3.0.1',
+        'six'
+    ],
+    dependency_links = [
+        'git+https://github.com/Answeror/pyScss.git@0a22ed41b76f183f19af6cba54a5a8193302509d#egg=pyScss-1.2.0',
+        'https://github.com/Answeror/flask-openid/tarball/version#egg=Flask-OpenID-1.42.1',
+        'https://github.com/zain/flask-sqlalchemy/tarball/ce1ed2abd0dbee04f0601d0e4d1770fff9ed9074#egg=Flask-SQLAlchemy-0.17'
+    ]
 )

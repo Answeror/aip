@@ -291,8 +291,10 @@ $.aip.init = function(kargs) {
                 $('#alert_box').html('');
                 page += 1;
                 $.aip.pulling = false;
-                $.waypoints('refresh');
-                if ($container.outerHeight() <= $.waypoints('viewportHeight')) pull();
+                if (n) {
+                    $.waypoints('refresh');
+                    if ($container.outerHeight() <= $.waypoints('viewportHeight')) pull();
+                }
             };
             if (!n) {
                 cleanup();

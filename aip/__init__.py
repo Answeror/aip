@@ -2,13 +2,34 @@
 # -*- coding: utf-8 -*-
 
 
-def make(config=None):
+import os
+import logging
+
+
+def make(config=None, **kargs):
     from flask import Flask
     app = Flask(
         __name__,
         template_folder='templates',
-        static_folder='static'
+        static_folder='static',
+        **kargs
     )
+
+    # config from file
+    app.config.from_pyfile('application.cfg', silent=True)
+
+    # setup logging
+    level = app.config.get('AIP_LOG_LEVEL', logging.DEBUG)
+    logging.basicConfig(
+        filename=app.config.get('AIP_LOG_FILE_PATH', os.path.join(app.instance_path, 'aip.log')),
+        level=level
+    )
+    if app.config.get('AIP_LOG_STDOUT', True):
+        import sys
+        soh = logging.StreamHandler(sys.stdout)
+        soh.setLevel(level)
+        logger = logging.getLogger()
+        logger.addHandler(soh)
 
     # config
     from . import config as base
