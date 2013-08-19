@@ -273,6 +273,7 @@ $.aip.init = function(kargs) {
         $.ajax({
             method: 'GET',
             url: kargs.makePageUrl(page),
+            contentType: "application/json",
             accepts: "application/json",
             cache: false,
             dataType: 'json',
@@ -361,6 +362,7 @@ $.aip.init = function(kargs) {
                         return $.aip.async({
                             method: 'GET',
                             url: '/api/proxied_url/' + $img.data('md5'),
+                            contentType: "application/json",
                             accepts: "application/json",
                             cache: false,
                             dataType: 'json',

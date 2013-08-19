@@ -31,6 +31,7 @@ setup(
         'six'
     ],
     dependency_links = [
+        'https://github.com/Answeror/ConfigIt/tarball/version#egg=ConfigIt-0.1.3',
         'git+https://github.com/Answeror/pyScss.git@0a22ed41b76f183f19af6cba54a5a8193302509d#egg=pyScss-1.2.0',
         'https://github.com/Answeror/flask-openid/tarball/version#egg=Flask-OpenID-1.42.1',
         'https://github.com/zain/flask-sqlalchemy/tarball/ce1ed2abd0dbee04f0601d0e4d1770fff9ed9074#egg=Flask-SQLAlchemy-0.17'
