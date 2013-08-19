@@ -1,7 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
 import os
 import sys
 
 DATA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data'))
+os.environ['PYTHON_EGG_CACHE'] = DATA_PATH
 
 with open(os.path.join(DATA_PATH, 'virtualenv'), 'rb') as f:
     virtualenv_path = f.read().strip().decode('utf-8')
