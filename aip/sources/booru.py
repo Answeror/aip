@@ -80,6 +80,13 @@ class Source(base.Source, metaclass=MetaWithFields):
                         end = True
                 else:
                     end = True
+
+            if not failed:
+                logging.debug('yield %d posts in page %d' % (len(images) - offset, page))
+                for im in images[offset:]:
+                    yield im
+                    offset += 1
+
             # doubling next fetch
             if increasing:
                 logging.debug('doubling fetching length')
@@ -88,10 +95,7 @@ class Source(base.Source, metaclass=MetaWithFields):
                 if failed:
                     logging.debug('fetch failed, stay on page %d' % page)
                 else:
-                    logging.debug('yield %d posts in page %d' % (len(images) - offset, page))
-                    for im in images[offset:]:
-                        yield im
-                    offset = max(0, len(images) - limit)
+                    offset = 0
                     page += 1
 
     def _request_paged_images(self, tags, page, per):

@@ -60,6 +60,7 @@ def patch_urllib3():
         if url not in d:
             raise Exception('url %s not in cache' % url)
         r.data = d[url]
+        r.status = 200
         return r
 
     fake = Mock()
@@ -86,7 +87,7 @@ def add_user():
 
 
 def update():
-    r = g.client.get(api('/update/20130630'))
+    r = g.client.get(api('/update/20130630000000'))
     assert_success(r)
 
 
@@ -120,8 +121,7 @@ def test_add_user():
 def test_update_images():
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 0)
-    r = g.client.get(api('/update/20130630'))
-    assert_success(r)
+    update()
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 712)
 
@@ -129,8 +129,7 @@ def test_update_images():
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
 def test_entries():
-    r = g.client.get(api('/update/20130630'))
-    assert_success(r)
+    update()
     r = g.client.get(api('/entry_count'))
     assert_equal(result(r), 504)
     r = g.client.get(api('/entries'))
@@ -148,12 +147,10 @@ def test_entries():
 def test_no_duplication():
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 0)
-    r = g.client.get(api('/update/20130630'))
-    assert_success(r)
+    update()
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 712)
-    r = g.client.get(api('/update/20130630'))
-    assert_success(r)
+    update()
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 712)
 
@@ -163,8 +160,7 @@ def test_no_duplication():
 def test_clear():
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 0)
-    r = g.client.get(api('/update/20130630'))
-    assert_success(r)
+    update()
     r = g.client.get(api('/image_count'))
     assert_equal(result(r), 712)
     r = g.client.get(api('/clear'))
@@ -222,8 +218,7 @@ def test_plus():
 @with_setup(patch_urllib3, unpatch_urllib3)
 @with_setup(setup_app, teardown_app)
 def test_proxied_url():
-    r = g.client.get(api('/update/20130630'))
-    assert_success(r)
+    update()
     r = result(g.client.get(api('/entries')))
-    r = g.client.get(api('/proxied_url/%s' % r[0]['id']))
+    r = g.client.get(api('/proxied_url/%s' % r[0]['md5']))
     assert_success(r)
