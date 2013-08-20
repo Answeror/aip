@@ -273,7 +273,7 @@ $.aip.init = function(kargs) {
         $.ajax({
             method: 'GET',
             url: kargs.makePageUrl(page),
-            contentType: "application/json",
+            contentType: "application/x-www-form-urlencoded",
             accepts: "application/json",
             cache: false,
             dataType: 'json',
@@ -439,7 +439,7 @@ $.aip.init = function(kargs) {
             });
         }).fail(function(reason) {
             $('#loading').hide();
-            $.aip.log.warning('load more failed, reason: ' + JSON.stringify(reason));
+            $.aip.warning('load more failed, reason: ' + JSON.stringify(reason));
         });
     };
     $container.waypoint(
