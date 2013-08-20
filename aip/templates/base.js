@@ -362,7 +362,7 @@ $.aip.init = function(kargs) {
                         return $.aip.async({
                             method: 'GET',
                             url: '/api/proxied_url/' + $img.data('md5'),
-                            contentType: "application/json",
+                            contentType: "application/x-www-form-urlencoded",
                             accepts: "application/json",
                             cache: false,
                             dataType: 'json',
