@@ -127,7 +127,10 @@ $.aip.load_image = function(kargs) {
             reloads: reloads
         });
     };
-    return inner(kargs.img, kargs.src, kargs.timeout, kargs.reloads);
+    var usessl = function(src) {
+        return src.replace('http://', 'https://');
+    };
+    return inner(kargs.img, usessl(kargs.src), kargs.timeout, kargs.reloads);
 };
 $.fn.preview_area = function() {
     return $(this).data('preview-width') * $(this).data('preview-height');
