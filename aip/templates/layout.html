@@ -29,7 +29,7 @@
                                 <span class="icon-bar"></span>
                                 <span class="icon-bar"></span>
                             </button>
-                            <a class=brand href="/" title="current version: {{ config['AIP_VERSION'] }}">AIP Instrumentality Project</a>
+                            <a class=brand href='/'>AIP Instrumentality Project</a>
                             <div class='nav-collapse collapse'>
                                 <ul class="nav">
                                     {% if g.user %}
@@ -66,9 +66,12 @@
         {% endblock %}
         <script src='//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js' ></script>
         <script src="{{ url_for('.static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
+        <div id=brand-popup style='display:none'>{% include "brand.html" %}</div>
         <script>
             $('.brand').tooltip({
-                placement: 'bottom'
+                placement: 'bottom',
+                html: true,
+                title: $('#brand-popup').html()
             });
         </script>
         {% block script %}

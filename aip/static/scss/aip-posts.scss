@@ -5,6 +5,17 @@
 .brand, .page-header {
     /*font-family: 'Bad Script', cursive;*/
 }
+#site-info {
+    tr {
+        td:first-child {
+            text-align: right;
+            padding-right: 1em;
+        }
+        td:last-child {
+            text-align: left;
+        }
+    }
+}
 body {
     position: relative;
     padding-top: 40px;

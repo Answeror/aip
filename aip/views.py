@@ -7,19 +7,20 @@ import os
 import re
 from flask import (
     g,
-    render_template,
     session,
     redirect,
     url_for,
     flash,
     request,
-    current_app
+    current_app,
+    render_template
 )
 from operator import attrgetter as attr
 from io import BytesIO
 from PIL import Image
 from collections import namedtuple
 from urllib.parse import urlparse, urlunparse
+from .layout import render_layout
 
 
 Post = namedtuple('Post', (
@@ -133,6 +134,10 @@ def _fetch_image(url):
 
 def make(app, oid, cached, store):
 
+    @prop
+    def last_update_time(self):
+        return store.get_meta('last_update_time')
+
     @app.before_request
     def lookup_current_user():
         g.user = None
@@ -208,7 +213,7 @@ def make(app, oid, cached, store):
                     )
                     store.db.session.commit()
                     return redirect(oid.get_next_url())
-        return render_template('create_profile.html', next_url=oid.get_next_url())
+        return render_layout('create_profile.html', next_url=oid.get_next_url())
 
     @app.route('/logout')
     def logout():
@@ -232,11 +237,11 @@ def make(app, oid, cached, store):
     @app.route('/', methods=['GET'])
     def posts():
         tags = request.args.get('q', '')
-        return render_template('index.html', tags=tags)
+        return render_layout('index.html', tags=tags)
 
     @app.route('/plused')
     def plused():
-        return render_template('plused.html')
+        return render_layout('plused.html')
 
     @app.route('/style.css')
     #@cached(timeout=24 * 60 * 60)
@@ -276,4 +281,4 @@ def make(app, oid, cached, store):
 
     @app.route('/about')
     def about():
-        return render_template('about.html')
+        return render_layout('about.html')

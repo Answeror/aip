@@ -6,7 +6,6 @@ import logging
 from flask import (
     jsonify,
     request,
-    render_template,
     current_app,
     Response,
     g
@@ -22,6 +21,7 @@ from ..async.background import Background
 from ..async.subpub import Subpub
 import json
 import time
+from ..layout import render_layout
 
 
 def locked(lock=None):
@@ -291,7 +291,7 @@ def make(app, api, cached, store):
             es = store.Entry.get_bi_tags_order_bi_ctime(tags=tags, r=r)
         else:
             es = store.Entry.get_bi_tags_order_bi_ctime(tags=[], r=r)
-        return jsonify(result=render_template('page.html', entries=es))
+        return jsonify(result=render_layout('page.html', entries=es))
 
     @api.route('/update', defaults={'begin': (datetime.utcnow() - timedelta(days=1)).strftime('%Y%m%d%H%M%S')})
     @api.route('/update/<begin>')
@@ -348,7 +348,7 @@ def make(app, api, cached, store):
     @logged
     def plused_page_html(id):
         user = get_user_bi_someid()
-        return jsonify(result=render_template('page.html', entries=wrap(user.plused_entries)))
+        return jsonify(result=render_layout('page.html', entries=wrap(user.plused_entries)))
 
     @api.route('/plused', methods=['GET'])
     @guarded
