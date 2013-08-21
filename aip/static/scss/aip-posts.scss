@@ -33,13 +33,17 @@ body {
         display: block;
         width: 100%;
     }
+    .loading.embed {
+        top: 50%;
+        margin-top: -48px;
+    }
 }
 .embed-container {
     display: block;
     position: relative;    
     height: 0;
     overflow: hidden;
-    img {
+    .embed {
         position: absolute;
         top: 0;
         left: 0;
