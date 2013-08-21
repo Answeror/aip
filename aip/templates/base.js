@@ -301,7 +301,7 @@ $.aip.init = function(kargs) {
             }
             $.aip.inc('in-json', n);
             $items.each(function() {
-                $(this).attr('data-loading', false).attr('data-done', false);
+                $(this).attr('data-done', false);
             });
             $buffer.append($items);
             var loaded = 0;
@@ -381,7 +381,9 @@ $.aip.init = function(kargs) {
                             reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
                                 return $.aip.disturb(1e3 * {{ config['AIP_RELOAD_INTERVAL'] }});
                             })
-                        }).done($.noop).fail(function(reason) {
+                        }).done(function() {
+                            $img.show();
+                        }).fail(function(reason) {
                             error('load image failed, reason: ' + JSON.stringify(reason));
                             $.aip.inc('proxied-preview-loading-failed');
                         });
@@ -399,7 +401,7 @@ $.aip.init = function(kargs) {
                 var $img = $this.find('img.preview');
                 var done = function() {
                     console.log($img.attr('src') + 'loaded');
-                    $this.attr('data-loading', true);
+                    $img.show();
                     var r = {{ config['AIP_RESOLUTION_LEVEL'] }};
                     $.aip.super_resolution($img, function() {
                         proxied($this);
