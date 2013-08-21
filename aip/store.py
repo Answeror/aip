@@ -79,7 +79,7 @@ def make(app):
         name = db.Column(db.Unicode(128), unique=True, index=True)
         email = db.Column(db.Unicode(256), unique=True, index=True)
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
-        plused = db.relationship('Plus', backref=db.backref('user', lazy=False))
+        plused = db.relationship('Plus', backref=db.backref('user'))
 
         @property
         def primary_openid(self):
@@ -138,10 +138,12 @@ def make(app):
             cls.best_post = property(lambda self: max(self.posts, key=lambda p: p.score))
             for key in ('post_url', 'preview_url', 'image_url', 'sample_url', 'height', 'width', 'score'):
                 setattr(cls, key, property(partial(lambda key, self: getattr(self.best_post, key), key)))
-
-        @property
-        def plus_count(self):
-            return len(self.plused)
+            cls.plus_count = db.column_property(
+                db.select([db.func.count('*')])
+                .select_from(Plus.__table__)
+                .where(Plus.entry_id == cls.id)
+                .as_scalar()
+            )
 
         @property
         def preview_width(self):
