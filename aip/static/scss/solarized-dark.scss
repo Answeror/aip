@@ -185,4 +185,8 @@ body.solarized {
             }
         }
     }
+    .item .loading.embed .spinner {
+        & { border-color: $base2; }
+        &:before { border-top-color: $yellow; }
+    }
 }

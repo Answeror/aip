@@ -382,7 +382,7 @@ $.aip.init = function(kargs) {
                                 return $.aip.disturb(1e3 * {{ config['AIP_RELOAD_INTERVAL'] }});
                             })
                         }).done(function() {
-                            $item.find('img.loading').hide();
+                            $item.find('.loading').hide();
                             $img.show();
                         }).fail(function(reason) {
                             error('load image failed, reason: ' + JSON.stringify(reason));
@@ -402,7 +402,7 @@ $.aip.init = function(kargs) {
                 var $img = $this.find('img.preview');
                 var done = function() {
                     console.log($img.attr('src') + 'loaded');
-                    $this.find('img.loading').hide();
+                    $this.find('.loading').hide();
                     $img.show();
                     var r = {{ config['AIP_RESOLUTION_LEVEL'] }};
                     $.aip.super_resolution($img, function() {
