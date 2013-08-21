@@ -3,14 +3,17 @@
     <div class='item span2' data-md5={{ e.md5 }}>
         <div class='thumbnail'>
             <p class=preview>
-                <a class='preview' href='{{ e.post_url }}' target='_blank'>
+                <a
+                    class='preview embed-container'
+                    style='padding-bottom:{{ 100 * e.height / e.width }}%'
+                    href='{{ e.post_url }}'
+                    target='_blank'
+                >
                     <img
                         class='preview lazy'
                         alt=loading
                         data-src='{{ e.preview_url }}'
                         data-md5={{ e.md5 }}
-                        data-width={{ e.width }}
-                        data-height={{ e.height }}
                     >
                 </a>
             </p>

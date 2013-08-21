@@ -29,9 +29,21 @@ body {
     display: inline-block;
     vertical-align: top;
     margin-bottom: 5px;
-    img.preview {
+    a.preview {
+        display: block;
         width: 100%;
-        height: auto;
+    }
+}
+.embed-container {
+    display: block;
+    position: relative;    
+    height: 0;
+    overflow: hidden;
+    img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
     }
 }
 p:last-child {

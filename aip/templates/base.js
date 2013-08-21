@@ -26,11 +26,6 @@ $.aip.error_guard = function(r) {
 $.aip.range = function(n) {
     return Array.apply(0, Array(n)).map(function(e, i) { return i; });
 };
-$.fn.freeze_size = function() {
-    var $this = $(this);
-    $this.attr('width', $this.data('width'));
-    $this.attr('height', $this.data('height'));
-};
 $.aip.inc = function(name, value) {
     var $t = $('#loading li[name="' + name + '"]');
     if (value == undefined) value = 1;
@@ -402,7 +397,6 @@ $.aip.init = function(kargs) {
             $items.each(function() {
                 var $this = $(this);
                 var $img = $this.find('img.preview');
-                $img.freeze_size();
                 var done = function() {
                     console.log($img.attr('src') + 'loaded');
                     $this.attr('data-loading', true);
