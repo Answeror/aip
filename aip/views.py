@@ -282,3 +282,7 @@ def make(app, oid, cached, store):
     @app.route('/about')
     def about():
         return render_layout('about.html')
+
+    @app.route('/temp')
+    def temp():
+        return render_layout('temp.html')

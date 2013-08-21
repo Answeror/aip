@@ -2,10 +2,9 @@
     {% for e in entries %}
     <div class='item span2' data-md5={{ e.md5 }}>
         <div class='thumbnail'>
-            <p class=preview>
+            <div class='preview embed-container' style='padding-bottom:{{ 100 * e.height / e.width }}%'>
                 <a
-                    class='preview embed-container'
-                    style='padding-bottom:{{ 100 * e.height / e.width }}%'
+                    class='preview imbed'
                     href='{{ e.post_url }}'
                     target='_blank'
                 >
@@ -17,8 +16,9 @@
                         data-md5={{ e.md5 }}
                     >
                 </a>
-            </p>
-            <p>
+                <div class=imbed>{% include "gear.html" %}</div>
+            </div>
+            <div>
                 {% if g.user %}
                     <button
                         class='plus btn btn-mini'
@@ -30,7 +30,7 @@
                     <a class='plus disabled btn btn-mini' title='login to plus' href='/login'>+{{ e.plus_count }}</a>
                 {% endif %}
                 <button name=tags class='btn btn-mini' data-toggle=button>tags</button>
-            </p>
+            </div>
         </div>
         <div class='tags' style='display:none'>
             {% for tag in e.tags %}
