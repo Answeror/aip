@@ -28,10 +28,8 @@ $.aip.range = function(n) {
 };
 $.fn.freeze_size = function() {
     var $this = $(this);
-    $this.attr('width', $this.width());
-    $this.attr('height', $this.width() * $this.data('height') / $this.data('width'));
-    $this.width($this.attr('width'));
-    $this.height($this.attr('height'));
+    $this.attr('width', $this.data('width'));
+    $this.attr('height', $this.data('height'));
 };
 $.aip.inc = function(name, value) {
     var $t = $('#loading li[name="' + name + '"]');
@@ -113,6 +111,8 @@ $.aip.load_image = function(kargs) {
                         console.log('loaded: ' + preview_src);
                         $.aip.actual_size($img, function(width, height) {
                             console.log('sized(' + width + 'x' + height + '): ' + preview_src);
+                            $img.attr('width', width);
+                            $img.attr('height', height);
                             $img.data('preview-width', width);
                             $img.data('preview-height', height);
                             $d.resolve();
