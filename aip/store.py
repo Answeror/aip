@@ -14,6 +14,7 @@ from contextlib import contextmanager
 from .dag import Dag
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import exc as orm_exc
+from sqlalchemy.orm.util import identity_key
 
 
 def _scalar_all(self):
@@ -93,12 +94,14 @@ def make(app):
         def plus(self, entry):
             if entry not in [p.entry for p in self.plused]:
                 self.plused.append(Plus(entry=entry))
+            db.session.expire(entry, ['plus_count'])
 
         def minus(self, entry):
             for p in self.plused:
                 if p.entry == entry:
                     db.session.delete(p)
                     break
+            db.session.expire(entry, ['plus_count'])
 
         def has_plused(self, entry):
             return db.session.query(db.exists().where(and_(
@@ -473,6 +476,29 @@ def make(app):
     @flushed
     def get_immio_bi_md5(md5):
         return Immio.query.get(md5)
+
+    @stored
+    @flushed
+    def plus(user_id, entry_id):
+        db.session.merge(Plus(user_id=user_id, entry_id=entry_id))
+        if identity_key(Entry, entry_id) in db.session.identity_map:
+            db.session.expire(Entry.query.get(entry_id), ['plus_count'])
+
+    @stored
+    @flushed
+    def minus(user_id, entry_id):
+        Plus.query.filter_by(user_id=user_id, entry_id=entry_id).delete()
+        if identity_key(Entry, entry_id) in db.session.identity_map:
+            db.session.expire(Entry.query.get(entry_id), ['plus_count'])
+
+    @stored
+    @flushed
+    def plus_count(entry_id):
+        return db.session.scalar(
+            db.select([db.func.count('*')])
+            .select_from(Plus.__table__)
+            .where(Plus.entry_id == entry_id)
+        )
 
     def _pragma_on_connect(dbapi_con, con_record):
         dbapi_con.execute('PRAGMA cache_size = 100000')

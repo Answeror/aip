@@ -20,6 +20,7 @@ from io import BytesIO
 from PIL import Image
 from collections import namedtuple
 from urllib.parse import urlparse, urlunparse
+from functools import wraps
 from .layout import render_layout
 
 
@@ -138,24 +139,29 @@ def make(app, oid, cached, store):
     def last_update_time(self):
         return store.get_meta('last_update_time')
 
-    @app.before_request
-    def lookup_current_user():
-        g.user = None
-        if 'openid' in session:
-            g.user = store.get_user_bi_openid(session['openid'])
-        elif 'id' in session:
-            g.user = store.get_user_bi_id(session['id'])
+    def with_current_user(f):
+        @wraps(f)
+        def inner(*args, **kargs):
+            user = None
+            if 'openid' in session:
+                user = store.get_user_bi_openid(session['openid'])
+            elif 'id' in session:
+                user = store.get_user_bi_id(session['id'])
+            return f(*args, user=user, **kargs)
+        return inner
 
     @app.route('/login', methods=['GET', 'POST'])
     @oid.loginhandler
-    def login():
-        if g.user is not None:
+    @with_current_user
+    def login(user):
+        if user is not None:
             return redirect(oid.get_next_url())
         return try_login()
 
     @oid.after_login
-    def create_or_login(resp):
-        if g.user is not None:
+    @with_current_user
+    def create_or_login(resp, user):
+        if user is not None:
             flash('Successfully signed in')
             return redirect(oid.get_next_url())
 
@@ -190,8 +196,9 @@ def make(app, oid, cached, store):
         )
 
     @app.route('/create_profile', methods=['GET', 'POST'])
-    def create_profile():
-        if g.user is not None or 'openid' not in session:
+    @with_current_user
+    def create_profile(user):
+        if user is not None or 'openid' not in session:
             return redirect(url_for('.posts'))
         if request.method == 'POST':
             name = request.form['name']

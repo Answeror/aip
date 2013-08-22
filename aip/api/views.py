@@ -222,6 +222,29 @@ def make(app, api, cached, store):
             raise Exception('must provider user id or openid')
         return user
 
+    def arg(key):
+        if request.json and key in request.json:
+            return request.json[key]
+        if request.form and key in request.form:
+            return request.form[key]
+        if request.args and key in request.args:
+            return request.args[key]
+        return None
+
+    def require_args(args):
+        fields = args
+        def gen(f):
+            @wraps(f)
+            def inner(*args, **kargs):
+                for key in fields:
+                    value = arg(key)
+                    if value is None:
+                        return jsonify(dict(error=dict(message='require arg: %s' % key)))
+                    kargs[key] = value
+                return f(*args, **kargs)
+            return inner
+        return gen
+
     def _set_last_update_time(value):
         store.set_meta('last_update_time', pickle.dumps(value))
 
@@ -336,12 +359,11 @@ def make(app, api, cached, store):
 
     @guarded
     @logged
-    def plus():
-        user = get_user_bi_someid()
-        entry = store.get_entry_bi_id(request.json['entry_id'])
-        user.plus(entry)
+    @require_args(['user_id', 'entry_id'])
+    def plus(user_id, entry_id):
+        store.plus(user_id, entry_id)
         store.db.session.commit()
-        return jsonify(dict(count=entry.plus_count))
+        return jsonify(dict(count=store.plus_count(entry_id)))
 
     @api.route('/plus', methods=['POST'])
     @guarded
@@ -372,16 +394,11 @@ def make(app, api, cached, store):
 
     @guarded
     @logged
-    def minus():
-        try:
-            user = get_user_bi_someid()
-            entry = store.get_entry_bi_id(request.json['entry_id'])
-            user.minus(entry)
-            store.db.session.commit()
-            return jsonify(dict(count=entry.plus_count))
-        except:
-            store.db.session.rollback()
-            raise
+    @require_args(['user_id', 'entry_id'])
+    def minus(user_id, entry_id):
+        store.minus(user_id, entry_id)
+        store.db.session.commit()
+        return jsonify(dict(count=store.plus_count(entry_id)))
 
     @api.route('/minus', methods=['POST'])
     @guarded
