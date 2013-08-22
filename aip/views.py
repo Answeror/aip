@@ -138,16 +138,13 @@ def make(app, oid, cached, store):
     def last_update_time(self):
         return store.get_meta('last_update_time')
 
-    @prop
-    def user(self):
-        if not hasattr(self, '_user'):
-            user = None
-            if 'openid' in session:
-                user = store.get_user_bi_openid(session['openid'])
-            elif 'id' in session:
-                user = store.get_user_bi_id(session['id'])
-            self._user = user
-        return self._user
+    @app.before_request
+    def lookup_current_user():
+        g.user = None
+        if 'openid' in session:
+            g.user = store.get_user_bi_openid(session['openid'])
+        elif 'id' in session:
+            g.user = store.get_user_bi_id(session['id'])
 
     @app.route('/login', methods=['GET', 'POST'])
     @oid.loginhandler
