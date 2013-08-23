@@ -19,6 +19,14 @@
 .navbar .container {
     position: relative;
 }
+#search-input-wrap {
+    position: absolute;
+    right: 0;
+    left: 28px;
+    top: 0;
+    padding-right: 14px;
+    input { width: 100%; }
+}
 #brand {
     width: 310px;
 }
@@ -159,14 +167,6 @@ p:last-child {
                         position: relative;
                         width: 100%;
                     }
-                    #search-input-wrap {
-                        position: absolute;
-                        right: 0;
-                        left: 28px;
-                        top: 0;
-                        padding-right: 14px;
-                    }
-                    input { width: 100%; }
                     &:hover {
                         width: 100%;
                         transition: width 0.5s;
@@ -188,12 +188,6 @@ p:last-child {
             .input-prepend {
                 position: relative;
                 width: 100%;
-                input {
-                    position: absolute;
-                    left: 28px;
-                    right: 0;
-                    width: auto;
-                }
             }
         }
     }
