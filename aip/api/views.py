@@ -324,8 +324,8 @@ def make(app, api, cached, store):
         now = datetime.utcnow()
         begin = datetime.strptime(begin, '%Y%m%d%H%M%S')
         _update_images(begin)
-        store.db.session.commit()
         _set_last_update_time(now)
+        store.db.session.commit()
         return jsonify(dict())
 
     @api.route('/update/past/<int:seconds>')
@@ -334,8 +334,8 @@ def make(app, api, cached, store):
     def update_past(seconds):
         now = datetime.utcnow()
         _update_images(now - timedelta(seconds=seconds))
-        store.db.session.commit()
         _set_last_update_time(now)
+        store.db.session.commit()
         return jsonify(dict())
 
     @api.route('/last_update_time')
