@@ -134,9 +134,20 @@ def _fetch_image(url):
 
 def make(app, oid, cached, store):
 
+    from .momentjs import momentjs
+    app.jinja_env.globals['momentjs'] = momentjs
+
     @prop
     def last_update_time(self):
         return store.get_meta('last_update_time')
+
+    @prop
+    def entry_count(self):
+        return store.entry_count()
+
+    @prop
+    def user_count(self):
+        return store.user_count()
 
     @app.before_request
     def lookup_current_user():

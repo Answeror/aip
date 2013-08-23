@@ -13,6 +13,7 @@
         <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap.min.css') }}" media='screen'>
         <link href='//fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
         <link rel='stylesheet' href="{{ url_for('.style') }}">
+        <script src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
         {% block head %}{% endblock %}
     </head>
     <body class='solarized'>
@@ -68,6 +69,15 @@
         <script src="{{ url_for('.static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
         <div id=brand-popup style='display:none'>{% include "brand.html" %}</div>
         <script>
+            $('span.momentjs').each(function() {
+                $this = $(this);
+                $this.text(function() {
+                    var format = $this.data('format');
+                    if (format == 'fromNow') return moment($this.text()).fromNow();
+                    if (format == 'calendar') return moment($this.text()).calendar();
+                    return moment($this.text()).format(format);
+                }());
+            });
             $('.brand').tooltip({
                 placement: 'bottom',
                 html: true,

@@ -5,6 +5,14 @@
     </tr>
     <tr>
         <td>last update</td>
-        <td>{{ last_update_time }}</td>
+        <td>{{ momentjs(last_update_time).fromNow() }}</td>
+    </tr>
+    <tr>
+        <td>entries</td>
+        <td>{{ entry_count }}</td>
+    </tr>
+    <tr>
+        <td>users</td>
+        <td>{{ user_count }}</td>
     </tr>
 </table>
