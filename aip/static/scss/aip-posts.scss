@@ -144,15 +144,18 @@ p:last-child {
                     position: absolute;
                     right: 0;
                     width: 300px;
-                    .navbar-form, input-prepend {
+                    .navbar-form, .input-prepend {
+                        position: relative;
                         width: 100%;
                     }
-                    input {
+                    #search-input-wrap {
                         position: absolute;
                         right: 0;
                         left: 28px;
-                        width: auto;
+                        top: 0;
+                        padding-right: 14px;
                     }
+                    input { width: 100%; }
                     &:hover {
                         width: 100%;
                         transition: width 0.5s;
