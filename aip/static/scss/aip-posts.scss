@@ -28,6 +28,17 @@ body {
     /*font-family: georgia,times,serif;*/
     font-family: 'Open Sans', sans-serif;
 }
+article {
+    a {
+        border-bottom-width: 1px;
+        border-bottom-style: dotted;
+        &:hover {
+            text-decoration: none;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+        }
+    }
+}
 .main {
     margin-top: 5px;
 }

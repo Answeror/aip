@@ -1,17 +1,27 @@
 {% extends "layout.html" %}
 {% block title %}About this site{% endblock %}
 {% block middle %}
-    <div class=row>
-        <div class='page-header span12'>
-            <div class=row>
-                <div class='span8 offset2'>
-                    <h1>About this site</h1>
+    <article>
+        <div class=row>
+            <div class='page-header span12'>
+                <div class=row>
+                    <div class='span8 offset2'>
+                        <h1>about this site</h1>
+                    </div>
                 </div>
             </div>
+            <div class='span8 offset2'>
+                <p>AIP = <strong>A</strong>IP <strong>I</strong>nstrumentality <strong>P</strong>roject<p>
+                <p>aip.io = <strong>AIP</strong> <strong>i</strong>s <a href='https://github.com/Answeror/aip'><strong>O</strong>pensource</a></p>
+                <p>This site fused posts came from:</p>
+                <ul>
+                    <li><a href='https://danbooru.donmai.us/'>danbooru</a></li>
+                    <li><a href='http://gelbooru.com/'>gelbooru</a></li>
+                    <li><a href='https://yande.re/'>yande.re</a></li>
+                    <li><a href='http://konachan.com/'>konachan</a></li>
+                </ul>
+                <p>Feel free to post issue on <a href='https://github.com/Answeror/aip'>github</a>.</p>
+            </div>
         </div>
-        <div class='span8 offset2'>
-            <p>AIP = <strong>A</strong>IP <strong>I</strong>nstrumentality <strong>P</strong>roject<p>
-            <p>aip.io = <strong>AIP</strong> <strong>i</strong>s <a href='https://github.com/Answeror/aip'><strong>O</strong>pensource</a></p>
-        </div>
-    </div>
+    </article>
 {% endblock %}
