@@ -16,6 +16,12 @@
         }
     }
 }
+.navbar .container {
+    position: relative;
+}
+#brand {
+    width: 310px;
+}
 body {
     position: relative;
     padding-top: 40px;
@@ -108,9 +114,6 @@ p:last-child {
     display: block;
     margin: 3px 0 0 3px;
 }
-#search-area {
-    margin-right: 10px;
-}
 /* Responsive
 -------------------------------------------------- */
 
@@ -125,9 +128,61 @@ p:last-child {
     }
 }
 
+@media (min-width: 981px) {
+    #nav-wrap {
+        position: absolute;
+        left: 310px;
+        right: 0;
+        & > * {
+            position: relative;
+            width: 100%;
+            .nav {
+                position: absolute;
+                left: 0;
+                right: 60px;
+                #search-area {
+                    position: absolute;
+                    right: 0;
+                    width: 300px;
+                    .navbar-form, input-prepend {
+                        width: 100%;
+                    }
+                    input {
+                        position: absolute;
+                        right: 0;
+                        left: 28px;
+                        width: auto;
+                    }
+                    &:hover {
+                        width: 100%;
+                        transition: width 0.5s;
+                        -webkit-transition: width 0.5s;
+                    }
+                    transition: width 0.5s;
+                    -webkit-transition: width 0.5s;
+                }
+            }
+        }
+    }
+}
+
 /* Desktop
 ------------------------- */
 @media (max-width: 980px) {
+    #search-area {
+        .navbar-form {
+            .input-prepend {
+                position: relative;
+                width: 100%;
+                input {
+                    position: absolute;
+                    left: 28px;
+                    right: 0;
+                    width: auto;
+                }
+            }
+        }
+    }
 }
 
 /* Tablet to desktop
