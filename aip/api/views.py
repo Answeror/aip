@@ -316,30 +316,26 @@ def make(app, api, cached, store):
             es = store.Entry.get_bi_tags_order_bi_ctime(tags=[], r=r)
         return jsonify(result=render_layout('page.html', entries=es))
 
-    update_lock = threading.RLock()
-
     @api.route('/update', defaults={'begin': (datetime.utcnow() - timedelta(days=1)).strftime('%Y%m%d%H%M%S')})
     @api.route('/update/<begin>')
     @guarded
-    @locked(update_lock)
     @logged
     def update(begin):
+        now = datetime.utcnow()
         begin = datetime.strptime(begin, '%Y%m%d%H%M%S')
-        _set_last_update_time(datetime.utcnow())
         _update_images(begin)
         store.db.session.commit()
+        _set_last_update_time(now)
         return jsonify(dict())
 
     @api.route('/update/past/<int:seconds>')
     @guarded
-    @locked(update_lock)
     @logged
     def update_past(seconds):
-        from datetime import datetime
         now = datetime.utcnow()
-        _set_last_update_time(now)
         _update_images(now - timedelta(seconds=seconds))
         store.db.session.commit()
+        _set_last_update_time(now)
         return jsonify(dict())
 
     @api.route('/last_update_time')
