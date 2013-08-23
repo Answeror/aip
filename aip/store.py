@@ -91,6 +91,9 @@ def make(app):
             from operator import attrgetter as attr
             return [p.entry for p in sorted(self.plused, key=attr('ctime'), reverse=True)]
 
+        def get_plused(self, r):
+            return Entry.query.join(Plus).filter(Plus.user_id == self.id).order_by(Entry.ctime.desc())[r]
+
         def plus(self, entry):
             if entry not in [p.entry for p in self.plused]:
                 self.plused.append(Plus(entry=entry))
@@ -145,6 +148,7 @@ def make(app):
                 db.select([db.func.count('*')])
                 .select_from(Plus.__table__)
                 .where(Plus.entry_id == cls.id)
+                .correlate(cls.__table__)
                 .as_scalar()
             )
 

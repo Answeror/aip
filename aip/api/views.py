@@ -379,7 +379,8 @@ def make(app, api, cached, store):
     @logged
     def plused_page_html(id):
         user = get_user_bi_someid()
-        return jsonify(result=render_layout('page.html', entries=wrap(user.plused_entries)))
+        r = slice(g.per * id, g.per * (id + 1), 1)
+        return jsonify(result=render_layout('page.html', entries=wrap(user.get_plused(r))))
 
     @api.route('/plused', methods=['GET'])
     @guarded
