@@ -61,10 +61,12 @@
                     </div>
                 </div>
             {% endblock %}
-            <div id='main' class='main container'>
-                {% block middle %}
-                {% endblock %}
-            </div>
+            {% block midout %}
+                <div id='main' class='main container'>
+                    {% block middle %}
+                    {% endblock %}
+                </div>
+            {% endblock %}
             {% block bottom %}
             {% endblock %}
         {% endblock %}

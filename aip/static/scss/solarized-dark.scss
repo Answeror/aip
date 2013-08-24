@@ -141,8 +141,13 @@ body.solarized {
             color: $base0;
             text-shadow: none;
         }
+        .navbar-inner {
+            background:$base02;
+            border:none;
+            border-radius:0;
+            box-shadow: none;
+        }
     }
-    .navbar .navbar-inner{ background:$base02; border:none; border-radius:0; }
     .navbar .nav > li > a{ color: $base01; }
     .navbar .brand:hover,
     .navbar-inverse .nav > li > a:hover,
@@ -188,5 +193,26 @@ body.solarized {
     .item .loading.embed .spinner {
         & { border-color: $base2; }
         &:before { border-top-color: $yellow; }
+    }
+
+    /* Hero */
+    .hero-unit {
+        background: $base02;
+        border-bottom:1px solid #eee8d5;
+        border-radius:0;
+        color:#586e75;
+        padding-top: 80px;
+        h1 {
+            color:#268bd2;
+            font-size:52px;
+            margin-bottom:10px;
+        }
+        .content {
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            background:url(/static/images/fig.png) no-repeat right top;
+            padding:0 250px 79px 0;
+        }
     }
 }
