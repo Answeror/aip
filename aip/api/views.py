@@ -22,6 +22,28 @@ from ..async.subpub import Subpub
 import json
 import time
 from ..layout import render_layout
+from ..fn import F
+
+
+def _job_with_context(f, args, kargs, request_kargs):
+    # restore request data
+    with current_app.test_request_context(**request_kargs):
+        return f(*args, **kargs)
+
+
+def _job_done(sp, sid, jid, result):
+    return sp.push(
+        sid, (
+            'result',
+            json.dumps(dict(
+                key='result',
+                value=dict(
+                    id=jid,
+                    result=json.loads(result.data.decode('utf-8'))
+                )
+            )).encode('utf-8')
+        )
+    )
 
 
 def locked(lock=None):
@@ -179,29 +201,17 @@ def make(app, api, cached, store):
                 request_kargs['headers'] = request.headers.items()
                 request_kargs['content_type'] = request.headers['Content-Type']
 
-                def g():
-                    # restore request data
-                    with app.test_request_context(**request_kargs):
-                        return f(*args, **kargs)
-
                 if args:
                     sid = args[0]
                 else:
                     sid = kargs['sid']
-                id = str(uuid4())
-                api.b.function(g, lambda a: api.sp.push(
-                    sid, (
-                        'result',
-                        json.dumps(dict(
-                            key='result',
-                            value=dict(
-                                id=id,
-                                result=json.loads(a.data.decode('utf-8'))
-                            )
-                        )).encode('utf-8')
-                    )
-                ), rank=rank)
-                return jsonify(dict(result=dict(id=id)))
+                jid = str(uuid4())
+                api.b.function(
+                    F(_job_with_context, f, args, kargs, request_kargs),
+                    F(_job_done, api.sp, sid, jid),
+                    rank=rank
+                )
+                return jsonify(dict(result=dict(id=jid)))
             return inner
         return yainner
 
@@ -233,6 +243,7 @@ def make(app, api, cached, store):
 
     def require_args(args):
         fields = args
+
         def gen(f):
             @wraps(f)
             def inner(*args, **kargs):
@@ -243,6 +254,7 @@ def make(app, api, cached, store):
                     kargs[key] = value
                 return f(*args, **kargs)
             return inner
+
         return gen
 
     def _set_last_update_time(value):

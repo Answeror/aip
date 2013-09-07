@@ -22,7 +22,8 @@ def make(config=None, **kargs):
     level = app.config.get('AIP_LOG_LEVEL', logging.DEBUG)
     logging.basicConfig(
         filename=app.config.get('AIP_LOG_FILE_PATH', os.path.join(app.instance_path, 'aip.log')),
-        level=level
+        level=level,
+        format='%(asctime)s %(name)-8s %(levelname)-8s %(message)s'
     )
     if app.config.get('AIP_LOG_STDOUT', True):
         import sys

@@ -2,45 +2,24 @@
 # -*- coding: utf-8 -*-
 
 
-import logging
-from queue import PriorityQueue
-from threading import Thread
-from functools import wraps, partial
-from datetime import datetime
-from uuid import uuid4
+from multiprocessing import Pool, cpu_count
+from functools import partial, wraps
+from ..fn import F
 
 
 class Background(object):
 
-    def __init__(self, slave_count=1):
-        self.slave_count = slave_count
-        self.slaves = []
-        self.jobs = PriorityQueue()
+    def __init__(self, slave_count=None):
+        self.slave_count = cpu_count() if slave_count is None else slave_count
 
     def start(self):
-        for i in range(self.slave_count):
-            t = Thread(target=self._run, daemon=True)
-            t.start()
-            self.slaves.append(t)
+        self.slaves = Pool(processes=min(cpu_count(), self.slave_count))
 
     def stop(self):
-        self.jobs.join()
-
-    def _run(self):
-        while True:
-            job = self.jobs.get()[-1]
-            try:
-                job()
-            except Exception as e:
-                logging.exception(e)
-            finally:
-                self.jobs.task_done()
+        self.slaves.join()
 
     def action(self, job, rank=0):
-        self.jobs.put((rank, datetime.utcnow(), str(uuid4()), job))
+        self.slaves.apply_async(job)
 
     def function(self, job, callback, rank=0):
-        @wraps(job)
-        def inner():
-            self.action(partial(callback, job()), rank=rank)
-        return self.action(inner, rank=rank)
+        return self.action(F(callback) << job, rank=rank)
