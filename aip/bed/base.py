@@ -5,17 +5,26 @@
 import PIL
 import logging
 from io import BytesIO
+import urllib3
+
+
+_http = urllib3.PoolManager()
 
 
 class FetchImageMixin(object):
 
     def __init__(
         self,
-        http,
-        timeout
+        timeout,
+        http=None
     ):
-        self.http = http
         self.timeout = timeout
+        if http:
+            self._http = http
+
+    @property
+    def http(self):
+        return self._http if hasattr(self, '_http') else _http
 
     def _fetch_image(self, url):
         r = self.http.request(

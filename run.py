@@ -12,7 +12,4 @@ if __name__ == "__main__":
         instance_path=os.path.abspath(os.path.join(os.path.dirname(__file__), 'data')),
         instance_relative_config=True
     )
-    if app.config['PROFILE']:
-        from werkzeug.contrib.profiler import ProfilerMiddleware
-        app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])  # , sort_by=('cumulative', 'calls'))
     app.run('0.0.0.0', debug=True, threaded=True)
