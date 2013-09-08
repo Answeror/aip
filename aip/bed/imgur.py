@@ -23,6 +23,8 @@ Image = namedtuple('Image', ('md5', 'id', 'deletehash', 'link'))
 
 class Imgur(FetchImageMixin):
 
+    name = 'imgur'
+
     def __init__(
         self,
         client_ids,
@@ -30,7 +32,7 @@ class Imgur(FetchImageMixin):
         max_size,
         timeout,
         album_deletehash,
-        http
+        http=None
     ):
         super(Imgur, self).__init__(http=http, timeout=timeout)
         self.client_ids = client_ids
@@ -38,7 +40,6 @@ class Imgur(FetchImageMixin):
         self.max_size = max_size
         self.timeout = timeout
         self.album_deletehash = album_deletehash
-        self.http = http
 
     def call(self, client_id, method, url, data):
         try:
@@ -54,11 +55,11 @@ class Imgur(FetchImageMixin):
         except HTTPError as e:
             return json.loads(e.read().decode('utf-8'))
 
-    def upload(self, image):
+    def upload(self, url, md5):
         from random import shuffle
 
         def use_one_client_id(client_id):
-            image_url = image.sample_url if image.sample_url else image.image_url
+            image_url = url
 
             def use_file():
                 try:
@@ -70,7 +71,7 @@ class Imgur(FetchImageMixin):
                         data={
                             'image': b64encode(self.download(image_url)),
                             'type': 'base64',
-                            'title': image.md5,
+                            'title': md5,
                             'album': self.album_deletehash
                         }
                     )
@@ -90,7 +91,7 @@ class Imgur(FetchImageMixin):
                     data={
                         'image': image_url,
                         'type': 'URL',
-                        'title': image.md5,
+                        'title': md5,
                         'album': self.album_deletehash
                     }
                 )
@@ -113,14 +114,14 @@ class Imgur(FetchImageMixin):
 
             data = r['data']
             return Image(
-                md5=image.md5,
+                md5=md5,
                 id=data['id'],
                 deletehash=data['deletehash'],
                 link=data['link']
             )
 
         def fail():
-            raise Exception('upload %s failed' % image.md5)
+            raise Exception('upload %s failed' % md5)
 
         client_ids = self.client_ids[:]
         shuffle(client_ids)

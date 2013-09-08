@@ -22,6 +22,7 @@ from ..async.subpub import Subpub
 import json
 import time
 from ..layout import render_layout
+from ..tasks import make as make_tasks
 
 
 def locked(lock=None):
@@ -97,10 +98,12 @@ def wrap(entries):
     return entries
 
 
-def make(app, api, cached, store):
+def make(app, api, cached, store, celery):
     api.b = Background(slave_count=app.config.get('AIP_SLAVE_COUNT', 1))
     api.b.start()
     api.sp = Subpub()
+
+    tasks = make_tasks(celery)
 
     def guarded(f):
         @wraps(f)
@@ -233,6 +236,7 @@ def make(app, api, cached, store):
 
     def require_args(args):
         fields = args
+
         def gen(f):
             @wraps(f)
             def inner(*args, **kargs):
@@ -243,6 +247,7 @@ def make(app, api, cached, store):
                     kargs[key] = value
                 return f(*args, **kargs)
             return inner
+
         return gen
 
     def _set_last_update_time(value):
@@ -419,13 +424,16 @@ def make(app, api, cached, store):
             resolution_level=current_app.config['AIP_RESOLUTION_LEVEL'],
             max_size=(limit, limit),
             timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
-            album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH'],
-            http=g.http
+            album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH']
         )
         if imgur_image:
             logging.info('hit %s' % md5)
         else:
-            imgur_image = imgur.upload(im)
+            imgur_image = tasks.upload.delay(
+                imgur,
+                url=im.sample_url if im.sample_url else im.image_url,
+                md5=im.md5
+            ).wait()
             imgur_image = store.Imgur(
                 id=imgur_image.id,
                 md5=imgur_image.md5,
@@ -448,13 +456,16 @@ def make(app, api, cached, store):
         immio_image = store.get_immio_bi_md5(md5)
         immio = Immio(
             max_size=current_app.config['AIP_IMMIO_RESIZE_MAX_SIZE'],
-            timeout=current_app.config['AIP_UPLOAD_IMMIO_TIMEOUT'],
-            http=g.http
+            timeout=current_app.config['AIP_UPLOAD_IMMIO_TIMEOUT']
         )
         if immio_image:
             logging.info('hit %s' % md5)
         else:
-            immio_image = immio.upload(im)
+            immio_image = tasks.upload.delay(
+                immio,
+                url=im.sample_url if im.sample_url else im.image_url,
+                md5=im.md5
+            ).wait()
             immio_image = store.Immio(
                 uid=immio_image.uid,
                 md5=immio_image.md5,

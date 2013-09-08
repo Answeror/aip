@@ -15,16 +15,17 @@ Image = namedtuple('Image', ('md5', 'uid', 'uri', 'width', 'height'))
 
 class Immio(FetchImageMixin):
 
+    name = 'immio'
+
     def __init__(
         self,
         max_size,
         timeout,
-        http
+        http=None
     ):
         super(Immio, self).__init__(http=http, timeout=timeout)
         self.max_size = max_size
         self.timeout = timeout
-        self.http = http
 
     def call(self, md5, data):
         try:
@@ -42,12 +43,12 @@ class Immio(FetchImageMixin):
         except HTTPError as e:
             return json.loads(e.read().decode('utf-8'))
 
-    def upload(self, image):
+    def upload(self, url, md5):
         def fail():
-            raise Exception('upload %s failed' % image.md5)
+            raise Exception('upload %s failed' % md5)
 
         try:
-            r = self.call(image.md5, self.download(image.sample_url if image.sample_url else image.image_url))
+            r = self.call(md5, self.download(url))
         except Exception as e:
             logging.exception(e)
             fail()
@@ -58,7 +59,7 @@ class Immio(FetchImageMixin):
 
         data = r['payload']
         return Image(
-            md5=image.md5,
+            md5=md5,
             uid=data['uid'],
             uri=data['uri'],
             width=int(data['width']),
