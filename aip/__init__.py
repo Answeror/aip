@@ -52,7 +52,10 @@ def make(config=None, **kargs):
     from . import views
     views.make(app=app, oid=oid, cached=cached, store=store)
 
+    from celery import Celery
+    app.celery = Celery('aip.tasks', backend='amqp', broker='amqp://')
+    app.celery.conf.update(app.config)
     from . import api
-    api.make(app=app, cached=cached, store=store)
+    api.make(app=app, cached=cached, store=store, celery=app.celery)
 
     return app
