@@ -22,7 +22,12 @@ from ..async.subpub import Subpub
 import json
 import time
 from ..layout import render_layout
-from ..tasks import make as make_tasks
+from concurrent.futures import ProcessPoolExecutor as Ex
+
+
+def Sex():
+    '''single worker executor'''
+    return Ex(max_workers=1)
 
 
 def locked(lock=None):
@@ -102,8 +107,6 @@ def make(app, api, cached, store, celery):
     api.b = Background(slave_count=app.config.get('AIP_SLAVE_COUNT', 1))
     api.b.start()
     api.sp = Subpub()
-
-    tasks = make_tasks(celery)
 
     def guarded(f):
         @wraps(f)
@@ -429,11 +432,12 @@ def make(app, api, cached, store, celery):
         if imgur_image:
             logging.info('hit %s' % md5)
         else:
-            imgur_image = tasks.upload.delay(
-                imgur,
-                url=im.sample_url if im.sample_url else im.image_url,
-                md5=im.md5
-            ).wait()
+            with Sex() as ex:
+                imgur_image = ex.submit(
+                    imgur.upload,
+                    url=im.sample_url if im.sample_url else im.image_url,
+                    md5=im.md5
+                ).result()
             imgur_image = store.Imgur(
                 id=imgur_image.id,
                 md5=imgur_image.md5,
@@ -461,11 +465,12 @@ def make(app, api, cached, store, celery):
         if immio_image:
             logging.info('hit %s' % md5)
         else:
-            immio_image = tasks.upload.delay(
-                immio,
-                url=im.sample_url if im.sample_url else im.image_url,
-                md5=im.md5
-            ).wait()
+            with Sex() as ex:
+                immio_image = ex.submit(
+                    immio.upload,
+                    url=im.sample_url if im.sample_url else im.image_url,
+                    md5=im.md5
+                ).result()
             immio_image = store.Immio(
                 uid=immio_image.uid,
                 md5=immio_image.md5,
