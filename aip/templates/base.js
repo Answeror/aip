@@ -378,7 +378,6 @@ $.aip.init = function(kargs) {
                     console.log($img.attr('src') + 'loaded');
                     $this.find('.loading').hide();
                     $img.show();
-                    var r = {{ config['AIP_RESOLUTION_LEVEL'] }};
                     $.aip.super_resolution($img, function() {
                         proxied($this);
                     }, function() {

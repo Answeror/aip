@@ -15,8 +15,20 @@ def make(config=None, **kargs):
         **kargs
     )
 
+    # config
+    from . import config as base
+    app.config.from_object(base)
+
+    # config from params
+    if config:
+        app.config.from_object(config)
+
     # config from file
     app.config.from_pyfile('application.cfg', silent=True)
+
+    if 'AIP_TEMP_PATH' not in app.config:
+        import tempfile
+        app.config['AIP_TEMP_PATH'] = tempfile.mkdtemp()
 
     # setup logging
     level = app.config.get('AIP_LOG_LEVEL', logging.DEBUG)
@@ -30,15 +42,6 @@ def make(config=None, **kargs):
         soh.setLevel(level)
         logger = logging.getLogger()
         logger.addHandler(soh)
-
-    # config
-    from . import config as base
-    app.config.from_object(base)
-    if config:
-        app.config.from_object(config)
-    if 'AIP_TEMP_PATH' not in app.config:
-        import tempfile
-        app.config['AIP_TEMP_PATH'] = tempfile.mkdtemp()
 
     from flask.ext.openid import OpenID
     oid = OpenID(app, 'temp/openid')
