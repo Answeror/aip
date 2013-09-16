@@ -191,7 +191,8 @@ def make(app, api, cached, store, celery):
         def inner(*args, **kargs):
             def gen():
                 try:
-                    delay = current_app.config.get('AIP_STREAM_DELAY', 0.5)
+                    # to prevent message loss in client EventSouce
+                    delay = current_app.config.get('AIP_STREAM_DELAY', 0.01)
                     start = time.time()
                     for piece in f(*args, **kargs):
                         elapsed = float(time.time() - start)
@@ -470,7 +471,7 @@ def make(app, api, cached, store, celery):
         r = slice(g.per * id, g.per * (id + 1), 1)
         return jsonify(result=render_layout('page.html', entries=wrap(user.get_plused(r))))
 
-    @api.route('/stream/plused/page/<int:id>.html', methods=['GET'])
+    @api.route('/stream/plused/page/html/<int:id>', methods=['GET'])
     @logged
     @streamed
     def stream_plused_page_html(id):
