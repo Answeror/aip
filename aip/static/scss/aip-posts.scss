@@ -239,10 +239,18 @@ p:last-child {
         padding-left: 20px;
         padding-right: 20px;
     }
-    #brand {
-        width: 100px;
-        &:before {
-            content: "AIP";
+    .main {
+        .span2 {
+            width: 89px;
+        }
+        [class*="span"] {
+            float: left;
+            min-height: 1px;
+            margin-left: 5px;
+        }
+        width: 376px;
+        .row {
+            margin-left: -5px;
         }
     }
 }
@@ -254,9 +262,47 @@ p:last-child {
     body {
         padding-top: 0;
     }
+    #brand {
+        width: 100px;
+        &:before {
+            content: "AIP";
+        }
+    }
     #loading {
         position: fixed;
         padding-left: 20px;
         padding-right: 20px;
+    }
+}
+@media (min-width: 400px) and (max-width: 480px) {
+    .main {
+        .span2 {
+            width: 89px;
+        }
+        [class*="span"] {
+            float: left;
+            min-height: 1px;
+            margin-left: 5px;
+        }
+        width: 376px;
+        .row {
+            margin-left: -5px;
+        }
+    }
+}
+@media (min-width: 300px) and (max-width: 399px) {
+    .main {
+        .span2 {
+            width: 89px;
+        }
+        [class*="span"] {
+            float: left;
+            min-height: 1px;
+            margin-left: 5px;
+        }
+        width: 282px;
+        .row {
+            margin-left: -5px;
+        }
     }
 }
