@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-import PIL
+import PIL.Image
 import logging
 from io import BytesIO
 import urllib3

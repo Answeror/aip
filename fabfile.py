@@ -17,10 +17,9 @@ def runbg(cmd, sockname="dtach"):
 
 def deploy():
     with settings(warn_only=True):
-        run("ps auxww | grep celery | grep -v \"grep\" | awk '{print $2}' | xargs kill -HUP >& /dev/null")
+        run("ps auxww | grep celery | grep -v \"grep\" | awk '{print $2}' | xargs kill >& /dev/null")
     with cd('/www/aip/repo'):
         run('git pull')
-        run('git pull --tag')
         with prefix('pyenv virtualenvwrapper'):
             with prefix('workon aip'):
                 run('python setup.py develop')

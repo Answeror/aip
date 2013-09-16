@@ -8,11 +8,12 @@ from flask import (
     request,
     current_app,
     Response,
-    g
+    g,
+    stream_with_context
 )
 from datetime import datetime, timedelta
 import threading
-from functools import wraps
+from functools import wraps, partial
 from uuid import uuid4
 import pickle
 from ..bed.imgur import Imgur
@@ -22,7 +23,24 @@ from ..async.subpub import Subpub
 import json
 import time
 from ..layout import render_layout
-from ..tasks import make as make_tasks
+from concurrent.futures import ProcessPoolExecutor as Ex
+from fn.iters import chain
+from nose.tools import assert_equal
+
+
+def Sex():
+    '''single worker executor'''
+    return Ex(max_workers=1)
+
+
+def fetch_posts(begin, limit, source):
+    def gen():
+        tags = []
+        for _, post in zip(list(range(limit)), source.get_images(tags)):
+            if begin is not None and post['ctime'] <= begin:
+                break
+            yield post
+    return list(gen())
 
 
 def locked(lock=None):
@@ -103,8 +121,6 @@ def make(app, api, cached, store, celery):
     api.b.start()
     api.sp = Subpub()
 
-    tasks = make_tasks(celery)
-
     def guarded(f):
         @wraps(f)
         def inner(*args, **kargs):
@@ -163,6 +179,33 @@ def make(app, api, cached, store, celery):
     def stream(sid):
         logging.info('stream: %s' % sid)
         return Response(event_stream(sid), mimetype='text/event-stream')
+
+    def format_stream_piece(piece):
+        return b'data: ' + piece + b'\n\n'
+
+    def dump_error(message):
+        return json.dumps(dict(error=dict(message=message))).encode('utf-8')
+
+    def streamed(f):
+        @wraps(f)
+        def inner(*args, **kargs):
+            def gen():
+                try:
+                    # to prevent message loss in client EventSouce
+                    delay = current_app.config.get('AIP_STREAM_DELAY', 0.01)
+                    start = time.time()
+                    for piece in f(*args, **kargs):
+                        elapsed = float(time.time() - start)
+                        if elapsed < delay:
+                            time.sleep(delay - elapsed)
+                        yield format_stream_piece(piece)
+                except Exception as e:
+                    yield format_stream_piece(dump_error(str(e)))
+            return Response(
+                stream_with_context(gen()),
+                mimetype='text/event-stream'
+            )
+        return inner
 
     def async(rank=0):
         def yainner(f):
@@ -254,14 +297,14 @@ def make(app, api, cached, store, celery):
         store.set_meta('last_update_time', pickle.dumps(value))
 
     def _update_images(begin=None, limit=65536):
+        sources = [make(dict) for make in g.sources]
+        with Ex() as ex:
+            posts = list(chain.from_iterable(
+                ex.map(partial(fetch_posts, begin, limit), sources)
+            ))
         with store.autodag() as dag:
-            for make in g.sources:
-                source = make(dict)
-                tags = []
-                for i, im in zip(list(range(limit)), source.get_images(tags)):
-                    if begin is not None and im['ctime'] <= begin:
-                        break
-                    store.Post.put(dag=dag, **im)
+            for post in posts:
+                store.Post.put(dag=dag, **post)
 
     @api.route('/add_user', methods=['POST'])
     @guarded
@@ -321,6 +364,21 @@ def make(app, api, cached, store, celery):
             es = store.Entry.get_bi_tags_order_bi_ctime(tags=[], r=r)
         return jsonify(result=render_layout('page.html', entries=es))
 
+    @api.route('/stream/page/<int:id>', methods=['GET'])
+    @logged
+    @streamed
+    def stream_page(id):
+        r = slice(g.per * id, g.per * (id + 1), 1)
+        logging.debug('request args {}'.format(request.args))
+        if request.args and 'tags' in request.args:
+            tags = request.args['tags'].split(';')
+            logging.debug('query tags: {}'.format(tags))
+            tags = [store.Tag.escape_name(tag) for tag in tags]
+            es = store.Entry.get_bi_tags_order_bi_ctime(tags=tags, r=r)
+        else:
+            es = store.Entry.get_bi_tags_order_bi_ctime(tags=[], r=r)
+        yield dump_result(render_layout('page.html', entries=es))
+
     @api.route('/update', defaults={'begin': (datetime.utcnow() - timedelta(days=1)).strftime('%Y%m%d%H%M%S')})
     @api.route('/update/<begin>')
     @guarded
@@ -379,6 +437,32 @@ def make(app, api, cached, store, celery):
     def async_plus(sid):
         return plus()
 
+    def dump_result(*args, **kargs):
+        if args:
+            assert_equal(len(args), 1)
+            arg = args[0]
+        else:
+            arg = kargs
+        return json.dumps(dict(result=arg)).encode('utf-8')
+
+    @api.route('/stream/plus', methods=['GET'])
+    @logged
+    @streamed
+    @require_args(['user_id', 'entry_id'])
+    def stream_plus(user_id, entry_id):
+        store.plus(user_id, entry_id)
+        store.db.session.commit()
+        yield dump_result(count=store.plus_count(entry_id))
+
+    @api.route('/stream/minus', methods=['GET'])
+    @logged
+    @streamed
+    @require_args(['user_id', 'entry_id'])
+    def stream_minus(user_id, entry_id):
+        store.minus(user_id, entry_id)
+        store.db.session.commit()
+        yield dump_result(count=store.plus_count(entry_id))
+
     @api.route('/plused/page/<int:id>.html', methods=['GET'])
     @guarded
     @logged
@@ -386,6 +470,14 @@ def make(app, api, cached, store, celery):
         user = get_user_bi_someid()
         r = slice(g.per * id, g.per * (id + 1), 1)
         return jsonify(result=render_layout('page.html', entries=wrap(user.get_plused(r))))
+
+    @api.route('/stream/plused/page/html/<int:id>', methods=['GET'])
+    @logged
+    @streamed
+    def stream_plused_page_html(id):
+        user = get_user_bi_someid()
+        r = slice(g.per * id, g.per * (id + 1), 1)
+        yield dump_result(render_layout('page.html', entries=wrap(user.get_plused(r))))
 
     @api.route('/plused', methods=['GET'])
     @guarded
@@ -429,11 +521,12 @@ def make(app, api, cached, store, celery):
         if imgur_image:
             logging.info('hit %s' % md5)
         else:
-            imgur_image = tasks.upload.delay(
-                imgur,
-                url=im.sample_url if im.sample_url else im.image_url,
-                md5=im.md5
-            ).wait()
+            with Sex() as ex:
+                imgur_image = ex.submit(
+                    imgur.upload,
+                    url=im.sample_url if im.sample_url else im.image_url,
+                    md5=im.md5
+                ).result()
             imgur_image = store.Imgur(
                 id=imgur_image.id,
                 md5=imgur_image.md5,
@@ -461,11 +554,12 @@ def make(app, api, cached, store, celery):
         if immio_image:
             logging.info('hit %s' % md5)
         else:
-            immio_image = tasks.upload.delay(
-                immio,
-                url=im.sample_url if im.sample_url else im.image_url,
-                md5=im.md5
-            ).wait()
+            with Sex() as ex:
+                immio_image = ex.submit(
+                    immio.upload,
+                    url=im.sample_url if im.sample_url else im.image_url,
+                    md5=im.md5
+                ).result()
             immio_image = store.Immio(
                 uid=immio_image.uid,
                 md5=immio_image.md5,
@@ -481,7 +575,7 @@ def make(app, api, cached, store, celery):
     @guarded
     @logged
     def proxied_url(md5):
-        for make in (imgur_url, immio_url):
+        for make in (imgur_url, ):
             logging.info('use %s' % make.__name__)
             try:
                 uri = make(md5)
@@ -503,6 +597,20 @@ def make(app, api, cached, store, celery):
     @async()
     def async_proxied_url(sid, md5):
         return proxied_url(md5)
+
+    @api.route('/stream/proxied_url/<md5>', methods=['GET'])
+    @logged
+    @streamed
+    def stream_proxied_url(md5):
+        for make in (imgur_url, ):
+            logging.info('use %s' % make.__name__)
+            try:
+                uri = make(md5)
+                logging.info('get %s' % uri)
+                yield dump_result(uri)
+            except Exception as e:
+                logging.exception(e)
+        raise Exception('all gallery failed')
 
     @api.after_request
     def after_request(response):
