@@ -8,7 +8,8 @@ from flask import (
     request,
     current_app,
     Response,
-    g
+    g,
+    stream_with_context
 )
 from datetime import datetime, timedelta
 import threading
@@ -24,6 +25,7 @@ import time
 from ..layout import render_layout
 from concurrent.futures import ProcessPoolExecutor as Ex
 from fn.iters import chain
+from nose.tools import assert_equal
 
 
 def Sex():
@@ -177,6 +179,27 @@ def make(app, api, cached, store, celery):
     def stream(sid):
         logging.info('stream: %s' % sid)
         return Response(event_stream(sid), mimetype='text/event-stream')
+
+    def format_stream_piece(piece):
+        return b'data: ' + piece + b'\n\n'
+
+    def dump_error(message):
+        return json.dumps(dict(error=dict(message=message))).encode('utf-8')
+
+    def streamed(f):
+        @wraps(f)
+        def inner(*args, **kargs):
+            def gen():
+                try:
+                    for piece in f(*args, **kargs):
+                        yield format_stream_piece(piece)
+                except Exception as e:
+                    yield format_stream_piece(dump_error(str(e)))
+            return Response(
+                stream_with_context(gen()),
+                mimetype='text/event-stream'
+            )
+        return inner
 
     def async(rank=0):
         def yainner(f):
@@ -335,6 +358,20 @@ def make(app, api, cached, store, celery):
             es = store.Entry.get_bi_tags_order_bi_ctime(tags=[], r=r)
         return jsonify(result=render_layout('page.html', entries=es))
 
+    @api.route('/stream/page/<int:id>', methods=['GET'])
+    @streamed
+    def stream_page(id):
+        r = slice(g.per * id, g.per * (id + 1), 1)
+        logging.debug('request args {}'.format(request.args))
+        if request.args and 'tags' in request.args:
+            tags = request.args['tags'].split(';')
+            logging.debug('query tags: {}'.format(tags))
+            tags = [store.Tag.escape_name(tag) for tag in tags]
+            es = store.Entry.get_bi_tags_order_bi_ctime(tags=tags, r=r)
+        else:
+            es = store.Entry.get_bi_tags_order_bi_ctime(tags=[], r=r)
+        yield dump_result(render_layout('page.html', entries=es))
+
     @api.route('/update', defaults={'begin': (datetime.utcnow() - timedelta(days=1)).strftime('%Y%m%d%H%M%S')})
     @api.route('/update/<begin>')
     @guarded
@@ -393,6 +430,30 @@ def make(app, api, cached, store, celery):
     def async_plus(sid):
         return plus()
 
+    def dump_result(*args, **kargs):
+        if args:
+            assert_equal(len(args), 1)
+            arg = args[0]
+        else:
+            arg = kargs
+        return json.dumps(dict(result=arg)).encode('utf-8')
+
+    @api.route('/stream/plus', methods=['GET'])
+    @streamed
+    @require_args(['user_id', 'entry_id'])
+    def stream_plus(user_id, entry_id):
+        store.plus(user_id, entry_id)
+        store.db.session.commit()
+        yield dump_result(count=store.plus_count(entry_id))
+
+    @api.route('/stream/minus', methods=['GET'])
+    @streamed
+    @require_args(['user_id', 'entry_id'])
+    def stream_minus(user_id, entry_id):
+        store.minus(user_id, entry_id)
+        store.db.session.commit()
+        yield dump_result(count=store.plus_count(entry_id))
+
     @api.route('/plused/page/<int:id>.html', methods=['GET'])
     @guarded
     @logged
@@ -400,6 +461,13 @@ def make(app, api, cached, store, celery):
         user = get_user_bi_someid()
         r = slice(g.per * id, g.per * (id + 1), 1)
         return jsonify(result=render_layout('page.html', entries=wrap(user.get_plused(r))))
+
+    @api.route('/stream/plused/page/<int:id>.html', methods=['GET'])
+    @streamed
+    def stream_plused_page_html(id):
+        user = get_user_bi_someid()
+        r = slice(g.per * id, g.per * (id + 1), 1)
+        yield dump_result(render_layout('page.html', entries=wrap(user.get_plused(r))))
 
     @api.route('/plused', methods=['GET'])
     @guarded
@@ -519,6 +587,19 @@ def make(app, api, cached, store, celery):
     @async()
     def async_proxied_url(sid, md5):
         return proxied_url(md5)
+
+    @api.route('/stream/proxied_url/<md5>', methods=['GET'])
+    @streamed
+    def stream_proxied_url(md5):
+        for make in (imgur_url, immio_url):
+            logging.info('use %s' % make.__name__)
+            try:
+                uri = make(md5)
+                logging.info('get %s' % uri)
+                yield dump_result(uri)
+            except Exception as e:
+                logging.exception(e)
+        raise Exception('all gallery failed')
 
     @api.after_request
     def after_request(response):

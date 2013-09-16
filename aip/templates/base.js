@@ -1,9 +1,6 @@
 // http://stackoverflow.com/a/3326655/238472
 if (!window.console) console = {log: function() {}};
 $.aip = {};
-// store async calls' deferred object or their result when their result comes
-// earlier than their ids
-$.aip.calls = {};
 $.aip.now = function() {
     return new Date().getTime() / 1000;
 };
@@ -34,28 +31,25 @@ $.aip.inc = function(name, value) {
 $.aip.actual_size = function($img, callback) {
     callback($img[0].naturalWidth, $img[0].naturalHeight);
 };
-$.aip.async = function(kargs) {
-    kargs.url = '/api/async/' + $.aip.sid + kargs.url.slice(4);
+$.aip.stream = function(kargs) {
     var $d = $.Deferred();
-    $.ajax(kargs).then($.aip.error_guard).done(function(r) {
-        if (!(r.result.id in $.aip.calls)) {
-            $.aip.calls[r.result.id] = $d;
-            if (kargs.timeout) {
-                setTimeout(function() {
-                    if (r.result.id in $.aip.calls) {
-                        console.log(r.result.id + ' timeout');
-                        $.aip.calls[r.result.id].reject('timeout');
-                        delete $.aip.calls[r.result.id];
-                    }
-                }, kargs.timeout);
+    var es = new EventSource(kargs.url + '?' + $.param(kargs.data));
+    es.onmessage = function(e) {
+        $.Deferred()
+        .resolve($.parseJSON(e.data))
+        .then($.aip.error_guard)
+        .done(function(r) {
+            if ('result' in r) {
+                e.target.close();
+                $d.resolve(r.result);
+            } else {
+                $d.reject('unknown event: ' + JSON.stringify(r));
             }
-        } else {
-            console.log('async call ' + r.result.id + ' arrive later than its result');
-            // result is already here
-            $d.resolve($.aip.calls[r.result.id]);
-            delete $.aip.calls[r.result.id];
-        }
-    }).fail($d.reject);
+        }).fail(function(reason) {
+            e.target.close();
+            $d.reject(reason);
+        });
+    };
     return $d;
 };
 $.aip.redo = function(kargs) {
@@ -191,14 +185,9 @@ $.aip.init = function(kargs) {
                     $plus.addClass('btn-primary');
                     function minus() {
                         disable();
-                        $.aip.async({
-                            method: 'POST',
-                            url: '/api/minus',
-                            contentType: "application/json",
-                            accepts: "application/json",
-                            cache: false,
-                            dataType: 'json',
-                            data: JSON.stringify({ user_id: $.aip.user_id(), entry_id: entry })
+                        $.aip.stream({
+                            url: '/api/stream/minus',
+                            data: { user_id: $.aip.user_id(), entry_id: entry }
                         }).done(function(data) {
                             $plus.data('count', data.count);
                             $plus.data('plused', false);
@@ -213,14 +202,9 @@ $.aip.init = function(kargs) {
                     $plus.removeClass('btn-primary');
                     function plus() {
                         disable();
-                        $.aip.async({
-                            method: 'POST',
-                            url: '/api/plus',
-                            contentType: "application/json",
-                            accepts: "application/json",
-                            cache: false,
-                            dataType: 'json',
-                            data: JSON.stringify({ user_id: $.aip.user_id(), entry_id: entry })
+                        $.aip.stream({
+                            url: '/api/stream/plus',
+                            data: { user_id: $.aip.user_id(), entry_id: entry }
                         }).done(function(data) {
                             $plus.data('count', data.count);
                             $plus.data('plused', true);
@@ -268,16 +252,11 @@ $.aip.init = function(kargs) {
         $('#loading').show();
         $buffer.empty();
         $this.waypoint('disable');
-        $.ajax({
-            method: 'GET',
+        $.aip.stream({
             url: kargs.makePageUrl(page),
-            contentType: "application/x-www-form-urlencoded",
-            accepts: "application/json",
-            cache: false,
-            dataType: 'json',
             data: kargs.makePageData(page)
-        }).then($.aip.error_guard).done(function(data) {
-            var $items = $(data.result).find('.item');
+        }).done(function(data) {
+            var $items = $(data).find('.item');
             var n = $items.length;
             var cleanup = function() {
                 if (n) {
@@ -357,26 +336,21 @@ $.aip.init = function(kargs) {
                 var $img = $item.find('img.preview');
                 $.aip.redo({
                     make: function() {
-                        return $.aip.async({
-                            method: 'GET',
-                            url: '/api/proxied_url/' + $img.data('md5'),
-                            contentType: "application/x-www-form-urlencoded",
-                            accepts: "application/json",
-                            cache: false,
-                            dataType: 'json',
-                            timeout: 1e3 * {{ config['AIP_PROXIED_TIMEOUT'] }},
+                        return $.aip.stream({
+                            url: '/api/stream/proxied_url/' + $img.data('md5'),
+                            //timeout: 1e3 * {{ config['AIP_PROXIED_TIMEOUT'] }},
                             data: { width: $img.width() }
-                        }).then($.aip.error_guard);
+                        });
                     },
                     reloads: $.aip.range({{ config['AIP_REPROXY_LIMIT'] }}).map(function() {
                         return $.aip.disturb(1e3 * {{ config['AIP_REPROXY_INTERVAL'] }});
                     })
-                }).done(function(r) {
+                }).done(function(uri) {
                     $.aip.inc('proxied');
                     try {
                         $.aip.load_image({
                             img: $img,
-                            src: r.result,
+                            src: uri,
                             timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
                             reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
                                 return $.aip.disturb(1e3 * {{ config['AIP_RELOAD_INTERVAL'] }});
@@ -453,36 +427,6 @@ $.aip.init = function(kargs) {
     $.aip.inited = true;
 };
 $.aip.is = function(kargs) {
-    $.aip.source = new EventSource('/api/async/stream/' + $.aip.uuid());
-    $.aip.source.onmessage = function(e) {
-        $.Deferred().resolve($.parseJSON(e.data)).then($.aip.error_guard).done(function(r) {
-            if (r.key == 'hello') {
-                $.aip.sid = r.value;
-                console.log('hello: ' + $.aip.sid);
-                if (!$.aip.inited) {
-                    console.log('init');
-                    $.aip.init(kargs);
-                }
-                $.ajax({
-                    method: 'POST',
-                    url: '/api/async/reply/' + $.aip.sid,
-                    cache: false
-                });
-            } else if (r.key == 'result') {
-                if (r.value.id in $.aip.calls) {
-                    console.log('result: ' + r.value.id);
-                    $.aip.calls[r.value.id].resolve(r.value.result);
-                    delete $.aip.calls[r.value.id];
-                } else {
-                    // async call id arrive later than its result
-                    // store its result first
-                    $.aip.calls[r.value.id] = r.value.result;
-                }
-            } else {
-                console.log('unknown event: ' + r.key);
-            }
-        }).fail(function(reason) {
-            console.log('pump failed, reason: ' + JSON.stringify(reason));
-        });
-    };
+    console.log('init');
+    $.aip.init(kargs);
 };
