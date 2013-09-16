@@ -45,6 +45,9 @@
 }
 #brand {
     width: 310px;
+    &:before {
+        content: "AIP Instrumentality Project";
+    }
 }
 body {
     position: relative;
@@ -235,6 +238,12 @@ p:last-child {
         position: fixed;
         padding-left: 20px;
         padding-right: 20px;
+    }
+    #brand {
+        width: 100px;
+        &:before {
+            content: "AIP";
+        }
     }
 }
 
