@@ -28,7 +28,8 @@ setup(
         'Pillow==2.1.0',
         'Flask-OpenID==1.42.1',
         'python3-openid==3.0.1',
-        'six'
+        'six',
+        'fn'
     ],
     dependency_links = [
         'https://github.com/Answeror/ConfigIt/tarball/version#egg=ConfigIt-0.1.3',
