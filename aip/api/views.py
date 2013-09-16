@@ -596,7 +596,7 @@ def make(app, api, cached, store, celery):
     @logged
     @streamed
     def stream_proxied_url(md5):
-        for make in (imgur_url, immio_url):
+        for make in (imgur_url, ):
             logging.info('use %s' % make.__name__)
             try:
                 uri = make(md5)
