@@ -359,6 +359,7 @@ def make(app, api, cached, store, celery):
         return jsonify(result=render_layout('page.html', entries=es))
 
     @api.route('/stream/page/<int:id>', methods=['GET'])
+    @logged
     @streamed
     def stream_page(id):
         r = slice(g.per * id, g.per * (id + 1), 1)
@@ -439,6 +440,7 @@ def make(app, api, cached, store, celery):
         return json.dumps(dict(result=arg)).encode('utf-8')
 
     @api.route('/stream/plus', methods=['GET'])
+    @logged
     @streamed
     @require_args(['user_id', 'entry_id'])
     def stream_plus(user_id, entry_id):
@@ -447,6 +449,7 @@ def make(app, api, cached, store, celery):
         yield dump_result(count=store.plus_count(entry_id))
 
     @api.route('/stream/minus', methods=['GET'])
+    @logged
     @streamed
     @require_args(['user_id', 'entry_id'])
     def stream_minus(user_id, entry_id):
@@ -463,6 +466,7 @@ def make(app, api, cached, store, celery):
         return jsonify(result=render_layout('page.html', entries=wrap(user.get_plused(r))))
 
     @api.route('/stream/plused/page/<int:id>.html', methods=['GET'])
+    @logged
     @streamed
     def stream_plused_page_html(id):
         user = get_user_bi_someid()
@@ -589,6 +593,7 @@ def make(app, api, cached, store, celery):
         return proxied_url(md5)
 
     @api.route('/stream/proxied_url/<md5>', methods=['GET'])
+    @logged
     @streamed
     def stream_proxied_url(md5):
         for make in (imgur_url, immio_url):
