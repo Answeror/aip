@@ -12,7 +12,7 @@ from flask import (
 )
 from datetime import datetime, timedelta
 import threading
-from functools import wraps
+from functools import wraps, partial
 from uuid import uuid4
 import pickle
 from ..bed.imgur import Imgur
@@ -23,11 +23,22 @@ import json
 import time
 from ..layout import render_layout
 from concurrent.futures import ProcessPoolExecutor as Ex
+from fn.iters import chain
 
 
 def Sex():
     '''single worker executor'''
     return Ex(max_workers=1)
+
+
+def fetch_posts(begin, limit, source):
+    def gen():
+        tags = []
+        for _, post in zip(list(range(limit)), source.get_images(tags)):
+            if begin is not None and post['ctime'] <= begin:
+                break
+            yield post
+    return list(gen())
 
 
 def locked(lock=None):
@@ -257,14 +268,14 @@ def make(app, api, cached, store, celery):
         store.set_meta('last_update_time', pickle.dumps(value))
 
     def _update_images(begin=None, limit=65536):
+        sources = [make(dict) for make in g.sources]
+        with Ex() as ex:
+            posts = list(chain.from_iterable(
+                ex.map(partial(fetch_posts, begin, limit), sources)
+            ))
         with store.autodag() as dag:
-            for make in g.sources:
-                source = make(dict)
-                tags = []
-                for i, im in zip(list(range(limit)), source.get_images(tags)):
-                    if begin is not None and im['ctime'] <= begin:
-                        break
-                    store.Post.put(dag=dag, **im)
+            for post in posts:
+                store.Post.put(dag=dag, **post)
 
     @api.route('/add_user', methods=['POST'])
     @guarded

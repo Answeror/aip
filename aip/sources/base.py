@@ -4,6 +4,10 @@
 
 import abc
 from ..abc import MetaWithFields
+import urllib3
+
+
+_http = urllib3.PoolManager()
 
 
 class Source(object, metaclass=MetaWithFields):
@@ -16,3 +20,7 @@ class Source(object, metaclass=MetaWithFields):
     @abc.abstractmethod
     def get_images(self, tags, page=None, per=None):
         return
+
+    @property
+    def http(self):
+        return self._http if hasattr(self, '_http') else _http

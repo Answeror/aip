@@ -17,8 +17,6 @@ class Source(base.Source, metaclass=MetaWithFields):
 
     def __init__(self, make_post):
         super(Source, self).__init__(make_post)
-        import urllib3
-        self._http = urllib3.PoolManager()
 
     @property
     def filter_nsfw(self):
@@ -26,7 +24,7 @@ class Source(base.Source, metaclass=MetaWithFields):
 
     def _fetch(self, request_url):
         try:
-            r = self._http.request('GET', request_url)
+            r = self.http.request('GET', request_url)
             if r.status != 200:
                 logging.error('fetch %s failed, status %d' % (request_url, r.status))
                 return None
