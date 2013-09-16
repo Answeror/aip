@@ -191,7 +191,12 @@ def make(app, api, cached, store, celery):
         def inner(*args, **kargs):
             def gen():
                 try:
+                    delay = current_app.config.get('AIP_STREAM_DELAY', 0.5)
+                    start = time.time()
                     for piece in f(*args, **kargs):
+                        elapsed = float(time.time() - start)
+                        if elapsed < delay:
+                            time.sleep(delay - elapsed)
                         yield format_stream_piece(piece)
                 except Exception as e:
                     yield format_stream_piece(dump_error(str(e)))
