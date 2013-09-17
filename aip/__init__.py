@@ -4,6 +4,7 @@
 
 import os
 import logging
+import logging.config
 
 
 def make_executor(app):
@@ -45,17 +46,38 @@ def make(config=None, **kargs):
         app.config['AIP_TEMP_PATH'] = tempfile.mkdtemp()
 
     # setup logging
-    level = app.config.get('AIP_LOG_LEVEL', logging.DEBUG)
-    logging.basicConfig(
-        filename=app.config.get('AIP_LOG_FILE_PATH', os.path.join(app.instance_path, 'aip.log')),
-        level=level
-    )
-    if app.config.get('AIP_LOG_STDOUT', True):
-        import sys
-        soh = logging.StreamHandler(sys.stdout)
-        soh.setLevel(level)
-        logger = logging.getLogger()
-        logger.addHandler(soh)
+    logging.config.dictConfig({
+        'version': 1,
+        'disable_existing_loggers': True,
+        'formatters': {
+            'detailed': {
+                'class': 'logging.Formatter',
+                'format': '%(asctime)s %(name)-16s %(levelname)-8s %(message)s'
+            },
+            'simple': {
+                'class': 'logging.Formatter',
+                'format': '%(message)s'
+            }
+        },
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'level': 'INFO',
+                'formatter': 'simple'
+            },
+            'file': {
+                'class': 'logging.FileHandler',
+                'level': app.config.get('AIP_LOG_LEVEL', logging.DEBUG),
+                'filename': app.config.get('AIP_LOG_FILE_PATH', os.path.join(app.instance_path, 'aip.log')),
+                'mode': 'a',
+                'formatter': 'detailed'
+            }
+        },
+        'root': {
+            'level': 'DEBUG',
+            'handlers': ['console', 'file']
+        }
+    })
 
     make_executor(app)
 
