@@ -27,6 +27,19 @@ from fn.iters import chain
 from nose.tools import assert_equal
 
 
+class Log(object):
+
+    @property
+    def log(self):
+        return logging.getLogger(__name__)
+
+    def info(self, *args, **kargs):
+        return self.log.info(*args, **kargs)
+
+
+log = Log()
+
+
 def ex():
     return current_app.config['AIP_EXECUTOR']
 
@@ -295,13 +308,14 @@ def make(app, api, cached, store):
         store.set_meta('last_update_time', pickle.dumps(value))
 
     def _update_images(begin=None, limit=65536):
+        start = time.time()
         sources = [make(dict) for make in g.sources]
         posts = list(chain.from_iterable(
             ex().map(partial(fetch_posts, begin, limit), sources)
         ))
+        log.info('fetch posts done, %d fetched, take %.4fs' % (len(posts), time.time() - start))
         with store.autodag() as dag:
-            for post in posts:
-                store.Post.put(dag=dag, **post)
+            store.Post.puts(dag=dag, posts=posts)
 
     @api.route('/add_user', methods=['POST'])
     @guarded

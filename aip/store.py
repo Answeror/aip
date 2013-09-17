@@ -15,6 +15,7 @@ from .dag import Dag
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy.orm.util import identity_key
+from fn.iters import chain
 
 
 def _scalar_all(self):
@@ -36,7 +37,10 @@ def make(app):
     db = SQLAlchemy(app)
 
     class Store(object):
-        pass
+
+        @property
+        def session(self):
+            return db.session
 
     store = Store()
 
@@ -283,6 +287,39 @@ def make(app):
 
             for tag in tags:
                 db.session.merge(Tagged(post_id=post.id, tag_id=tag.id, entry_id=entry.id))
+
+        @classmethod
+        @flushed
+        @dagw
+        def puts(cls, dag, posts):
+            tagnames = set(chain.from_iterable([post['tags'] for post in posts]))
+            tags = {name: Tag.get_or_add_bi_name(name, dag=dag) for name in tagnames}
+
+            def inner(posts):
+                for kargs in posts:
+                    entry = Entry.get_or_add_bi_md5(md5=kargs['md5'], ctime=kargs['ctime'])
+                    kargs = {k: v for k, v in kargs.items() if k != 'tags'}
+                    try:
+                        post = cls.query.filter_by(post_url=kargs['post_url']).options(db.joinedload(cls.entry)).one()
+                        if post.entry.md5 != kargs['md5']:
+                            raise Exception('md5 changed %s -> %s' % (post.md5, kargs['md5']))
+                        post.from_dict(kargs)
+                    except NoResultFound:
+                        post = cls(entry=entry)
+                        post.from_dict(kargs)
+                        db.session.add(post)
+                    yield post
+
+            flushed = False
+            for kargs, post in zip(posts, list(inner(posts))):
+                if post.id is None:
+                    if not flushed:
+                        db.session.flush()
+                        flushed = True
+                    db.session.expire(post, ['id'])
+                for name in set(kargs['tags']):
+                    tag = tags[name]
+                    db.session.merge(Tagged(post_id=post.id, tag_id=tag.id, entry_id=post.entry.id))
 
     @stored
     class Imgur(db.Model):
