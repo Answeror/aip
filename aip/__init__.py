@@ -6,6 +6,20 @@ import os
 import logging
 
 
+def make_executor(app):
+    def cleanup():
+        if 'AIP_EXECUTOR' in app.config:
+            app.config['AIP_EXECUTOR'].shutdown()
+
+    import atexit
+    atexit.register(cleanup)
+    from concurrent.futures import ProcessPoolExecutor as Ex
+    app.config['AIP_EXECUTOR'] = ex = Ex()
+    # trigger process creation
+    import math
+    ex.map(math.sqrt, list(range(42)))
+
+
 def make(config=None, **kargs):
     from flask import Flask
     app = Flask(
@@ -43,6 +57,8 @@ def make(config=None, **kargs):
         logger = logging.getLogger()
         logger.addHandler(soh)
 
+    make_executor(app)
+
     from flask.ext.openid import OpenID
     oid = OpenID(app, 'temp/openid')
 
@@ -55,10 +71,7 @@ def make(config=None, **kargs):
     from . import views
     views.make(app=app, oid=oid, cached=cached, store=store)
 
-    from celery import Celery
-    app.celery = Celery('aip.tasks', backend='amqp', broker='amqp://')
-    app.celery.conf.update(app.config)
     from . import api
-    api.make(app=app, cached=cached, store=store, celery=app.celery)
+    api.make(app=app, cached=cached, store=store)
 
     return app

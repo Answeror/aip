@@ -23,14 +23,12 @@ from ..async.subpub import Subpub
 import json
 import time
 from ..layout import render_layout
-from concurrent.futures import ProcessPoolExecutor as Ex
 from fn.iters import chain
 from nose.tools import assert_equal
 
 
-def Sex():
-    '''single worker executor'''
-    return Ex(max_workers=1)
+def ex():
+    return current_app.config['AIP_EXECUTOR']
 
 
 def fetch_posts(begin, limit, source):
@@ -116,7 +114,7 @@ def wrap(entries):
     return entries
 
 
-def make(app, api, cached, store, celery):
+def make(app, api, cached, store):
     api.b = Background(slave_count=app.config.get('AIP_SLAVE_COUNT', 1))
     api.b.start()
     api.sp = Subpub()
@@ -298,10 +296,9 @@ def make(app, api, cached, store, celery):
 
     def _update_images(begin=None, limit=65536):
         sources = [make(dict) for make in g.sources]
-        with Ex() as ex:
-            posts = list(chain.from_iterable(
-                ex.map(partial(fetch_posts, begin, limit), sources)
-            ))
+        posts = list(chain.from_iterable(
+            ex().map(partial(fetch_posts, begin, limit), sources)
+        ))
         with store.autodag() as dag:
             for post in posts:
                 store.Post.put(dag=dag, **post)
@@ -521,12 +518,11 @@ def make(app, api, cached, store, celery):
         if imgur_image:
             logging.info('hit %s' % md5)
         else:
-            with Sex() as ex:
-                imgur_image = ex.submit(
-                    imgur.upload,
-                    url=im.sample_url if im.sample_url else im.image_url,
-                    md5=im.md5
-                ).result()
+            imgur_image = ex().submit(
+                imgur.upload,
+                url=im.sample_url if im.sample_url else im.image_url,
+                md5=im.md5
+            ).result()
             imgur_image = store.Imgur(
                 id=imgur_image.id,
                 md5=imgur_image.md5,
@@ -554,12 +550,11 @@ def make(app, api, cached, store, celery):
         if immio_image:
             logging.info('hit %s' % md5)
         else:
-            with Sex() as ex:
-                immio_image = ex.submit(
-                    immio.upload,
-                    url=im.sample_url if im.sample_url else im.image_url,
-                    md5=im.md5
-                ).result()
+            immio_image = ex().submit(
+                immio.upload,
+                url=im.sample_url if im.sample_url else im.image_url,
+                md5=im.md5
+            ).result()
             immio_image = store.Immio(
                 uid=immio_image.uid,
                 md5=immio_image.md5,
