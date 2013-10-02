@@ -24,12 +24,6 @@ src = sapp.store.db
 dst = dapp.store.db
 
 for name in (
-    'meta',
-    'imgur',
-    'immio',
-    'entry',
-    'post',
-    'tag',
     'tagged',
     'user',
     'openid',
@@ -37,8 +31,13 @@ for name in (
 ):
     print('deal %s' % name)
     data = src.engine.execute(src.metadata.tables[name].select()).fetchall()
+    data = list(data)
+    print('fetched')
     if data:
-        dst.engine.execute(dst.metadata.tables[name].insert(), data)
+        step = 10000
+        for begin in range(0, len(data), step):
+            rows = data[begin:begin + step]
+            dst.engine.execute(dst.metadata.tables[name].insert(), rows)
 
 
 for name in (
