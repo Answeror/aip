@@ -1,0 +1,7 @@
+import os
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+data_path = os.path.join(project_root, 'data')
+
+src_uri = 'sqlite:///%s' % os.path.join(data_path, 'aip.db')
+dst_uri = 'postgresql+psycopg2://username:password@/aip'

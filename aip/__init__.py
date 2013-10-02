@@ -7,7 +7,7 @@ import logging
 import logging.config
 
 
-def make_executor(app):
+def init_slaves(app):
     def cleanup():
         if 'AIP_EXECUTOR' in app.config:
             app.config['AIP_EXECUTOR'].shutdown()
@@ -21,30 +21,29 @@ def make_executor(app):
     ex.map(math.sqrt, list(range(42)))
 
 
-def make(config=None, **kargs):
-    from flask import Flask
-    app = Flask(
-        __name__,
-        template_folder='templates',
-        static_folder='static',
-        **kargs
-    )
-
-    # config
+def init_conf(app, config):
+    # basic config
     from . import config as base
     app.config.from_object(base)
 
-    # config from params
-    if config:
-        app.config.from_object(config)
+    if config is None:
+        config = 'application.cfg'
 
-    # config from file
-    app.config.from_pyfile('application.cfg', silent=True)
+    if type(config) is str:
+        # config from file
+        app.config.from_pyfile(config, silent=True)
+    elif type(config) is dict:
+        app.config.update(**config)
+    else:
+        # config from params
+        app.config.from_object(config)
 
     if 'AIP_TEMP_PATH' not in app.config:
         import tempfile
         app.config['AIP_TEMP_PATH'] = tempfile.mkdtemp()
 
+
+def init_log(app):
     # setup logging
     logging.config.dictConfig({
         'version': 1,
@@ -68,7 +67,10 @@ def make(config=None, **kargs):
             'file': {
                 'class': 'logging.FileHandler',
                 'level': app.config.get('AIP_LOG_LEVEL', logging.DEBUG),
-                'filename': app.config.get('AIP_LOG_FILE_PATH', os.path.join(app.instance_path, 'aip.log')),
+                'filename': app.config.get(
+                    'AIP_LOG_FILE_PATH',
+                    os.path.join(app.instance_path, 'aip.log')
+                ),
                 'mode': 'a',
                 'formatter': 'detailed'
             }
@@ -79,21 +81,45 @@ def make(config=None, **kargs):
         }
     })
 
-    make_executor(app)
 
-    from flask.ext.openid import OpenID
-    oid = OpenID(app, 'temp/openid')
-
-    from . import cache
-    cached = cache.make(app)
-
+def init_store(app):
     from . import store
     store = store.make(app=app)
+    app.store = store
 
-    from . import views
-    views.make(app=app, oid=oid, cached=cached, store=store)
 
-    from . import api
-    api.make(app=app, cached=cached, store=store)
+def make(config=None, dbmode=False, **kargs):
+    if 'instance_path' in kargs:
+        kargs['instance_path'] = os.path.abspath(kargs['instance_path'])
+
+    from flask import Flask
+    app = Flask(
+        __name__,
+        template_folder='templates',
+        static_folder='static',
+        **kargs
+    )
+
+    init_conf(app, config)
+    init_log(app)
+
+    if dbmode:
+        init_store(app)
+    else:
+        init_slaves(app)
+
+        from flask.ext.openid import OpenID
+        oid = OpenID(app, 'temp/openid')
+
+        from . import cache
+        cached = cache.make(app)
+
+        init_store(app)
+
+        from . import views
+        views.make(app=app, oid=oid, cached=cached, store=app.store)
+
+        from . import api
+        api.make(app=app, cached=cached, store=app.store)
 
     return app
