@@ -24,6 +24,12 @@ src = sapp.store.db
 dst = dapp.store.db
 
 for name in (
+    'meta',
+    'imgur',
+    'immio',
+    'entry',
+    'post',
+    'tag',
     'tagged',
     'user',
     'openid',
