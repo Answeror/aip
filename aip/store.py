@@ -292,6 +292,7 @@ def make(app):
         @flushed
         @dagw
         def puts(cls, dag, posts):
+            posts = list(posts)
             tagnames = set(chain.from_iterable([post['tags'] for post in posts]))
             tags = {name: Tag.get_or_add_bi_name(name, dag=dag) for name in tagnames}
 
@@ -311,12 +312,17 @@ def make(app):
                     yield post
 
             flushed = False
+            seen = set()
             for kargs, post in zip(posts, list(inner(posts))):
                 if post.id is None:
                     if not flushed:
                         db.session.flush()
                         flushed = True
                     db.session.expire(post, ['id'])
+                else:
+                    if post.id in seen:
+                        continue
+                    seen.add(post.id)
                 for name in set(kargs['tags']):
                     tag = tags[name]
                     db.session.merge(Tagged(post_id=post.id, tag_id=tag.id, entry_id=post.entry.id))
@@ -541,14 +547,19 @@ def make(app):
             .where(Plus.entry_id == entry_id)
         )
 
-    def _pragma_on_connect(dbapi_con, con_record):
-        dbapi_con.execute('PRAGMA cache_size = 100000')
-
-    from sqlalchemy import event
-    event.listen(db.engine, 'connect', _pragma_on_connect)
+    if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
+        optimize_sqlite(db)
 
     db.create_all()
     db.configure_mappers()
 
     store.db = db
     return store
+
+
+def optimize_sqlite(db):
+    def _pragma_on_connect(dbapi_con, con_record):
+        dbapi_con.execute('PRAGMA cache_size = 100000')
+
+    from sqlalchemy import event
+    event.listen(db.engine, 'connect', _pragma_on_connect)
