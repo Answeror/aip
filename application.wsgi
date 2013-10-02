@@ -21,7 +21,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from aip import make
 application = make(
-    __name__,
     instance_path=DATA_PATH,
     instance_relative_config=True
 )
