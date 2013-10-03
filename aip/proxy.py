@@ -71,4 +71,5 @@ def imgur_url(store, md5, width=None, resolution=None):
         url = imgur.best_link(imgur_image, width, height)
     else:
         url = imgur_image.link
-    return url
+
+    return url.replace('http://', 'https://')

@@ -16,6 +16,7 @@ from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy.orm.util import identity_key
 from fn.iters import chain
+from .sources import sources
 
 
 def _scalar_all(self):
@@ -155,6 +156,17 @@ def make(app):
                 .correlate(cls.__table__)
                 .as_scalar()
             )
+
+        @property
+        def preview_url_ssl(self):
+            return self.source.try_use_ssl(self.preview_url)
+
+        @property
+        def source(self):
+            for s in sources:
+                if s.contains(self.post_url):
+                    return s
+            raise Exception('no match source for %s' % self.post_url)
 
         @property
         def preview_width(self):

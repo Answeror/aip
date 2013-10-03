@@ -1,6 +1,12 @@
 (function() {
     // http://stackoverflow.com/a/3326655/238472
     if (!window.console) console = {log: function() {}};
+
+    String.prototype.startswith = function(needle)
+    {
+        return(this.indexOf(needle) == 0);
+    };
+
     $.aip = {};
     $.aip.now = function() {
         return new Date().getTime() / 1000;
@@ -73,7 +79,7 @@
         return inner(0, kargs.make, kargs.reloads);
     };
     $.aip.load_image = function(kargs) {
-        function inner($img, src, timeout, reloads) {
+        var inner = function($img, src, timeout, reloads) {
             return $.aip.redo({
                 make: function(depth) {
                     console.log((depth + 1) + 'th loading ' + src);
@@ -117,10 +123,10 @@
                 reloads: reloads
             });
         };
-        var usessl = function(src) {
-            return src.replace('http://', 'https://');
-        };
-        return inner(kargs.img, usessl(kargs.src), kargs.timeout, kargs.reloads);
+        if (kargs.src.startswith('https://')) {
+            return inner(kargs.img, kargs.src, kargs.timeout, kargs.reloads);
+        }
+        return $.Deferred().reject(kargs.src + ' not support ssl');
     };
     $.fn.preview_area = function() {
         return $(this).data('preview-width') * $(this).data('preview-height');
