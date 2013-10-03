@@ -18,56 +18,25 @@
         {% block head %}{% endblock %}
     </head>
     <body class='solarized'>
-        {% block body %}
-            {% if g.user %}
-                <input id=user-id type=hidden value={{ g.user.id }}>
-            {% endif %}
-            {% block top %}
-                <div class="navbar navbar-inverse navbar-fixed-top">
-                    <div class="navbar-inner">
-                        <div class='container'>
-                            <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-                                <span class="icon-bar"></span>
-                                <span class="icon-bar"></span>
-                                <span class="icon-bar"></span>
-                            </button>
-                            <a id=brand class=brand href='/'></a>
-                            <div id=nav-wrap>
-                                <div class='nav-collapse collapse'>
-                                    <ul class=nav>
-                                        {% if g.user %}
-                                            <li><a href="/plused">plused</a></li>
-                                        {% endif %}
-                                        <li><a href="/about">about</a></li>
-                                        <li id=search-area>
-                                            <form class=navbar-form action='/'>
-                                                <div class="input-prepend">
-                                                    <span class="add-on"><i class='icon-search icon-white'></i></span>
-                                                    <div id=search-input-wrap><input type='text' name=q placeholder='search tags seperated by ;'></div>
-                                                </div>
-                                            </form>
-                                        </li>
-                                    </ul>
-                                    <div id=logio-wrap class=pull-right>
-                                        {% if g.user %}
-                                            <a href='/logout' class='btn'>logout</a>
-                                        {% else %}
-                                            <a href='/login' class='btn'>login</a>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endblock %}
-            <div id='main' class='main container'>
-                {% block middle %}
-                {% endblock %}
-            </div>
-            {% block bottom %}
-            {% endblock %}
+        {% if g.user %}
+            <input id=user-id type=hidden value={{ g.user.id }}>
+        {% endif %}
+        {% block top %}
+            {% include "nav.html" %}
         {% endblock %}
+        <div class=levels>
+            <div class=levels-inner>
+                <div id=base class=level>
+                    {% block body %}
+                        <div class='main container'>
+                            {% block middle %}{% endblock %}
+                        </div>
+                        {% block bottom %}{% endblock %}
+                    {% endblock %}
+                </div>
+                {% block levels %}{% endblock %}
+            </div>
+        </div>
         <script src='//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js' ></script>
         <script src="{{ url_for('.static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
         <div id=brand-popup style='display:none'>{% include "brand.html" %}</div>
@@ -84,7 +53,8 @@
             $('.brand').tooltip({
                 placement: 'bottom',
                 html: true,
-                title: $('#brand-popup').html()
+                title: $('#brand-popup').html(),
+                container: 'body'
             });
         </script>
         {% block script %}

@@ -1,8 +1,8 @@
 {% extends 'layout.html' %}
 {% block middle %}
-    <div id='buffer' style='height:0;overflow:hidden' class='row thumbnails'></div>
-    <div id='items' class='row thumbnails'></div>
-    <div id='alert_box'></div>
+    <div id=buffer style='height:0;overflow:hidden' class='row thumbnails'></div>
+    <div id=items class='row thumbnails'></div>
+    <div id=alert_box></div>
 {% endblock %}
 {% block bottom %}
     <div id='loading' style='display:none' class="navbar navbar-fixed-bottom">
@@ -29,10 +29,33 @@
             </div>
         </div>
     </div>
+    {% include "footer.html" %}
 {% endblock %}
 {% block script %}
     <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
     <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
     <script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
     <script src="{{ url_for('.js') }}"></script>
+{% endblock %}
+{% block levels %}
+    <div id=detail class=level>
+        <div class=hero-unit>
+            <div class=container>
+                <div name=preview class=row>
+                    <div class='span12 text-center'>
+                        <img src=# style='max-width:100%'>
+                        <span class=loading><span class=spinner></span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class=container>
+            <div class=row>
+                <div class=span12>
+                    <p><button name=back class=btn>back</button></p>
+                </div>
+            </div>
+        </div>
+        {% include "footer.html" %}
+    </div>
 {% endblock %}

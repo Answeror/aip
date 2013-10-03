@@ -16,8 +16,6 @@ import threading
 from functools import wraps, partial
 from uuid import uuid4
 import pickle
-from ..bed.imgur import Imgur
-from ..bed.immio import Immio
 from ..async.background import Background
 from ..async.subpub import Subpub
 import json
@@ -304,6 +302,25 @@ def make(app, api, cached, store):
 
         return gen
 
+    def optional_args(args):
+        fields = args
+
+        def gen(f):
+            @wraps(f)
+            def inner(*args, **kargs):
+                for key in fields:
+                    if key is tuple:
+                        key, kind = key
+                    else:
+                        kind = str
+                    value = arg(key)
+                    if value is not None:
+                        kargs[key] = kind(value)
+                return f(*args, **kargs)
+            return inner
+
+        return gen
+
     def _set_last_update_time(value):
         store.set_meta('last_update_time', pickle.dumps(value))
 
@@ -518,68 +535,13 @@ def make(app, api, cached, store):
     def async_minus(sid):
         return minus()
 
-    def imgur_url(md5):
-        im = store.Entry.get_bi_md5(md5)
-        imgur_image = store.get_imgur_bi_md5(md5)
-        limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
-        imgur = Imgur(
-            client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
-            resolution_level=current_app.config['AIP_RESOLUTION_LEVEL'],
-            max_size=(limit, limit),
-            timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
-            album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH']
-        )
-        if imgur_image:
-            logging.info('hit %s' % md5)
-        else:
-            imgur_image = ex().submit(
-                imgur.upload,
-                url=im.sample_url if im.sample_url else im.image_url,
-                md5=im.md5
-            ).result()
-            imgur_image = store.Imgur(
-                id=imgur_image.id,
-                md5=imgur_image.md5,
-                link=imgur_image.link,
-                deletehash=imgur_image.deletehash
-            )
-            store.db.session.flush()
-            imgur_image = store.db.session.merge(imgur_image)
-            store.db.session.commit()
-        if 'width' in request.args:
-            width = float(request.args['width'])
-            height = width * im.height / im.width
-            url = imgur.best_link(imgur_image, width, height)
-        else:
-            url = imgur_image.link
-        return url
+    def imgur_url(md5, width=None, resolution=None):
+        from .. import proxy
+        return proxy.imgur_url(store, md5, width=width, resolution=resolution)
 
     def immio_url(md5):
-        im = store.Entry.get_bi_md5(md5)
-        immio_image = store.get_immio_bi_md5(md5)
-        immio = Immio(
-            max_size=current_app.config['AIP_IMMIO_RESIZE_MAX_SIZE'],
-            timeout=current_app.config['AIP_UPLOAD_IMMIO_TIMEOUT']
-        )
-        if immio_image:
-            logging.info('hit %s' % md5)
-        else:
-            immio_image = ex().submit(
-                immio.upload,
-                url=im.sample_url if im.sample_url else im.image_url,
-                md5=im.md5
-            ).result()
-            immio_image = store.Immio(
-                uid=immio_image.uid,
-                md5=immio_image.md5,
-                uri=immio_image.uri,
-                width=immio_image.width,
-                height=immio_image.height
-            )
-            store.db.session.flush()
-            immio_image = store.db.session.merge(immio_image)
-            store.db.session.commit()
-        return immio_image.uri
+        from .. import proxy
+        return proxy.immio_url(store, md5)
 
     @guarded
     @logged
@@ -610,11 +572,12 @@ def make(app, api, cached, store):
     @api.route('/stream/proxied_url/<md5>', methods=['GET'])
     @logged
     @streamed
-    def stream_proxied_url(md5):
+    @optional_args([('width', float), ('resolution', float)])
+    def stream_proxied_url(md5, width=None, resolution=None):
         for make in (imgur_url, ):
             logging.info('use %s' % make.__name__)
             try:
-                uri = make(md5)
+                uri = make(md5=md5, width=width, resolution=resolution)
                 logging.info('get %s' % uri)
                 yield dump_result(uri)
             except Exception as e:

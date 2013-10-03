@@ -1,18 +1,19 @@
 {% extends "layout.html" %}
-{% block title %}About this site{% endblock %}
-{% block middle %}
-    <article>
-        <div class=row>
-            <div class='page-header span12'>
-                <div class=row>
-                    <div class='span8 offset2'>
-                        <h1>about this site</h1>
-                    </div>
+{% block title %}about this site{% endblock %}
+{% block body %}
+    <div class=hero-unit>
+        <div class=container>
+            <div class=row>
+                <div class='span12'>
+                    <p>AIP = <strong>A</strong>IP <strong>I</strong>nstrumentality <strong>P</strong>roject</p>
+                    <p>aip.io = <strong>AIP</strong> <strong>i</strong>s <a href='https://github.com/Answeror/aip'><strong>O</strong>pensource</a></p>
                 </div>
             </div>
-            <div class='span8 offset2'>
-                <p>AIP = <strong>A</strong>IP <strong>I</strong>nstrumentality <strong>P</strong>roject<p>
-                <p>aip.io = <strong>AIP</strong> <strong>i</strong>s <a href='https://github.com/Answeror/aip'><strong>O</strong>pensource</a></p>
+        </div>
+    </div>
+    <div class=container>
+        <div class=row>
+            <div class=span12>
                 <p>This site fused posts came from:</p>
                 <ul>
                     <li><a href='https://danbooru.donmai.us/'>danbooru</a></li>
@@ -23,5 +24,6 @@
                 <p>Feel free to post issue on <a href='https://github.com/Answeror/aip'>github</a>.</p>
             </div>
         </div>
-    </article>
+    </div>
+    {% include "footer.html" %}
 {% endblock %}
