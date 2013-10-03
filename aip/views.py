@@ -156,8 +156,8 @@ def make(app, oid, cached, store):
             g.user = store.get_user_bi_openid(session['openid'])
         elif 'id' in session:
             g.user = store.get_user_bi_id(session['id'])
-        else:
-            g.user = store.get_user_bi_id(1)
+        #else:
+            #g.user = store.get_user_bi_id(1)
 
     @app.route('/login', methods=['GET', 'POST'])
     @oid.loginhandler
@@ -247,7 +247,7 @@ def make(app, oid, cached, store):
         im.save(output_stream, format='JPEG')
         return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
 
-    @app.route('/', methods=['GET'])
+    @app.route('/')
     def posts():
         tags = request.args.get('q', '')
         return render_layout('index.html', tags=tags)

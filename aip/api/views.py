@@ -16,21 +16,30 @@ import threading
 from functools import wraps, partial
 from uuid import uuid4
 import pickle
-from ..bed.imgur import Imgur
-from ..bed.immio import Immio
 from ..async.background import Background
 from ..async.subpub import Subpub
 import json
 import time
 from ..layout import render_layout
-from concurrent.futures import ProcessPoolExecutor as Ex
 from fn.iters import chain
 from nose.tools import assert_equal
 
 
-def Sex():
-    '''single worker executor'''
-    return Ex(max_workers=1)
+class Log(object):
+
+    @property
+    def log(self):
+        return logging.getLogger(__name__)
+
+    def info(self, *args, **kargs):
+        return self.log.info(*args, **kargs)
+
+
+log = Log()
+
+
+def ex():
+    return current_app.config['AIP_EXECUTOR']
 
 
 def fetch_posts(begin, limit, source):
@@ -116,7 +125,7 @@ def wrap(entries):
     return entries
 
 
-def make(app, api, cached, store, celery):
+def make(app, api, cached, store):
     api.b = Background(slave_count=app.config.get('AIP_SLAVE_COUNT', 1))
     api.b.start()
     api.sp = Subpub()
@@ -293,18 +302,37 @@ def make(app, api, cached, store, celery):
 
         return gen
 
+    def optional_args(args):
+        fields = args
+
+        def gen(f):
+            @wraps(f)
+            def inner(*args, **kargs):
+                for key in fields:
+                    if key is tuple:
+                        key, kind = key
+                    else:
+                        kind = str
+                    value = arg(key)
+                    if value is not None:
+                        kargs[key] = kind(value)
+                return f(*args, **kargs)
+            return inner
+
+        return gen
+
     def _set_last_update_time(value):
         store.set_meta('last_update_time', pickle.dumps(value))
 
     def _update_images(begin=None, limit=65536):
+        start = time.time()
         sources = [make(dict) for make in g.sources]
-        with Ex() as ex:
-            posts = list(chain.from_iterable(
-                ex.map(partial(fetch_posts, begin, limit), sources)
-            ))
+        posts = list(chain.from_iterable(
+            ex().map(partial(fetch_posts, begin, limit), sources)
+        ))
+        log.info('fetch posts done, %d fetched, take %.4fs' % (len(posts), time.time() - start))
         with store.autodag() as dag:
-            for post in posts:
-                store.Post.put(dag=dag, **post)
+            store.Post.puts(dag=dag, posts=posts)
 
     @api.route('/add_user', methods=['POST'])
     @guarded
@@ -507,70 +535,13 @@ def make(app, api, cached, store, celery):
     def async_minus(sid):
         return minus()
 
-    def imgur_url(md5):
-        im = store.Entry.get_bi_md5(md5)
-        imgur_image = store.get_imgur_bi_md5(md5)
-        limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
-        imgur = Imgur(
-            client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
-            resolution_level=current_app.config['AIP_RESOLUTION_LEVEL'],
-            max_size=(limit, limit),
-            timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
-            album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH']
-        )
-        if imgur_image:
-            logging.info('hit %s' % md5)
-        else:
-            with Sex() as ex:
-                imgur_image = ex.submit(
-                    imgur.upload,
-                    url=im.sample_url if im.sample_url else im.image_url,
-                    md5=im.md5
-                ).result()
-            imgur_image = store.Imgur(
-                id=imgur_image.id,
-                md5=imgur_image.md5,
-                link=imgur_image.link,
-                deletehash=imgur_image.deletehash
-            )
-            store.db.session.flush()
-            imgur_image = store.db.session.merge(imgur_image)
-            store.db.session.commit()
-        if 'width' in request.args:
-            width = float(request.args['width'])
-            height = width * im.height / im.width
-            url = imgur.best_link(imgur_image, width, height)
-        else:
-            url = imgur_image.link
-        return url
+    def imgur_url(md5, width=None, resolution=None):
+        from .. import proxy
+        return proxy.imgur_url(store, md5, width=width, resolution=resolution)
 
     def immio_url(md5):
-        im = store.Entry.get_bi_md5(md5)
-        immio_image = store.get_immio_bi_md5(md5)
-        immio = Immio(
-            max_size=current_app.config['AIP_IMMIO_RESIZE_MAX_SIZE'],
-            timeout=current_app.config['AIP_UPLOAD_IMMIO_TIMEOUT']
-        )
-        if immio_image:
-            logging.info('hit %s' % md5)
-        else:
-            with Sex() as ex:
-                immio_image = ex.submit(
-                    immio.upload,
-                    url=im.sample_url if im.sample_url else im.image_url,
-                    md5=im.md5
-                ).result()
-            immio_image = store.Immio(
-                uid=immio_image.uid,
-                md5=immio_image.md5,
-                uri=immio_image.uri,
-                width=immio_image.width,
-                height=immio_image.height
-            )
-            store.db.session.flush()
-            immio_image = store.db.session.merge(immio_image)
-            store.db.session.commit()
-        return immio_image.uri
+        from .. import proxy
+        return proxy.immio_url(store, md5)
 
     @guarded
     @logged
@@ -601,11 +572,12 @@ def make(app, api, cached, store, celery):
     @api.route('/stream/proxied_url/<md5>', methods=['GET'])
     @logged
     @streamed
-    def stream_proxied_url(md5):
+    @optional_args([('width', float), ('resolution', float)])
+    def stream_proxied_url(md5, width=None, resolution=None):
         for make in (imgur_url, ):
             logging.info('use %s' % make.__name__)
             try:
-                uri = make(md5)
+                uri = make(md5=md5, width=width, resolution=resolution)
                 logging.info('get %s' % uri)
                 yield dump_result(uri)
             except Exception as e:
