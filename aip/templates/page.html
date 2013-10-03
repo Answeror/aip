@@ -1,6 +1,6 @@
 <div>
     {% for e in entries %}
-    <div class='item span2' data-md5={{ e.md5 }}>
+    <div class='item span2' data-md5={{ e.md5 }} data-source={{ e.post_url }}>
         <div class='thumbnail'>
             <p class=preview>
                 <a
@@ -31,6 +31,7 @@
                     <a class='plus disabled btn btn-mini' title='login to plus' href='/login'>+{{ e.plus_count }}</a>
                 {% endif %}
                 <button name=tags class='btn btn-mini' data-toggle=button>tags</button>
+                <a name=source class='btn btn-mini' href='{{ e.post_url }}' target=_blank>source</a>
             </p>
         </div>
         <div class='tags' style='display:none'>

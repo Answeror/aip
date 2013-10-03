@@ -279,6 +279,11 @@ p:last-child {
     .levels {
         padding-top: 50px;
     }
+    .item {
+        [name="tags"] {
+            display: none;
+        }
+    }
 }
 
 /* Tablet to desktop

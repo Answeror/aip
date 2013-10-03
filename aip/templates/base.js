@@ -366,6 +366,8 @@
                                     done = true;
                                 });
                             });
+                            $detail.find('[name="source"]').attr('href', $item.data('source'));
+                            $detail.find('[name="raw"]').attr('href', '/raw/' + $item.data('md5'));
                             e.preventDefault();
                         });
                     } catch (e) {
