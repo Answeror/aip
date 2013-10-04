@@ -313,5 +313,5 @@ def make(app, oid, cached, store):
             'accept-ranges',
             'last-modified',
             'connection'
-        )}
+        ) if k in r.headers}
         return r.data, 200, headers
