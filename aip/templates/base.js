@@ -171,7 +171,7 @@
             makePageData: $.noop
         };
         kargs = $.extend({}, defaults, kargs);
-        function dealplus($this) {
+        function init_plus($this) {
             var $plus = $this.find('.plus');
             if (!$.aip.user_id()) {
                 $plus.tooltip();
@@ -310,42 +310,26 @@
                         $item.attr('data-done', true);
                     }
                 };
-                var dealone = function($item) {
-                    if ($item.data('dealed')) return;
-                    try {
-                        dealplus($item);
-                        $container.append($item);
-                        if (!marsed) {
-                            console.log('initialize masonry');
-                            $container.masonry({
-                                itemSelector: '.item',
-                                isAnimated: true,
-                                columnWidth: '.span2',
-                                transitionDuration: '0.4s'
-                            });
-                            marsed = true;
-                        } else {
-                            $container.masonry('appended', $item, true);
-                        }
-                        $.aip.inc('done');
+                var init_detail = function($item) {
+                    $item.find('a.preview').click(function(e) {
+                        var $detail = $('#detail');
+                        var $preview = $detail.find('div[name=preview]');
+                        var $img = $preview.find('img');
+                        var $loading = $detail.find('.loading');
+                        $img.hide();
+                        // must hide loading first
+                        // other wise detail layer won't show properly
+                        $loading.hide();
+                        $detail.show();
+                        $detail.stop().animate({
+                            left: '0%'
+                        }, 500, 'swing', function() {
+                            var hash = '#' + $item.data('md5');
+                            window.location.hash = hash;
 
-                        $item.find('a.preview').click(function(e) {
-                            var $detail = $('#detail');
-                            var $preview = $detail.find('div[name=preview]');
-                            var $img = $preview.find('img');
-                            var $loading = $detail.find('.loading');
-                            $img.hide();
-                            // must hide loading first
-                            // other wise detail layer won't show properly
-                            $loading.hide();
-                            var done = false;
-                            $detail.stop().animate({
-                                left: '0%'
-                            }, 500, 'swing', function() {
-                                var hash = '#' + $item.data('md5');
-                                window.location.hash = hash;
-                                if (!done) $loading.show();
-                            });
+                            $loading.show();
+                            // load image after animation
+                            // to archive smooth transition on ipad
                             $.aip.stream({
                                 url: '/api/stream/proxied_url/' + $item.data('md5'),
                                 data: {
@@ -363,13 +347,36 @@
                                 }).done(function() {
                                     $loading.hide();
                                     $img.show();
-                                    done = true;
                                 });
                             });
                             $detail.find('[name="source"]').attr('href', $item.data('source'));
                             $detail.find('[name="raw"]').attr('href', '/raw/' + $item.data('md5'));
-                            e.preventDefault();
                         });
+                        e.preventDefault();
+                    });
+                };
+                var mars = function($item) {
+                    $container.append($item);
+                    if (!marsed) {
+                        console.log('initialize masonry');
+                        $container.masonry({
+                            itemSelector: '.item',
+                            isAnimated: true,
+                            columnWidth: '.span2',
+                            transitionDuration: '0.4s'
+                        });
+                        marsed = true;
+                    } else {
+                        $container.masonry('appended', $item, true);
+                    }
+                };
+                var dealone = function($item) {
+                    if ($item.data('dealed')) return;
+                    try {
+                        init_plus($item);
+                        init_detail($item);
+                        mars($item);
+                        $.aip.inc('done');
                     } catch (e) {
                         console.log('dealone failed');
                         console.log(e);
@@ -490,6 +497,7 @@
                 left: '100%'
             }, 500, 'swing', function() {
                 window.location.hash = '#wall';
+                $('#detail').hide();
             });
             e.preventDefault();
         });

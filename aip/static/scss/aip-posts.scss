@@ -37,6 +37,9 @@ html, body {
     top: 0;
     overflow-x: auto;
     overflow-y: scroll;
+    /*smooth scrolling on ios*/
+    /*http://css-tricks.com/snippets/css/momentum-scrolling-on-ios-overflow-elements/*/
+    -webkit-overflow-scrolling: touch;
 }
 .footer {
     margin-top: 70px;
