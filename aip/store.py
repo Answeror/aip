@@ -278,7 +278,11 @@ def make(app):
         def from_dict(self, d):
             for key, value in d.items():
                 if hasattr(self, key):
-                    setattr(self, key, value)
+                    try:
+                        setattr(self, key, value)
+                    except:
+                        # for md5 field
+                        pass
 
         @classmethod
         @flushed
