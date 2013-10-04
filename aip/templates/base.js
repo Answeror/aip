@@ -248,23 +248,6 @@
         };
         var marsed = false;
         var $buffer = $('#buffer');
-        $container.popover({
-            selector: '.btn[name="tags"]',
-            container: 'body',
-            html: true,
-            content: function() {
-                return $(this).closest('.item').find('.tags').html();
-            },
-            placement: function(context, source) {
-                var $s = $(source);
-                var p = $s.offset();
-                p.right = ($(window).width() - (p.left + $s.outerWidth()));
-                if (p.right > 276) return 'right';
-                if (p.left > 276) return 'left';
-                if (p.top > 110) return 'top';
-                return 'bottom';
-            }
-        });
         var nomore = false;
         function pull() {
             if ($.aip.pulling) return;
@@ -384,10 +367,63 @@
                         $container.masonry('appended', $item, true);
                     }
                 };
+                var init_tags = function($item) {
+                    // sticky popover
+                    // http://stackoverflow.com/a/9400740/238472
+                    var timer;
+                    var clicked = false;
+                    $item.find('.btn[name="tags"]').popover({
+                        container: 'body',
+                        html: true,
+                        trigger: 'manual',
+                        content: function() {
+                            return $(this).closest('.item').find('.tags').html();
+                        },
+                        placement: function(context, source) {
+                            var $s = $(source);
+                            var p = $s.offset();
+                            p.right = ($(window).width() - (p.left + $s.outerWidth()));
+                            if (p.right > 276) return 'right';
+                            if (p.left > 276) return 'left';
+                            if (p.top > 110) return 'top';
+                            return 'bottom';
+                        },
+                        template: '<div class="popover" onmouseover="$(this).mouseleave(function() { $(this).hide(); });"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3><div class="popover-content"><p></p></div></div></div>'
+
+                    }).click(function(e) {
+                        if (clicked) {
+                            $('.popover').hide();
+                            clicked = false;
+                        } else {
+                            // click listener for tablet
+                            if (timer) {
+                                // prevent popup flash
+                                clearTimeout(timer);
+                            } else {
+                                $('.popover').hide();
+                                $(this).popover('show');
+                            }
+                            clicked = true;
+                        }
+                        e.preventDefault();
+                    }).mouseenter(function(e) {
+                        $('.popover').hide();
+                        var $this = $(this);
+                        $this.popover('show');
+                        timer = setTimeout(function(){
+                            if (!$('.popover:hover').length) {
+                                $this.popover('hide');
+                            }
+                            // make further click take effect
+                            timer = undefined;
+                        }, 1000);
+                    });
+                };
                 var dealone = function($item) {
                     if ($item.data('dealed')) return;
                     try {
                         init_plus($item);
+                        init_tags($item);
                         init_detail($item);
                         mars($item);
                         $.aip.inc('done');

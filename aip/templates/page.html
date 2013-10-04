@@ -30,7 +30,7 @@
                 {% else %}
                     <a class='plus disabled btn btn-mini' title='login to plus' href='/login'>+{{ e.plus_count }}</a>
                 {% endif %}
-                <button name=tags class='btn btn-mini' data-toggle=button>tags</button>
+                <a name=tags class='btn btn-mini' rel=popover href=#>tags</a>
                 <a name=source class='btn btn-mini' href='{{ e.post_url }}' target=_blank>source</a>
             </p>
         </div>
