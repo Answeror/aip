@@ -37,6 +37,9 @@ html, body {
     top: 0;
     overflow-x: auto;
     overflow-y: scroll;
+}
+/*http://stackoverflow.com/questions/12731975/chrome-positionfixed-and-transformz-bug*/
+.ios .level {
     /*smooth scrolling on ios*/
     /*http://css-tricks.com/snippets/css/momentum-scrolling-on-ios-overflow-elements/*/
     -webkit-overflow-scrolling: touch;
