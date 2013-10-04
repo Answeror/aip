@@ -271,6 +271,10 @@ def make(app):
         entry_id = db.Column(db.Integer, db.ForeignKey('entry.id'), index=True)
         tags = db.relationship('Tag', secondary=Tagged.__table__)
 
+        @property
+        def md5(self):
+            return self.entry.md5
+
         def from_dict(self, d):
             for key, value in d.items():
                 if hasattr(self, key):
