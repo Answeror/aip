@@ -36,7 +36,16 @@
         $t.text(parseInt($t.text()) + value);
     };
     $.aip.actual_size = function($img, callback) {
-        callback($img[0].naturalWidth, $img[0].naturalHeight);
+        //callback($img[0].naturalWidth, $img[0].naturalHeight);
+
+        // http://stackoverflow.com/questions/10478649/get-actual-image-size-after-resizing-it
+        $("<img/>") // Make in memory copy of image to avoid css issues
+            .attr("src", $img.attr("src"))
+            .load(function() {
+                // Note: $(this).width() will not
+                // work for in memory images.
+                callback(this.width, this.height);
+            });
     };
     $.aip.stream = function(kargs) {
         var $d = $.Deferred();
@@ -83,11 +92,14 @@
             return $.aip.redo({
                 make: function(depth) {
                     console.log((depth + 1) + 'th loading ' + src);
-                    // each cross means a reload
-                    // mod 2 to force reload
-                    var preview_src = src + '?x=' + ((depth + 2) % 2);
-                    //var preview_src = src;
-                    $img.attr('src', preview_src);
+                    // for no reloading usage
+                    if (depth > 0) {
+                        // each cross means a reload
+                        // mod 2 to force reload
+                        var preview_src = src + '?x=' + ((depth + 2) % 2);
+                    } else {
+                        var preview_src = src;
+                    }
                     var tid = setTimeout(function() {
                         reject('timeout');
                     }, timeout);
@@ -101,6 +113,7 @@
                         rejected = true;
                         $d.reject(reason);
                     };
+                    $img.attr('src', '');
                     $img.imagesLoaded().done(function() {
                         clearTimeout(tid);
                         if (!rejected) {
@@ -118,6 +131,7 @@
                         clearTimeout(tid);
                         reject('unknown');
                     });
+                    $img.attr('src', preview_src);
                     return $d.promise();
                 },
                 reloads: reloads
@@ -340,9 +354,9 @@
                                 $.aip.load_image({
                                     img: $img,
                                     src: uri,
-                                    timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
-                                    reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
-                                        return $.aip.disturb(1e3 * {{ config['AIP_RELOAD_INTERVAL'] }});
+                                    timeout: 1e3 * {{ config['AIP_DETAIL_LOADING_TIMEOUT'] }},
+                                    reloads: $.aip.range({{ config['AIP_DETAIL_RELOAD_LIMIT'] }}).map(function() {
+                                        return $.aip.disturb(1e3 * {{ config['AIP_DETAIL_RELOAD_INTERVAL'] }});
                                     })
                                 }).done(function() {
                                     $loading.hide();
