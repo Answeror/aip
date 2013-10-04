@@ -163,7 +163,7 @@ def make(app):
 
         @property
         def source(self):
-            for s in sources:
+            for s in sources.values():
                 if s.contains(self.post_url):
                     return s
             raise Exception('no match source for %s' % self.post_url)
