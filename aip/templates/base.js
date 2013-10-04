@@ -48,22 +48,41 @@
             });
     };
     $.aip.stream = function(kargs) {
-        var $d = $.Deferred();
+        var defaults = {
+            timeout: 1e8
+        };
+        kargs = $.extend({}, defaults, kargs);
+        var tid = setTimeout(function() {
+            reject('timeout');
+        }, kargs.timeout);
+        var $d = $.Deferred().done(function() {
+            clearTimeout(tid);
+        }).fail(function() {
+            clearTimeout(tid);
+        });
+        var rejected = false;
+        function reject(reason) {
+            rejected = true;
+            $d.reject(reason);
+        };
         var es = new EventSource(kargs.url + '?' + $.param(kargs.data));
         es.onmessage = function(e) {
             $.Deferred()
             .resolve($.parseJSON(e.data))
             .then($.aip.error_guard)
             .done(function(r) {
-                if ('result' in r) {
-                    e.target.close();
-                    $d.resolve(r.result);
-                } else {
-                    $d.reject('unknown event: ' + JSON.stringify(r));
+                clearTimeout(tid);
+                if (!rejected) {
+                    if ('result' in r) {
+                        e.target.close();
+                        $d.resolve(r.result);
+                    } else {
+                        reject('unknown event: ' + JSON.stringify(r));
+                    }
                 }
             }).fail(function(reason) {
                 e.target.close();
-                $d.reject(reason);
+                reject(reason);
             });
         };
         return $d;
@@ -437,7 +456,6 @@
                 };
                 var proxied = function($item) {
                     $.aip.inc('need-proxied');
-                    dealone($item);
                     var error = function(message) {
                         $.aip.error(message);
                         guarded_doneone($item);
@@ -447,7 +465,7 @@
                         make: function() {
                             return $.aip.stream({
                                 url: '/api/stream/proxied_url/' + $img.data('md5'),
-                                //timeout: 1e3 * {{ config['AIP_PROXIED_TIMEOUT'] }},
+                                timeout: 1e3 * {{ config['AIP_PROXIED_TIMEOUT'] }},
                                 data: { width: $img.width() }
                             });
                         },
@@ -467,6 +485,7 @@
                             }).done(function() {
                                 $item.find('.loading').hide();
                                 $img.show();
+                                dealone($item);
                             }).fail(function(reason) {
                                 error('load image failed, reason: ' + JSON.stringify(reason));
                                 $.aip.inc('proxied-preview-loading-failed');
@@ -498,27 +517,14 @@
                         $.aip.inc('original-preview-loading-failed');
                         proxied($this);
                     };
-                    var limit = {{ config['AIP_RELOAD_LIMIT'] }};
                     $.aip.load_image({
                         img: $img,
                         src: $img.data('src'),
-                        timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }}
-                    }).done(done).fail(function(reason) {
-                        if (limit == 0) {
-                            fail(reason);
-                        } else {
-                            // first try failed, show blank image
-                            dealone($this);
-                            $.aip.load_image({
-                                img: $img,
-                                src: $img.data('src'),
-                                timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
-                                reloads: $.aip.range(limit - 1).map(function() {
-                                    return $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }});
-                                })
-                            }).done(done).fail(fail);
-                        }
-                    });
+                        timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
+                        reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
+                            return $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }});
+                        })
+                    }).done(done).fail(fail);
                 });
             }).fail(function(reason) {
                 $('#loading').hide();
