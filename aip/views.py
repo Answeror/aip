@@ -13,7 +13,8 @@ from flask import (
     flash,
     request,
     current_app,
-    render_template
+    render_template,
+    abort
 )
 from operator import attrgetter as attr
 from io import BytesIO
@@ -295,3 +296,22 @@ def make(app, oid, cached, store):
     @app.route('/about')
     def about():
         return render_layout('about.html')
+
+    @app.route('/raw/<md5>', methods=['GET'])
+    def raw(md5):
+        en = store.Entry.get_bi_md5(md5)
+        if not en:
+            abort(404)
+        uri = en.image_url
+        r = _fetch(uri)
+        headers = {k: r.headers[k] for k in (
+            'expires',
+            'date',
+            'cache-control',
+            'content-type',
+            'content-length',
+            'accept-ranges',
+            'last-modified',
+            'connection'
+        )}
+        return r.data, 200, headers

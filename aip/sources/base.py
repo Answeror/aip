@@ -12,7 +12,7 @@ _http = urllib3.PoolManager()
 
 class Source(object, metaclass=MetaWithFields):
 
-    FIELDS = ('id', 'name')
+    FIELDS = ('id', 'name', 'has_ssl')
 
     def __init__(self, make_post):
         self.make_post = make_post
@@ -24,3 +24,10 @@ class Source(object, metaclass=MetaWithFields):
     @property
     def http(self):
         return self._http if hasattr(self, '_http') else _http
+
+    def contains(self, uri):
+        return self.name in uri
+
+    def try_use_ssl(self, uri):
+        assert self.contains(uri)
+        return uri.replace('http://', 'https://') if self.has_ssl else uri

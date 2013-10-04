@@ -19,6 +19,10 @@ class Source(base.Source, metaclass=MetaWithFields):
         super(Source, self).__init__(make_post)
 
     @property
+    def has_ssl(self):
+        return True
+
+    @property
     def filter_nsfw(self):
         return True
 

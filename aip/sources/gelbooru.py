@@ -11,6 +11,10 @@ from . import booru
 class Source(booru.Source):
 
     @property
+    def has_ssl(self):
+        return False
+
+    @property
     def start_page(self):
         return 0
 

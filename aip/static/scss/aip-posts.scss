@@ -37,6 +37,9 @@ html, body {
     top: 0;
     overflow-x: auto;
     overflow-y: scroll;
+    /*smooth scrolling on ios*/
+    /*http://css-tricks.com/snippets/css/momentum-scrolling-on-ios-overflow-elements/*/
+    -webkit-overflow-scrolling: touch;
 }
 .footer {
     margin-top: 70px;
@@ -98,6 +101,7 @@ html, body {
     right: 0;
     left: 28px;
     top: 0;
+    bottom: 0;
     overflow: hidden;
     input {
         width: 100%;
@@ -244,7 +248,7 @@ p:last-child {
                 .search-area {
                     position: absolute;
                     right: 0;
-                    width: 28px;
+                    width: 220px;
                     .navbar-form, .input-prepend {
                         position: relative;
                         width: 100%;
@@ -278,6 +282,11 @@ p:last-child {
     }
     .levels {
         padding-top: 50px;
+    }
+    .item {
+        [name="tags"] {
+            display: none;
+        }
     }
 }
 
