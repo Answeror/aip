@@ -86,47 +86,64 @@ def refine_imgur_uri(imgur, image, cache, width):
 
 
 def imgur_url_gen(store, md5, width=None, resolution=None):
-    im = store.Entry.get_bi_md5(md5)
-    imgur_image = store.get_imgur_bi_md5(md5)
-    limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
+    entry = store.Entry.get_bi_md5(md5)
+    if not entry:
+        raise Exception('bad md5: %s' % md5)
+
     if resolution is None:
         resolution = current_app.config['AIP_RESOLUTION_LEVEL']
-    imgur = Imgur(
-        client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
-        resolution_level=resolution,
-        max_size=(limit, limit),
-        timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
-        album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH']
-    )
-    if imgur_image:
-        logging.info('hit %s' % md5)
-        yield refine_imgur_uri(imgur, im, imgur_image, width)
-    else:
-        for source_uri in (
-            im.sample_url if im.sample_url else im.image_url,
-            im.image_url
-        ):
-            try:
-                info = ex().submit(
-                    imgur.upload,
-                    url=source_uri,
-                    md5=im.md5
-                ).result()
-            except:
-                pass
-            else:
-                if info:
-                    break
-        else:
-            raise Exception('imgur failed')
 
-        imgur_image = store.Imgur(
-            id=info.id,
-            md5=info.md5,
-            link=info.link,
-            deletehash=info.deletehash
+    def dealpost(post):
+        imgur_image = store.get_imgur_bi_md5(md5)
+        limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
+        imgur = Imgur(
+            client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
+            resolution_level=resolution,
+            max_size=(limit, limit),
+            timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
+            album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH']
         )
-        yield refine_imgur_uri(imgur, im, imgur_image, width)
-        store.db.session.flush()
-        imgur_image = store.db.session.merge(imgur_image)
-        store.db.session.commit()
+        if imgur_image:
+            logging.info('hit %s' % md5)
+            yield refine_imgur_uri(imgur, post, imgur_image, width)
+        else:
+            done = False
+            for source_uri in (
+                post.sample_url if post.sample_url else post.image_url,
+                post.image_url
+            ):
+                try:
+                    info = ex().submit(
+                        imgur.upload,
+                        url=source_uri,
+                        md5=post.md5
+                    ).result()
+                except:
+                    pass
+                else:
+                    if info:
+                        done = True
+                        break
+
+            if done:
+                imgur_image = store.Imgur(
+                    id=info.id,
+                    md5=info.md5,
+                    link=info.link,
+                    deletehash=info.deletehash
+                )
+                yield refine_imgur_uri(imgur, post, imgur_image, width)
+                store.db.session.flush()
+                imgur_image = store.db.session.merge(imgur_image)
+                store.db.session.commit()
+
+    done = False
+    for post in entry.posts:
+        for ret in dealpost(post):
+            yield ret
+            done = True
+        if done:
+            break
+
+    if not done:
+        raise Exception('imgur failed')
