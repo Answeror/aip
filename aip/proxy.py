@@ -102,16 +102,29 @@ def imgur_url_gen(store, md5, width=None, resolution=None):
         logging.info('hit %s' % md5)
         yield refine_imgur_uri(imgur, im, imgur_image, width)
     else:
-        imgur_image = ex().submit(
-            imgur.upload,
-            url=im.sample_url if im.sample_url else im.image_url,
-            md5=im.md5
-        ).result()
+        for source_uri in (
+            im.sample_url if im.sample_url else im.image_url,
+            im.image_url
+        ):
+            try:
+                info = ex().submit(
+                    imgur.upload,
+                    url=source_uri,
+                    md5=im.md5
+                ).result()
+            except:
+                pass
+            else:
+                if info:
+                    break
+        else:
+            raise Exception('imgur failed')
+
         imgur_image = store.Imgur(
-            id=imgur_image.id,
-            md5=imgur_image.md5,
-            link=imgur_image.link,
-            deletehash=imgur_image.deletehash
+            id=info.id,
+            md5=info.md5,
+            link=info.link,
+            deletehash=info.deletehash
         )
         yield refine_imgur_uri(imgur, im, imgur_image, width)
         store.db.session.flush()
