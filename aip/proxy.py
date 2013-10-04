@@ -73,3 +73,47 @@ def imgur_url(store, md5, width=None, resolution=None):
         url = imgur_image.link
 
     return url.replace('http://', 'https://')
+
+
+def refine_imgur_uri(imgur, image, cache, width):
+    if width is not None:
+        height = width * image.height / image.width
+        url = imgur.best_link(cache, width, height)
+    else:
+        url = cache.link
+
+    return url.replace('http://', 'https://')
+
+
+def imgur_url_gen(store, md5, width=None, resolution=None):
+    im = store.Entry.get_bi_md5(md5)
+    imgur_image = store.get_imgur_bi_md5(md5)
+    limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
+    if resolution is None:
+        resolution = current_app.config['AIP_RESOLUTION_LEVEL']
+    imgur = Imgur(
+        client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
+        resolution_level=resolution,
+        max_size=(limit, limit),
+        timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
+        album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH']
+    )
+    if imgur_image:
+        logging.info('hit %s' % md5)
+        yield refine_imgur_uri(imgur, im, imgur_image, width)
+    else:
+        imgur_image = ex().submit(
+            imgur.upload,
+            url=im.sample_url if im.sample_url else im.image_url,
+            md5=im.md5
+        ).result()
+        imgur_image = store.Imgur(
+            id=imgur_image.id,
+            md5=imgur_image.md5,
+            link=imgur_image.link,
+            deletehash=imgur_image.deletehash
+        )
+        yield refine_imgur_uri(imgur, im, imgur_image, width)
+        store.db.session.flush()
+        imgur_image = store.db.session.merge(imgur_image)
+        store.db.session.commit()

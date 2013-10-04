@@ -539,6 +539,10 @@ def make(app, api, cached, store):
         from .. import proxy
         return proxy.imgur_url(store, md5, width=width, resolution=resolution)
 
+    def imgur_url_gen(md5, width=None, resolution=None):
+        from .. import proxy
+        yield from proxy.imgur_url_gen(store, md5, width=width, resolution=resolution)
+
     def immio_url(md5):
         from .. import proxy
         return proxy.immio_url(store, md5)
@@ -574,12 +578,12 @@ def make(app, api, cached, store):
     @streamed
     @optional_args([('width', float), ('resolution', float)])
     def stream_proxied_url(md5, width=None, resolution=None):
-        for make in (imgur_url, ):
+        for make in (imgur_url_gen, ):
             logging.info('use %s' % make.__name__)
             try:
-                uri = make(md5=md5, width=width, resolution=resolution)
-                logging.info('get %s' % uri)
-                yield dump_result(uri)
+                for uri in make(md5=md5, width=width, resolution=resolution):
+                    logging.info('get %s' % uri)
+                    yield dump_result(uri)
             except Exception as e:
                 logging.exception(e)
         raise Exception('all gallery failed')
