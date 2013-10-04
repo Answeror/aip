@@ -40,6 +40,11 @@ html, body {
     /*smooth scrolling on ios*/
     /*http://css-tricks.com/snippets/css/momentum-scrolling-on-ios-overflow-elements/*/
     -webkit-overflow-scrolling: touch;
+    /*prevent flicker on ios*/
+    /*http://stackoverflow.com/a/10122689/238472*/
+    * {
+        -webkit-transform: translateZ(0px);
+    }
 }
 .footer {
     margin-top: 70px;
