@@ -309,8 +309,10 @@ def make(app, api, cached, store):
             @wraps(f)
             def inner(*args, **kargs):
                 for key in fields:
-                    if key is tuple:
+                    try:
                         key, kind = key
+                    except:
+                        pass
                     else:
                         kind = str
                     value = arg(key)
