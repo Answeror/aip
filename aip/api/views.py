@@ -308,13 +308,11 @@ def make(app, api, cached, store):
         def gen(f):
             @wraps(f)
             def inner(*args, **kargs):
-                for key in fields:
+                for field in fields:
                     try:
-                        key, kind = key
+                        key, kind = field
                     except:
-                        pass
-                    else:
-                        kind = str
+                        key, kind = field, str
                     value = arg(key)
                     if value is not None:
                         kargs[key] = kind(value)
