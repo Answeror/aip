@@ -277,9 +277,13 @@
             $('#loading').show();
             $buffer.empty();
             $this.waypoint('disable');
+            var data = kargs.makePageData(page);
+            if ($.aip.user_id()) {
+                data.user_id = $.aip.user_id();
+            }
             $.aip.stream({
                 url: kargs.makePageUrl(page),
-                data: kargs.makePageData(page)
+                data: data
             }).done(function(data) {
                 var $items = $(data).find('.item');
                 var n = $items.length;
