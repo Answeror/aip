@@ -260,7 +260,7 @@ def make(app, api, cached, store):
             return inner
         return yainner
 
-    def get_user_bi_someid():
+    def try_get_user_bi_someid():
         if request.json:
             args = request.json
         elif request.form:
@@ -274,6 +274,12 @@ def make(app, api, cached, store):
         elif 'user_openid' in args:
             user = store.get_user_bi_openid(args['user_openid'])
         else:
+            user = None
+        return user
+
+    def get_user_bi_someid():
+        user = try_get_user_bi_someid()
+        if user is None:
             raise Exception('must provider user id or openid')
         return user
 
@@ -376,36 +382,38 @@ def make(app, api, cached, store):
     def entries():
         return jsonify(result=[tod(im, ('id', 'md5')) for im in store.get_entries_order_bi_ctime(get_slice())])
 
-    @api.route('/page/<int:id>', methods=['GET'])
-    @guarded
-    @logged
-    def page(id):
+    def authed():
+        return try_get_user_bi_someid() is not None
+
+
+    def page_ext(id):
         #r = slice(g.per * (2 ** id - 1), g.per * (2 ** (id + 1) - 1), 1)
         r = slice(g.per * id, g.per * (id + 1), 1)
-        logging.debug('request args {}'.format(request.args))
+
         if request.args and 'tags' in request.args:
             tags = request.args['tags'].split(';')
             logging.debug('query tags: {}'.format(tags))
             tags = [store.Tag.escape_name(tag) for tag in tags]
-            es = store.Entry.get_bi_tags_order_bi_ctime(tags=tags, r=r)
         else:
-            es = store.Entry.get_bi_tags_order_bi_ctime(tags=[], r=r)
-        return jsonify(result=render_layout('page.html', entries=es))
+            tags = []
+
+        return store.Entry.get_bi_tags_order_bi_ctime(
+            tags=[],
+            r=r,
+            safe=not authed()
+        )
+
+    @api.route('/page/<int:id>', methods=['GET'])
+    @guarded
+    @logged
+    def page(id):
+        return jsonify(result=render_layout('page.html', entries=page_ext(id)))
 
     @api.route('/stream/page/<int:id>', methods=['GET'])
     @logged
     @streamed
     def stream_page(id):
-        r = slice(g.per * id, g.per * (id + 1), 1)
-        logging.debug('request args {}'.format(request.args))
-        if request.args and 'tags' in request.args:
-            tags = request.args['tags'].split(';')
-            logging.debug('query tags: {}'.format(tags))
-            tags = [store.Tag.escape_name(tag) for tag in tags]
-            es = store.Entry.get_bi_tags_order_bi_ctime(tags=tags, r=r)
-        else:
-            es = store.Entry.get_bi_tags_order_bi_ctime(tags=[], r=r)
-        yield dump_result(render_layout('page.html', entries=es))
+        yield dump_result(render_layout('page.html', entries=page_ext(id)))
 
     @api.route('/update', defaults={'begin': (datetime.utcnow() - timedelta(days=1)).strftime('%Y%m%d%H%M%S')})
     @api.route('/update/<begin>')

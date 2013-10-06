@@ -24,7 +24,7 @@ class Source(base.Source, metaclass=MetaWithFields):
 
     @property
     def filter_nsfw(self):
-        return True
+        return False
 
     def _fetch(self, request_url):
         try:

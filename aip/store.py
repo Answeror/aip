@@ -194,8 +194,17 @@ def make(app):
                 return inst
 
         @classmethod
-        def get_bi_tags_order_bi_ctime(cls, tags, r):
+        def get_bi_tags_order_bi_ctime(cls, tags, r, safe=True):
             db.session.flush()
+
+            q = Entry.query
+            if safe:
+                q = q.filter(db.not_(db.exists(
+                    db.select('*')
+                    .select_from(Post.__table__)
+                    .where(db.and_(db.not_(Post.rating.in_(['s', 'safe'])), Post.entry_id == Entry.id))
+                    .correlate(Entry)
+                )))
 
             if tags:
                 qsub = db.select([Tag.id]).where(Tag.name.in_(tags)).correlate()
@@ -212,7 +221,7 @@ def make(app):
                     ))).as_scalar()
                 )
                 q = (
-                    Entry.query
+                    q
                     .filter(qcount == len(tags))
                     .order_by(Entry.ctime.desc())
                     .options(db.subqueryload(Entry.posts))
@@ -222,7 +231,7 @@ def make(app):
                 #logging.debug(str(q))
                 q = q[r]
             else:
-                q = Entry.query.order_by(Entry.ctime.desc())[r]
+                q = q.order_by(Entry.ctime.desc())[r]
 
             return q
 
