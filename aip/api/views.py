@@ -398,7 +398,7 @@ def make(app, api, cached, store):
             tags = []
 
         return store.Entry.get_bi_tags_order_bi_ctime(
-            tags=[],
+            tags=tags,
             r=r,
             safe=not authed()
         )
