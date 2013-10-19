@@ -17,6 +17,8 @@ from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy.orm.util import identity_key
 from fn.iters import chain
 from .sources import sources
+import requests
+import imghdr
 
 
 def _scalar_all(self):
@@ -34,6 +36,13 @@ def _scalar_all(self):
 Query.scalar_all = _scalar_all
 
 
+def make_imfs(app):
+    from .imfs.baidupcs import BaiduPCS
+    from .imfs.fs import FS
+    from .imfs.cascade import Cascade
+    return Cascade(FS(), BaiduPCS(app.config['AIP_BAIDUPCS_ACCESS_TOKEN']))
+
+
 def make(app):
     db = SQLAlchemy(app)
 
@@ -44,6 +53,7 @@ def make(app):
             return db.session
 
     store = Store()
+    imfs = make_imfs(app)
 
     def stored(f):
         setattr(store, f.__name__, f)
@@ -234,6 +244,30 @@ def make(app):
                 q = q.order_by(Entry.ctime.desc())[r]
 
             return q
+
+        def thumbnail(self, width):
+            height = int(self.height * width / self.width)
+            data = imfs.thumbnail(self.md5, width, height)
+            if data is None:
+                imfs.save(self.md5, self.data)
+                data = imfs.thumbnail(self.md5, width, height)
+                if data is None:
+                    raise Exception('get thumbnail of %s failed' % self.md5)
+            self.kind = imghdr.what('foo', data)
+            return data
+
+        @property
+        def data(self):
+            if not hasattr(self, '_data'):
+                data = imfs.load(self.md5)
+                if data is None:
+                    r = requests.get(self.image_url)
+                    if not r.ok:
+                        raise Exception('get data of %s failed' % self.md5)
+                    data = r.content
+                self._data = data
+                self.kind = imghdr.what('foo', data)
+            return self._data
 
     def dagw(f):
         '''dag for write'''
@@ -575,6 +609,10 @@ def make(app):
             .select_from(Plus.__table__)
             .where(Plus.entry_id == entry_id)
         )
+
+    @stored
+    def get_entry_bi_md5(md5):
+        return Entry.get_bi_md5(md5)
 
     if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
         optimize_sqlite(db)

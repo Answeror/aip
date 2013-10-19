@@ -315,3 +315,8 @@ def make(app, oid, cached, store):
             'connection'
         ) if k in r.headers}
         return r.data, 200, headers
+
+    @app.route('/thumbnail/<md5>/<int:width>', methods=['GET'])
+    def thumbnail(md5, width):
+        en = store.get_entry_bi_md5(md5)
+        return en.thumbnail(width), 200, {'content-type': 'image/' + en.kind}

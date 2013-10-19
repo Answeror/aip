@@ -156,7 +156,7 @@
                 reloads: reloads
             });
         };
-        if (kargs.src.startswith('https://')) {
+        if (!kargs.src.startswith('http://')) {
             return inner(kargs.img, kargs.src, kargs.timeout, kargs.reloads);
         }
         return $.Deferred().reject(kargs.src + ' not support ssl');
@@ -350,24 +350,16 @@
                             $loading.show();
                             // load image after animation
                             // to archive smooth transition on ipad
-                            $.aip.stream({
-                                url: '/api/stream/proxied_url/' + $item.data('md5'),
-                                data: {
-                                    width: $preview.width(),
-                                    resolution: 1
-                                }
-                            }).done(function(uri) {
-                                $.aip.load_image({
-                                    img: $img,
-                                    src: uri,
-                                    timeout: 1e3 * {{ config['AIP_DETAIL_LOADING_TIMEOUT'] }},
-                                    reloads: $.aip.range({{ config['AIP_DETAIL_RELOAD_LIMIT'] }}).map(function() {
-                                        return $.aip.disturb(1e3 * {{ config['AIP_DETAIL_RELOAD_INTERVAL'] }});
-                                    })
-                                }).done(function() {
-                                    $loading.hide();
-                                    $img.show();
-                                });
+                            $.aip.load_image({
+                                img: $img,
+                                src: '/thumbnail/' + $item.data('md5') + '/' + Math.round($preview.width()),
+                                timeout: 1e3 * {{ config['AIP_DETAIL_LOADING_TIMEOUT'] }},
+                                reloads: $.aip.range({{ config['AIP_DETAIL_RELOAD_LIMIT'] }}).map(function() {
+                                    return $.aip.disturb(1e3 * {{ config['AIP_DETAIL_RELOAD_INTERVAL'] }});
+                                })
+                            }).done(function() {
+                                $loading.hide();
+                                $img.show();
                             });
                             $detail.find('[name="source"]').attr('href', $item.data('source'));
                             $detail.find('[name="raw"]').attr('href', '/raw/' + $item.data('md5'));
@@ -458,6 +450,30 @@
                         guarded_doneone($item);
                     }
                 };
+                var thumbnail = function($item) {
+                    $.aip.inc('need-proxied');
+                    var error = function(message) {
+                        $.aip.error(message);
+                        guarded_doneone($item);
+                    };
+                    var $img = $item.find('img.preview');
+                    $.aip.load_image({
+                        img: $img,
+                        src: '/thumbnail/' + $img.data('md5') + '/' + Math.round($img.width()),
+                        timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
+                        reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
+                            return $.aip.disturb(1e3 * {{ config['AIP_RELOAD_INTERVAL'] }});
+                        })
+                    }).done(function() {
+                        $.aip.inc('proxied');
+                        $item.find('.loading').hide();
+                        $img.show();
+                        dealone($item);
+                    }).fail(function(reason) {
+                        error('load image failed, reason: ' + JSON.stringify(reason));
+                        $.aip.inc('proxied-preview-loading-failed');
+                    });
+                };
                 var proxied = function($item) {
                     $.aip.inc('need-proxied');
                     var error = function(message) {
@@ -511,7 +527,7 @@
                         $this.find('.loading').hide();
                         $img.show();
                         $.aip.super_resolution($img, function() {
-                            proxied($this);
+                            thumbnail($this);
                         }, function() {
                             dealone($this);
                         });
@@ -519,7 +535,7 @@
                     var fail = function(reason) {
                         console.log('load image failed, reason: ' + reason);
                         $.aip.inc('original-preview-loading-failed');
-                        proxied($this);
+                        thumbnail($this);
                     };
                     $.aip.load_image({
                         img: $img,
