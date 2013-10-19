@@ -38,6 +38,8 @@ class BaiduPCS(NameMixin):
 
     def _load(self, name):
         r = self.pcs.download(wrap(name))
+        if r.status_code == 404:
+            return None
         if not r.ok:
             raise BadResponse(r)
         return r.content
@@ -49,6 +51,8 @@ class BaiduPCS(NameMixin):
 
     def _thumbnail(self, name, width, height):
         data = self.load(name)
+        if data is None:
+            return None
         kind = imghdr.what('foo', data)
         if kind is None:
             raise PCSException('cannot detect image type')
