@@ -30,7 +30,9 @@ setup(
         'python3-openid==3.0.1',
         'six',
         'fn',
-        'nose'
+        'nose',
+        'baidupcs==0.3.0',
+        'requests==2.0.0',
     ],
     dependency_links = [
         'https://github.com/Answeror/ConfigIt/tarball/version#egg=ConfigIt-0.1.3',
