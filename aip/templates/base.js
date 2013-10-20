@@ -546,11 +546,7 @@
         };
         $(pull);
         $('.level-wall').on('resize scrollstop', function() {
-            console.log(withinViewport($('.bottom-anchor'), {bottom: -500}));
-            if (withinViewport($('.bottom-anchor'), {bottom: -500})) {
-                console.log('pull');
-                pull();
-            }
+            if ($('.bottom-anchor').visible(true)) pull();
         });
         $.aip.inited = true;
     };

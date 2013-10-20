@@ -1,7 +1,7 @@
 from .base import NameMixin
 from .utils import thumbnail
 from pprint import pformat
-import imghdr
+from .. import img
 
 
 BASE = '/apps/aip/cache/'
@@ -53,7 +53,7 @@ class BaiduPCS(NameMixin):
         data = self.load(name)
         if data is None:
             return None
-        kind = imghdr.what('foo', data)
+        kind = img.kind(data=data)
         if kind is None:
             raise PCSException('cannot detect image type')
         return thumbnail(data, kind, width, height)
