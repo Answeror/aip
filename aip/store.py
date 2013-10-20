@@ -217,28 +217,26 @@ def make(app):
                 )))
 
             if tags:
-                qsub = db.select([Tag.id]).where(Tag.name.in_(tags)).correlate()
-                tt = Tagged.__table__.alias()
-                qcount = (
-                    db.select([db.func.count('*')])
-                    .select_from(Tag.__table__)
-                    .where(db.and_(Tag.id.in_(qsub), db.exists(
-                        db.select('*')
-                        .select_from(tt)
-                        .where(db.and_(tt.c.entry_id == Entry.id, tt.c.tag_id == Tag.id))
-                        .correlate(Entry)
-                        .correlate(Tag)
-                    ))).as_scalar()
+                qtid = db.aliased(
+                    db.select([Tag.id.label('id')])
+                    .where(Tag.name.in_(tags))
+                    .correlate()
+                )
+                qeid = db.aliased(
+                    db.select([Tagged.entry_id.label('id')])
+                    .select_from(db.join(Tagged, qtid, Tagged.tag_id == qtid.c.id))
+                    .group_by(Tagged.entry_id)
+                    .having(func.count(db.distinct(Tagged.tag_id)) == len(tags))
                 )
                 q = (
                     q
-                    .filter(qcount == len(tags))
+                    .join(qeid, Entry.id == qeid.c.id)
                     .order_by(Entry.ctime.desc())
                     .options(db.subqueryload(Entry.posts))
                     .options(db.subqueryload(Entry.plused))
                     .options(db.subqueryload(Entry.tags))
                 )
-                #logging.debug(str(q))
+                #print(str(q))
                 q = q[r]
             else:
                 q = q.order_by(Entry.ctime.desc())[r]
