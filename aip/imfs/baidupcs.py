@@ -4,7 +4,7 @@ from pprint import pformat
 import imghdr
 
 
-BASE = '/apps/aip/cache'
+BASE = '/apps/aip/cache/'
 
 
 class PCSException(Exception):
