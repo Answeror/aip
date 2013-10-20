@@ -1,7 +1,7 @@
 import os
 from .base import NameMixin
 import glob
-import imghdr
+from .. import img
 from .utils import thumbnail
 from time import time as now
 
@@ -95,7 +95,7 @@ class FS(NameMixin):
         if data is None:
             data = self.load(name)
             if data is not None:
-                kind = imghdr.what('foo', data)
+                kind = img.kind(data=data)
                 if kind is None:
                     raise FSException('cannot detect image type')
                 data = thumbnail(data, kind, width, height)

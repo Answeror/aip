@@ -18,7 +18,7 @@ from sqlalchemy.orm.util import identity_key
 from fn.iters import chain
 from .sources import sources
 import requests
-import imghdr
+from . import img
 
 
 def _scalar_all(self):
@@ -251,7 +251,7 @@ def make(app):
                 data = imfs.thumbnail(self.md5, width, height)
                 if data is None:
                     raise Exception('get thumbnail of %s failed' % self.md5)
-            self.kind = imghdr.what('foo', data)
+            self.kind = img.kind(data=data)
             return data
 
         @property
@@ -264,7 +264,7 @@ def make(app):
                         raise Exception('get data of %s failed' % self.md5)
                     data = r.content
                 self._data = data
-                self.kind = imghdr.what('foo', data)
+                self.kind = img.kind(data=data)
             return self._data
 
     def dagw(f):
