@@ -276,7 +276,6 @@
             progress(0);
             $('#loading').show();
             $buffer.empty();
-            $this.waypoint('disable');
             var data = kargs.makePageData(page);
             if ($.aip.user_id()) {
                 data.user_id = $.aip.user_id();
@@ -288,12 +287,6 @@
                 var $items = $(data).find('.item');
                 var n = $items.length;
                 var cleanup = function() {
-                    if (n) {
-                        $this.waypoint('enable');
-                    } else {
-                        console.log('destroy waypoint');
-                        $this.waypoint('destroy');
-                    }
                     $('#loading').hide();
                     $('#alert_box').html('');
                     page += 1;
@@ -551,14 +544,14 @@
                 $.aip.warning('load more failed, reason: ' + JSON.stringify(reason));
             });
         };
-        $container.waypoint(
-            function(direction){
-                if (direction === 'down' || direction === 'right') pull();
-            }, {
-                offset: 'bottom-in-view',
-                context: '.level'
+        $(pull);
+        $('.level-wall').on('resize scrollstop', function() {
+            console.log(withinViewport($('.bottom-anchor'), {bottom: -500}));
+            if (withinViewport($('.bottom-anchor'), {bottom: -500})) {
+                console.log('pull');
+                pull();
             }
-        );
+        });
         $.aip.inited = true;
     };
     $.aip.is = function(kargs) {

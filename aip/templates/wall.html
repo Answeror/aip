@@ -2,6 +2,7 @@
 {% block middle %}
     <div id=buffer style='height:0;overflow:hidden' class='row thumbnails'></div>
     <div id=items class='row thumbnails'></div>
+    <div class=bottom-anchor></div>
     <div id=alert_box></div>
 {% endblock %}
 {% block bottom %}
@@ -32,6 +33,9 @@
     {% include "footer.html" %}
 {% endblock %}
 {% block script %}
+    <script src="{{ url_for('.static', filename='js/scroll.js') }}"></script>
+    <script src="{{ url_for('.static', filename='within-viewport/withinViewport.js') }}"></script>
+    <script src="{{ url_for('.static', filename='within-viewport/jquery.withinViewport.js') }}"></script>
     <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
     <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
     <script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
