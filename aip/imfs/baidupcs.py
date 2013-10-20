@@ -4,7 +4,7 @@ from pprint import pformat
 import imghdr
 
 
-BASE = '/apps/aip/'
+BASE = '/apps/aip/cache'
 
 
 class PCSException(Exception):
@@ -76,4 +76,18 @@ class BaiduPCS(NameMixin):
         if not hasattr(self, '_pcs'):
             from baidupcs import PCS
             self._pcs = PCS(self.access_token)
+            ensure_base(self._pcs, BASE)
         return self._pcs
+
+
+def ensure_base(pcs, base):
+    r = pcs.mkdir(base)
+    if not r.ok:
+        if r.status_code == 400 and r.json()['error_code'] == 31061:
+            r = pcs.meta(base)
+            if not r.ok:
+                raise BadResponse(r)
+            if not r.json()['list'][0]['isdir']:
+                raise PCSException('%s is not dir' % base)
+        else:
+            raise BadResponse(r)
