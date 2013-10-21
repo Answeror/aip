@@ -22,6 +22,7 @@ from PIL import Image
 from collections import namedtuple
 from urllib.parse import urlparse, urlunparse
 from .layout import render_layout
+from functools import wraps
 
 
 Post = namedtuple('Post', (
@@ -137,6 +138,17 @@ def make(app, oid, cached, store):
 
     from .momentjs import momentjs
     app.jinja_env.globals['momentjs'] = momentjs
+
+    def timed(f):
+        @wraps(f)
+        def inner(*args, **kargs):
+            try:
+                from time import time
+                start = time()
+                return f(*args, **kargs)
+            finally:
+                logging.info('%s take %s', f.__name__, time() - start)
+        return inner
 
     @prop
     def last_update_time(self):
@@ -320,3 +332,37 @@ def make(app, oid, cached, store):
     def thumbnail(md5, width):
         en = store.get_entry_bi_md5(md5)
         return en.thumbnail(width), 200, {'content-type': 'image/' + en.kind}
+
+    @app.route('/page/<int:id>', methods=['GET'])
+    @timed
+    def page(id):
+        r = slice(g.per * id, g.per * (id + 1), 1)
+        tags = store.parse_tagline(request.args.get('tags', ''))
+        return render_layout(
+            'page.html',
+            entries=store.Entry.get_bi_tags_order_bi_ctime(
+                tags=tags,
+                r=r,
+                safe=not authed()
+            )
+        )
+
+    def try_get_user_bi_someid():
+        if request.json:
+            args = request.json
+        elif request.form:
+            args = request.form
+        elif request.args:
+            args = request.args
+        else:
+            args = {}
+        if 'user_id' in args:
+            user = store.get_user_bi_id(args['user_id'])
+        elif 'user_openid' in args:
+            user = store.get_user_bi_openid(args['user_openid'])
+        else:
+            user = None
+        return user
+
+    def authed():
+        return try_get_user_bi_someid() is not None

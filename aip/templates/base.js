@@ -280,10 +280,10 @@
             if ($.aip.user_id()) {
                 data.user_id = $.aip.user_id();
             }
-            $.aip.stream({
-                url: kargs.makePageUrl(page),
-                data: data
-            }).done(function(data) {
+            $.get(
+                kargs.makePageUrl(page),
+                data
+            ).done(function(data) {
                 var $items = $(data).find('.item');
                 var n = $items.length;
                 var cleanup = function() {

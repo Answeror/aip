@@ -208,13 +208,13 @@ def make(app):
             db.session.flush()
 
             q = Entry.query
-            if safe:
-                q = q.filter(db.not_(db.exists(
-                    db.select('*')
-                    .select_from(Post.__table__)
-                    .where(db.and_(db.not_(Post.rating.in_(['s', 'safe'])), Post.entry_id == Entry.id))
-                    .correlate(Entry)
-                )))
+            #if safe:
+                #q = q.filter(db.not_(db.exists(
+                    #db.select('*')
+                    #.select_from(Post.__table__)
+                    #.where(db.and_(db.not_(Post.rating.in_(['s', 'safe'])), Post.entry_id == Entry.id))
+                    #.correlate(Entry)
+                #)))
 
             if tags:
                 qtid = db.aliased(
@@ -611,6 +611,10 @@ def make(app):
     @stored
     def get_entry_bi_md5(md5):
         return Entry.get_bi_md5(md5)
+
+    @stored
+    def parse_tagline(line):
+        return [Tag.escape_name(tag) for tag in line.split(';')]
 
     if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
         optimize_sqlite(db)
