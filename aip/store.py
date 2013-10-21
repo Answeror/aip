@@ -259,10 +259,16 @@ def make(app):
             if not hasattr(self, '_data'):
                 data = imfs.load(self.md5)
                 if data is None:
-                    r = requests.get(self.image_url)
-                    if not r.ok:
+                    for post in self.posts:
+                        try:
+                            r = requests.get(self.image_url)
+                            if r.ok:
+                                data = r.content
+                                break
+                        except:
+                            pass
+                    else:
                         raise Exception('get data of %s failed' % self.md5)
-                    data = r.content
                 self._data = data
                 self.kind = img.kind(data=data)
             return self._data
