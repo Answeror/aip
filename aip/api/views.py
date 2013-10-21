@@ -341,8 +341,10 @@ def make(app, api, cached, store):
             ))
 
         log.info('fetch posts done, %d fetched, take %.4fs' % (len(posts), time.time() - start))
+        start = time.time()
         with store.autodag() as dag:
             store.Post.puts(dag=dag, posts=posts)
+        log.info('put posts done, take %.4fs', time.time() - start)
 
     @api.route('/add_user', methods=['POST'])
     @guarded
