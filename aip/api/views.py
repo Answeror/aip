@@ -393,7 +393,7 @@ def make(app, api, cached, store):
         if request.args and 'tags' in request.args:
             tags = request.args['tags'].split(';')
             logging.debug('query tags: {}'.format(tags))
-            tags = [store.Tag.escape_name(tag) for tag in tags]
+            tags = [store.Tag.escape_name(tag) for tag in tags if tag]
         else:
             tags = []
 
