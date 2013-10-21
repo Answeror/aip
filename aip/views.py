@@ -336,13 +336,30 @@ def make(app, oid, cached, store):
     @app.route('/page/<int:id>', methods=['GET'])
     @timed
     def page(id):
-        r = slice(g.per * id, g.per * (id + 1), 1)
         tags = store.parse_tagline(request.args.get('tags', ''))
         return render_layout(
             'page.html',
-            entries=store.Entry.get_bi_tags_order_bi_ctime(
-                tags=tags,
-                r=r,
+            entries=store.get_wall(
+                page=id,
+                size=g.per,
+                tagnames=tags,
+                userid=None,
+                safe=not authed()
+            )
+        )
+
+    @app.route('/plused/page/<int:id>', methods=['GET'])
+    @timed
+    def plused_page(id):
+        tags = store.parse_tagline(request.args.get('tags', ''))
+        print(request
+        return render_layout(
+            'page.html',
+            entries=store.get_wall(
+                page=id,
+                size=g.per,
+                tagnames=tags,
+                userid=request.args['user_id'],
                 safe=not authed()
             )
         )

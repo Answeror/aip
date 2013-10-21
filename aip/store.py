@@ -208,13 +208,13 @@ def make(app):
             db.session.flush()
 
             q = Entry.query
-            #if safe:
-                #q = q.filter(db.not_(db.exists(
-                    #db.select('*')
-                    #.select_from(Post.__table__)
-                    #.where(db.and_(db.not_(Post.rating.in_(['s', 'safe'])), Post.entry_id == Entry.id))
-                    #.correlate(Entry)
-                #)))
+            if safe:
+                q = q.filter(db.not_(db.exists(
+                    db.select('*')
+                    .select_from(Post.__table__)
+                    .where(db.and_(db.not_(Post.rating.in_(['s', 'safe'])), Post.entry_id == Entry.id))
+                    .correlate(Entry)
+                )))
 
             if tags:
                 qtid = db.aliased(
@@ -259,10 +259,16 @@ def make(app):
             if not hasattr(self, '_data'):
                 data = imfs.load(self.md5)
                 if data is None:
-                    r = requests.get(self.image_url)
-                    if not r.ok:
+                    for post in self.posts:
+                        try:
+                            r = requests.get(post.image_url)
+                            if r.ok:
+                                data = r.content
+                                break
+                        except:
+                            pass
+                    else:
                         raise Exception('get data of %s failed' % self.md5)
-                    data = r.content
                 self._data = data
                 self.kind = img.kind(data=data)
             return self._data
@@ -615,6 +621,134 @@ def make(app):
     @stored
     def parse_tagline(line):
         return [Tag.escape_name(tag) for tag in line.split(';')]
+
+    def table(cls):
+        from sqlalchemy.orm.attributes import manager_of_class
+        return manager_of_class(cls).mapper.mapped_table
+
+    class OriginalPost(db.Model):
+
+        qp1 = table(Post).alias()
+        qpostsig = db.aliased(
+            db.select([qp1.c.entry_id, db.func.min(qp1.c.ctime).label('ctime')])
+            .group_by(qp1.c.entry_id)
+        )
+        qp2 = table(Post).alias()
+        qpost = db.aliased(
+            db.select([
+                qp2.c.id,
+                qp2.c.post_url,
+                qp2.c.preview_url,
+                qp2.c.image_url,
+                qp2.c.height,
+                qp2.c.width,
+                qp2.c.entry_id
+            ]).select_from(db.join(
+                qp2,
+                qpostsig,
+                db.and_(
+                    qp2.c.entry_id == qpostsig.c.entry_id,
+                    qp2.c.ctime == qpostsig.c.ctime
+                )
+            ))
+        )
+        __table__ = qpost
+
+    class SimpleEntry(db.Model):
+
+        qe1 = table(Entry).alias()
+        qplus = table(Plus).alias()
+        qpluscount = db.aliased(
+            db.select([
+                qe1.c.id,
+                db.func.count(qplus.c.user_id).label('plus_count'),
+            ]).select_from(
+                qe1.outerjoin(qplus, qe1.c.id == qplus.c.entry_id)
+            ).group_by(qe1.c.id)
+        )
+        qe2 = table(Entry).alias()
+        qpost = table(Post).alias()
+        qmain = db.aliased(
+            db.select([
+                qe2.c.id,
+                qe2.c.md5,
+                qe2.c.ctime,
+                qpost.c.post_url,
+                qpost.c.preview_url,
+                qpost.c.image_url,
+                qpost.c.height,
+                qpost.c.width,
+                qpluscount.c.plus_count,
+            ]).select_from(
+                qe2.join(
+                    qpluscount,
+                    qe2.c.id == qpluscount.c.id
+                ).join(qpost, db.and_(
+                    qe2.c.id == qpost.c.entry_id,
+                    qe2.c.ctime == qpost.c.ctime
+                ))
+            )
+        )
+        __table__ = qmain
+
+        tags = db.relationship(
+            'Tag',
+            secondary=Tagged.__table__,
+            primaryjoin='SimpleEntry.id == Tagged.entry_id',
+        )
+        qp1 = table(Post).alias()
+        unsafe_count = db.column_property(
+            db.select([db.func.count(qp1.c.id)])
+            .where(db.and_(
+                qmain.c.id == qp1.c.entry_id,
+                db.not_(qp1.c.rating.in_(['s', 'safe']))
+            ))
+        )
+
+        @property
+        def preview_url_ssl(self):
+            return self.source.try_use_ssl(self.preview_url)
+
+        @property
+        def source(self):
+            for s in sources.values():
+                if s.contains(self.post_url):
+                    return s
+            raise Exception('no match source for %s' % self.post_url)
+
+    @stored
+    def get_wall(page, size, tagnames, userid, safe):
+        db.session.flush()
+
+        q = SimpleEntry.query
+
+        if userid is not None:
+            q = q.join(Plus).filter(Plus.user_id == userid)
+
+        if tagnames:
+            qtag = table(Tag).alias()
+            qtid = db.aliased(
+                db.select([qtag.c.id.label('id')])
+                .select_from(qtag)
+                .where(qtag.c.name.in_(tagnames))
+                .correlate()
+            )
+            qtagged = table(Tagged).alias()
+            qeid = db.aliased(
+                db.select([qtagged.c.entry_id.label('id')])
+                .select_from(db.join(qtagged, qtid, qtagged.c.tag_id == qtid.c.id))
+                .group_by(qtagged.c.entry_id)
+                .having(func.count(db.distinct(qtagged.c.tag_id)) == len(tagnames))
+                .correlate()
+            )
+            q = q.join(qeid, SimpleEntry.id == qeid.c.id)
+
+        if safe:
+            q = q.filter(SimpleEntry.unsafe_count == 0)
+
+        return (
+            q.order_by(SimpleEntry.ctime.desc())
+        )[page * size:(page + 1) * size]
 
     if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
         optimize_sqlite(db)
