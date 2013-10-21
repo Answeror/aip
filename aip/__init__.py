@@ -14,8 +14,8 @@ def init_slaves(app):
 
     import atexit
     atexit.register(cleanup)
-    from concurrent.futures import ProcessPoolExecutor as Ex
-    app.config['AIP_EXECUTOR'] = ex = Ex()
+    from concurrent.futures import ThreadPoolExecutor as Ex
+    app.config['AIP_EXECUTOR'] = ex = Ex(8)
     # trigger process creation
     import math
     ex.map(math.sqrt, list(range(42)))
