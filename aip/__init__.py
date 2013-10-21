@@ -106,7 +106,7 @@ def make(config=None, dbmode=False, **kargs):
     if dbmode:
         init_store(app)
     else:
-        init_slaves(app)
+        #init_slaves(app)
 
         from flask.ext.openid import OpenID
         oid = OpenID(app, 'temp/openid')

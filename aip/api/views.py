@@ -333,9 +333,13 @@ def make(app, api, cached, store):
     def _update_images(begin=None, limit=65536):
         start = time.time()
         sources = [make(dict) for make in g.sources]
-        posts = list(chain.from_iterable(
-            ex().map(partial(fetch_posts, begin, limit), sources)
-        ))
+
+        from concurrent.futures import ThreadPoolExecutor as Ex
+        with Ex(len(sources)) as ex:
+            posts = list(chain.from_iterable(
+                ex.map(partial(fetch_posts, begin, limit), sources)
+            ))
+
         log.info('fetch posts done, %d fetched, take %.4fs' % (len(posts), time.time() - start))
         with store.autodag() as dag:
             store.Post.puts(dag=dag, posts=posts)
