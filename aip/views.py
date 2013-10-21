@@ -352,7 +352,6 @@ def make(app, oid, cached, store):
     @timed
     def plused_page(id):
         tags = store.parse_tagline(request.args.get('tags', ''))
-        print(request
         return render_layout(
             'page.html',
             entries=store.get_wall(
