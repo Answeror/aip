@@ -232,9 +232,9 @@ def make(app):
                     q
                     .join(qeid, Entry.id == qeid.c.id)
                     .order_by(Entry.ctime.desc())
-                    .options(db.subqueryload(Entry.posts))
-                    .options(db.subqueryload(Entry.plused))
-                    .options(db.subqueryload(Entry.tags))
+                    .options(db.joinedload(Entry.posts))
+                    .options(db.joinedload(Entry.plused))
+                    .options(db.joinedload(Entry.tags))
                 )
                 #print(str(q))
                 q = q[r]
