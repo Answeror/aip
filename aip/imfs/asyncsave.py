@@ -1,5 +1,5 @@
 try:
-    from .rq import q
+    from ..rq import q
     HASRQ = True
 except:
     HASRQ = False
