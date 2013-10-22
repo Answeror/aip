@@ -25,7 +25,8 @@ def deploy():
             with prefix('workon aip'):
                 run('python setup.py develop')
                 #runbg('celery -A tasks worker')
-                runbg('rqworker')
+                for i in range(3):
+                    runbg('rqworker')
     # and finally touch the .wsgi file so that mod_wsgi triggers
     # a reload of the application
     run('touch /www/aip/repo/application.wsgi')
