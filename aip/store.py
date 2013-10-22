@@ -314,7 +314,7 @@ def make(app):
         preview_url = db.Column(db.UnicodeText)
         sample_url = db.Column(db.UnicodeText)
         ctime = db.Column(db.DateTime, index=True)
-        post_url = db.Column(db.UnicodeText)
+        post_url = db.Column(db.UnicodeText, unique=True, index=True)
         entry_id = db.Column(db.Integer, db.ForeignKey('entry.id'), index=True)
         tags = db.relationship('Tag', secondary=Tagged.__table__)
 
