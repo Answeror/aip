@@ -1,18 +1,18 @@
-def thumbnail(data, kind, width, height):
-    try:
-        try:
-            from ..rq import q
-            from time import sleep
-            job = q.enqueue(use_wand, data, kind, width, height)
-            while job.result is None:
-                sleep(0.5)
-            ret = job.result
-            job.cancel()
-            return ret
-        except:
-            return use_wand(data, kind, width, height)
-    except:
-        return use_pil(data, kind, width, height)
+#def thumbnail(data, kind, width, height):
+    #try:
+        #try:
+            #from ..rq import q
+            #from time import sleep
+            #job = q.enqueue(use_wand, data, kind, width, height)
+            #while job.result is None:
+                #sleep(0.5)
+            #ret = job.result
+            #job.cancel()
+            #return ret
+        #except:
+            #return use_wand(data, kind, width, height)
+    #except:
+        #return use_pil(data, kind, width, height)
 
 
 def use_pil(data, kind, width, height):
@@ -36,3 +36,6 @@ def use_wand(data, kind, width, height):
     with Image(blob=data) as img:
         img.resize(width, height)
         return img.make_blob(kind)
+
+
+thumbnail = use_pil
