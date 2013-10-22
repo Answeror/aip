@@ -1,15 +1,21 @@
-import PIL.Image
-from io import BytesIO
-
-
 def thumbnail(data, kind, width, height):
     try:
-        return use_wand(data, kind, width, height)
+        try:
+            from ..rq import q
+            from time import sleep
+            job = q.enqueue(use_wand, data, kind, width, height)
+            while job.result is None:
+                sleep(0.5)
+            return job.result
+        except:
+            return use_wand(data, kind, width, height)
     except:
         return use_pil(data, kind, width, height)
 
 
 def use_pil(data, kind, width, height):
+    import PIL.Image
+    from io import BytesIO
     input_stream = BytesIO(data)
     pim = PIL.Image.open(input_stream)
     pim.thumbnail(
