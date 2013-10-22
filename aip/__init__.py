@@ -89,6 +89,11 @@ def init_store(app):
 
 
 def make(config=None, dbmode=False, **kargs):
+    try:
+        from .rq import q
+    except:
+        pass
+
     if 'instance_path' in kargs:
         kargs['instance_path'] = os.path.abspath(kargs['instance_path'])
 

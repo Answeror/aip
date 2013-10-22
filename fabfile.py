@@ -17,13 +17,15 @@ def runbg(cmd, sockname="dtach"):
 
 def deploy():
     with settings(warn_only=True):
-        run("ps auxww | grep celery | grep -v \"grep\" | awk '{print $2}' | xargs kill >& /dev/null")
+        #run("ps auxww | grep celery | grep -v \"grep\" | awk '{print $2}' | xargs kill >& /dev/null")
+        run("ps auxww | grep rqworker | grep -v \"grep\" | awk '{print $2}' | xargs kill >& /dev/null")
     with cd('/www/aip/repo'):
         run('git pull')
         with prefix('pyenv virtualenvwrapper'):
             with prefix('workon aip'):
                 run('python setup.py develop')
-                runbg('celery -A tasks worker')
+                #runbg('celery -A tasks worker')
+                runbg('rqworker')
     # and finally touch the .wsgi file so that mod_wsgi triggers
     # a reload of the application
     run('touch /www/aip/repo/application.wsgi')

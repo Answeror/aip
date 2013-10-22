@@ -40,7 +40,11 @@ def make_imfs(app):
     from .imfs.baidupcs import BaiduPCS
     from .imfs.fs import FS
     from .imfs.cascade import Cascade
-    return Cascade(FS(), BaiduPCS(app.config['AIP_BAIDUPCS_ACCESS_TOKEN']))
+    from .imfs.asyncsave import asyncsave
+    return Cascade(
+        FS(),
+        asyncsave(BaiduPCS(app.config['AIP_BAIDUPCS_ACCESS_TOKEN']))
+    )
 
 
 def make(app):

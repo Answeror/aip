@@ -33,6 +33,8 @@ setup(
         'nose',
         'baidupcs==0.3.0',
         'requests==2.0.0',
+        'redis',
+        'rq',
     ],
     dependency_links = [
         'https://github.com/Answeror/ConfigIt/tarball/version#egg=ConfigIt-0.1.3',
