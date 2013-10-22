@@ -41,8 +41,9 @@ def make_imfs(app):
     from .imfs.fs import FS
     from .imfs.cascade import Cascade
     from .imfs.asyncsave import asyncsave
+    import os
     return Cascade(
-        FS(root=app.config['AIP_TEMP_PATH']),
+        FS(root=os.path.join(app.config['AIP_TEMP_PATH'], 'imfs')),
         asyncsave(BaiduPCS(app.config['AIP_BAIDUPCS_ACCESS_TOKEN']))
     )
 
