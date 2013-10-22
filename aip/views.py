@@ -22,6 +22,7 @@ from PIL import Image
 from collections import namedtuple
 from urllib.parse import urlparse, urlunparse
 from .layout import render_layout
+from functools import wraps
 
 
 Post = namedtuple('Post', (
@@ -137,6 +138,17 @@ def make(app, oid, cached, store):
 
     from .momentjs import momentjs
     app.jinja_env.globals['momentjs'] = momentjs
+
+    def timed(f):
+        @wraps(f)
+        def inner(*args, **kargs):
+            try:
+                from time import time
+                start = time()
+                return f(*args, **kargs)
+            finally:
+                log.info('%s take %.4f' % (f.__name__, time() - start))
+        return inner
 
     @prop
     def last_update_time(self):
