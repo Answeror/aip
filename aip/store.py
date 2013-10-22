@@ -19,6 +19,7 @@ from fn.iters import chain
 from .sources import sources
 import requests
 from . import img
+from .imfs.utils import thumbnail
 
 
 def _scalar_all(self):
@@ -244,11 +245,11 @@ def make(app):
             height = int(self.height * width / self.width)
             data = imfs.thumbnail(self.md5, width, height)
             if data is None:
-                imfs.save(self.md5, self.data)
-                data = imfs.thumbnail(self.md5, width, height)
+                data = thumbnail(self.data, self.kind, width, height)
                 if data is None:
                     raise Exception('get thumbnail of %s failed' % self.md5)
-            self.kind = img.kind(data=data)
+            else:
+                self._kind = img.kind(data=data)
             return data
 
         @property
@@ -266,9 +267,15 @@ def make(app):
                             pass
                     else:
                         raise Exception('get data of %s failed' % self.md5)
+                    imfs.save(self.md5, data)
                 self._data = data
-                self.kind = img.kind(data=data)
             return self._data
+
+        @property
+        def kind(self):
+            if not hasattr(self, '_kind'):
+                self._kind = img.kind(data=self.data)
+            return self._kind
 
     def dagw(f):
         '''dag for write'''
