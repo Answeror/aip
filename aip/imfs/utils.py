@@ -38,4 +38,41 @@ def use_wand(data, kind, width, height):
         return img.make_blob(kind)
 
 
-thumbnail = use_pil
+def use_gifsicle(data, kind, width, height):
+    import subprocess as sp
+    import os
+    from tempfile import NamedTemporaryFile as NTF
+
+    with NTF(delete=False) as fin:
+        fin.write(data)
+
+    fout = NTF(delete=False)
+    ferr = NTF(delete=False)
+    try:
+        ret = sp.call([
+            'gifsicle',
+            '--resize',
+            '%dx%d' % (width, height),
+            fin.name
+        ], stderr=ferr, stdout=fout)
+        if ret:
+            raise Exception('gifsicle failed with %d' % ret)
+
+        print('use gifsicle')
+
+        with open(fout.name, 'rb') as f:
+            return f.read()
+    finally:
+        fout.close()
+        os.unlink(fout.name)
+        ferr.close()
+        os.unlink(ferr.name)
+
+
+def thumbnail(data, kind, width, height):
+    if kind == 'gif':
+        try:
+            return use_gifsicle(data, kind, width, height)
+        except:
+            pass
+    return use_pil(data, kind, width, height)
