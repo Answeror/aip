@@ -224,7 +224,7 @@ def make(app):
                     .join(Entry.tags)
                     .filter(Tag.name.in_(tags))
                     .group_by(Entry)
-                    .having(db.func.count() == len(tags))
+                    .having(db.func.count(db.distinct(Tag.name)) == len(tags))
                     .options(db.joinedload(Entry.posts, inner=True))
                     #.options(db.joinedload(Entry.plused))
                     #.options(db.joinedload(Entry.tags))
