@@ -20,6 +20,25 @@ def load_ext(name, bases):
     return data
 
 
+def thumbnail_ext(name, width, height, bases):
+    assert bases
+    if len(bases) == 1:
+        return bases[0].thumbnail(name, width, height)
+    try:
+        data = bases[0].thumbnail(name, width, height)
+        if data is not None:
+            return data
+    except:
+        pass
+    data = load_ext(name, bases[1:])
+    if data is not None:
+        try:
+            bases[0].save(name, data)
+        except:
+            pass
+    return bases[0].thumbnail(name, width, height)
+
+
 class Cascade(NameMixin):
 
     def __init__(self, *args):
@@ -34,14 +53,7 @@ class Cascade(NameMixin):
             base.save(name, data)
 
     def _thumbnail(self, name, width, height):
-        for base in self.bases[:-1]:
-            try:
-                data = base.thumbnail(name, width, height)
-                if data is not None:
-                    return data
-            except:
-                pass
-        return self.bases[-1].thumbnail(name, width, height)
+        return thumbnail_ext(name, width, height, self.bases)
 
     def _has(self, name):
         for base in self.bases:
