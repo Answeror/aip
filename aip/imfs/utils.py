@@ -6,7 +6,9 @@ def thumbnail(data, kind, width, height):
             job = q.enqueue(use_wand, data, kind, width, height)
             while job.result is None:
                 sleep(0.5)
-            return job.result
+            ret = job.result
+            job.cancel()
+            return ret
         except:
             return use_wand(data, kind, width, height)
     except:
