@@ -159,13 +159,15 @@ def make(app):
             cls.best_post = property(lambda self: max(self.posts, key=lambda p: p.score))
             for key in ('post_url', 'preview_url', 'image_url', 'sample_url', 'height', 'width', 'score'):
                 setattr(cls, key, property(partial(lambda key, self: getattr(self.best_post, key), key)))
-            cls.plus_count = db.column_property(
-                db.select([db.func.count('*')])
-                .select_from(Plus.__table__)
-                .where(Plus.entry_id == cls.id)
-                .correlate(cls.__table__)
-                .as_scalar()
-            )
+
+            cls.plus_count = property(lambda self: len(self.plused))
+            #cls.plus_count = db.column_property(
+                #db.select([db.func.count('*')])
+                #.select_from(Plus.__table__)
+                #.where(Plus.entry_id == cls.id)
+                #.correlate(cls.__table__)
+                #.as_scalar()
+            #)
 
         @property
         def preview_url_ssl(self):
@@ -217,29 +219,19 @@ def make(app):
                 )))
 
             if tags:
-                qtid = db.aliased(
-                    db.select([Tag.id.label('id')])
-                    .where(Tag.name.in_(tags))
-                    .correlate()
-                )
-                qeid = db.aliased(
-                    db.select([Tagged.entry_id.label('id')])
-                    .select_from(db.join(Tagged, qtid, Tagged.tag_id == qtid.c.id))
-                    .group_by(Tagged.entry_id)
-                    .having(func.count(db.distinct(Tagged.tag_id)) == len(tags))
-                )
                 q = (
                     q
-                    .join(qeid, Entry.id == qeid.c.id)
-                    .order_by(Entry.ctime.desc())
-                    #.options(db.joinedload(Entry.posts))
+                    .join(Entry.tags)
+                    .filter(Tag.name.in_(tags))
+                    .group_by(Entry)
+                    .having(db.func.count() == len(tags))
+                    .options(db.joinedload(Entry.posts, inner=True))
                     #.options(db.joinedload(Entry.plused))
                     #.options(db.joinedload(Entry.tags))
                 )
-                #print(str(q))
-                q = q[r]
-            else:
-                q = q.order_by(Entry.ctime.desc())[r]
+
+            #print(str(q))
+            q = q.order_by(Entry.ctime.desc())[r]
 
             return q
 

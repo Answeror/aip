@@ -23,6 +23,7 @@ from collections import namedtuple
 from urllib.parse import urlparse, urlunparse
 from .layout import render_layout
 from functools import wraps
+from .log import Log
 
 
 Post = namedtuple('Post', (
@@ -32,6 +33,9 @@ Post = namedtuple('Post', (
     'preview_height',
     'md5'
 ))
+
+
+log = Log(__name__)
 
 
 def _scale(entries):
@@ -300,11 +304,6 @@ def make(app, oid, cached, store):
             {'Content-Type': 'text/javascript'}
         )
 
-    @app.route('/log')
-    def log():
-        with open(app.config['AIP_LOG_FILE_PATH'], 'rb') as f:
-            return f.read()
-
     @app.route('/about')
     def about():
         return render_layout('about.html')
@@ -332,3 +331,57 @@ def make(app, oid, cached, store):
     def thumbnail(md5, width):
         en = store.get_entry_bi_md5(md5)
         return en.thumbnail(width), 200, {'content-type': 'image/' + en.kind}
+
+    def page_ext(id):
+        r = slice(g.per * id, g.per * (id + 1), 1)
+
+        if request.args and 'tags' in request.args:
+            tags = request.args['tags'].split(';')
+            logging.debug('query tags: {}'.format(tags))
+            tags = [store.Tag.escape_name(tag) for tag in tags if tag]
+        else:
+            tags = []
+
+        return store.Entry.get_bi_tags_order_bi_ctime(
+            tags=tags,
+            r=r,
+            safe=not authed()
+        )
+
+    @app.route('/page/<int:id>', methods=['GET'])
+    @timed
+    def main_page(id):
+        return render_layout('page.html', entries=page_ext(id))
+
+    @app.route('/plused/page/<int:id>', methods=['GET'])
+    @timed
+    def plused_page(id):
+        user = get_user_bi_someid()
+        r = slice(g.per * id, g.per * (id + 1), 1)
+        return render_layout('page.html', entries=user.get_plused(r))
+
+    def try_get_user_bi_someid():
+        if request.json:
+            args = request.json
+        elif request.form:
+            args = request.form
+        elif request.args:
+            args = request.args
+        else:
+            args = {}
+        if 'user_id' in args:
+            user = store.get_user_bi_id(args['user_id'])
+        elif 'user_openid' in args:
+            user = store.get_user_bi_openid(args['user_openid'])
+        else:
+            user = None
+        return user
+
+    def get_user_bi_someid():
+        user = try_get_user_bi_someid()
+        if user is None:
+            raise Exception('must provider user id or openid')
+        return user
+
+    def authed():
+        return try_get_user_bi_someid() is not None
