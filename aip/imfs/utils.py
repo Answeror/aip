@@ -58,8 +58,6 @@ def use_gifsicle(data, kind, width, height):
         if ret:
             raise Exception('gifsicle failed with %d' % ret)
 
-        print('use gifsicle')
-
         with open(fout.name, 'rb') as f:
             return f.read()
     finally:
