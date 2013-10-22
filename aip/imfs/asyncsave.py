@@ -4,7 +4,7 @@ try:
 except:
     HASRQ = False
 
-from .log import Log
+from ..log import Log
 
 log = Log(__name__)
 
