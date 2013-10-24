@@ -15,11 +15,17 @@
         #return use_pil(data, kind, width, height)
 
 
-def use_pil(data, kind, width, height):
+def transparent(pim):
+    '''http://stackoverflow.com/a/10689590/238472'''
+    return pim.mode == "RGBA" or "transparency" in pim.info
+
+
+def use_pil(data, kind, width, height, quality=80):
     import PIL.Image
     from io import BytesIO
     input_stream = BytesIO(data)
     pim = PIL.Image.open(input_stream)
+    transp = transparent(pim)
     pim.thumbnail(
         (width, height),
         PIL.Image.ANTIALIAS
@@ -27,7 +33,12 @@ def use_pil(data, kind, width, height):
     output_stream = BytesIO()
     if kind == 'gif':
         pim = pim.convert('RGB')
-    pim.save(output_stream, format=kind.upper())
+
+    if transp:
+        pim.save(output_stream, format='JPEG', quality=quality)
+    else:
+        pim.save(output_stream, format=kind.upper())
+
     return output_stream.getvalue()
 
 
