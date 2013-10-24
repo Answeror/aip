@@ -147,7 +147,7 @@ def make(app):
     class Tagged(db.Model):
 
         post_id = db.Column(db.Integer, db.ForeignKey('post.id'), primary_key=True)
-        tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+        tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), primary_key=True, index=True)
         entry_id = db.Column(db.Integer, db.ForeignKey('entry.id'), index=True)
 
     @stored
