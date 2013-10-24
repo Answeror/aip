@@ -1,4 +1,4 @@
-from ..async import nonblock
+from ..work import nonblock
 
 
 class AsyncSave(object):

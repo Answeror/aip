@@ -216,28 +216,78 @@ def make(app):
             db.session.flush()
 
             q = Entry.query
-            if safe:
-                q = q.filter(db.not_(db.exists(
-                    db.select('*')
-                    .select_from(Post.__table__)
-                    .where(db.and_(db.not_(Post.rating.in_(['s', 'safe'])), Post.entry_id == Entry.id))
-                    .correlate(Entry)
-                )))
 
             if tags:
+                qe1 = table(Entry).alias()
+                qtid = db.aliased(
+                    db.select([Tag.id])
+                    .where(Tag.name.in_(tags))
+                    .correlate()
+                )
+                qeid1 = db.aliased(
+                    db.select([Tagged.entry_id, Tagged.tag_id])
+                    .select_from(db.join(
+                        Tagged,
+                        qtid,
+                        Tagged.tag_id == qtid.c.id
+                    ))
+                )
+                qeid = (
+                    db.select([qe1.c.id])
+                    .select_from(db.join(
+                        qe1,
+                        qeid1,
+                        qe1.c.id == qeid1.c.entry_id
+                    ))
+                )
+
+                if safe:
+                    qp1 = table(Post).alias()
+                    qeid = (
+                        qeid
+                        .where(db.not_(db.exists(
+                            db.select('*')
+                            .select_from(qp1)
+                            .where(db.and_(
+                                db.not_(qp1.c.rating.in_(['s', 'safe'])),
+                                qp1.c.entry_id == qe1.c.id
+                            ))
+                            .correlate(qe1)
+                        )))
+                    )
+
+                qeid = db.aliased(
+                    qeid
+                    .group_by(qe1.c.id)
+                    .having(
+                        func.count(db.distinct(qeid1.c.tag_id)) == len(tags)
+                    )
+                    .order_by(db.desc(qe1.c.ctime))
+                    .limit(r.stop - r.start)
+                    .offset(r.start)
+                )
+
                 q = (
                     q
-                    .join(Entry.tags)
-                    .filter(Tag.name.in_(tags))
-                    .group_by(Entry)
-                    .having(db.func.count(db.distinct(Tag.name)) == len(tags))
+                    .join(qeid, Entry.id == qeid.c.id)
                     .options(db.joinedload(Entry.posts, inner=True))
                     #.options(db.joinedload(Entry.plused))
                     #.options(db.joinedload(Entry.tags))
+                    .order_by(Entry.ctime.desc())
                 )
-
-            #print(str(q))
-            q = q.order_by(Entry.ctime.desc())[r]
+            else:
+                if safe:
+                    q = q.filter(db.not_(db.exists(
+                        db.select('*')
+                        .select_from(Post.__table__)
+                        .where(db.and_(db.not_(Post.rating.in_(['s', 'safe'])), Post.entry_id == Entry.id))
+                        .correlate(Entry)
+                    )))
+                q = (
+                    q
+                    .options(db.joinedload(Entry.posts, inner=True))
+                    .order_by(Entry.ctime.desc())[r]
+                )
 
             return q
 
@@ -276,6 +326,9 @@ def make(app):
             if not hasattr(self, '_kind'):
                 self._kind = img.kind(data=self.data)
             return self._kind
+
+    def table(cls):
+        return cls.__table__
 
     def dagw(f):
         '''dag for write'''
