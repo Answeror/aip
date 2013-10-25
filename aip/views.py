@@ -330,15 +330,21 @@ def make(app, oid, cached, store):
 
     @app.route('/thumbnail/<md5>/<int:width>', methods=['GET'])
     def thumbnail(md5, width):
-        if request.headers.get('if-modified-since') == store.thumbnail_mtime_bi_md5(md5).ctime():
-            return Response(status=304)
+        try:
+            if request.headers.get('if-modified-since') == store.thumbnail_mtime_bi_md5(md5).ctime():
+                return Response(status=304)
+        except:
+            pass
 
         en = store.get_entry_bi_md5(md5)
         resp = Response(en.thumbnail(width), mimetype='image/' + en.kind)
         resp.headers['last-modified'] = store.thumbnail_mtime_bi_md5(md5).ctime()
         cache_timeout = store.thumbnail_cache_timeout_bi_md5(md5)
-        resp.cache_control.max_age = cache_timeout
-        resp.expires = int(time() + cache_timeout)
+
+        if cache_timeout is not None:
+            resp.cache_control.max_age = cache_timeout
+            resp.expires = int(time() + cache_timeout)
+
         return resp
 
     def page_ext(id):
