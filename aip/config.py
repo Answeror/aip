@@ -35,6 +35,9 @@ AIP_DETAIL_LOADING_TIMEOUT = 3600
 AIP_DETAIL_RELOAD_LIMIT = 0
 AIP_DETAIL_RELOAD_INTERVAL = 10
 
+AIP_TIMESTAMPED_TIMEOUT = 60 * 60 * 24
+AIP_TIMESTAMP_FIELD = 'ts'
+
 try:
     import pkg_resources
     AIP_VERSION = pkg_resources.require('aip.core')[0].version

@@ -15,7 +15,7 @@ from flask import (
     current_app,
     render_template,
     abort,
-    Response
+    Response,
 )
 from operator import attrgetter as attr
 from io import BytesIO
@@ -26,6 +26,9 @@ from .layout import render_layout
 from functools import wraps
 from .log import Log
 from time import time
+from .utils import md5 as calcmd5
+from . import img
+from datetime import datetime
 
 
 Post = namedtuple('Post', (
@@ -140,20 +143,58 @@ def _fetch_image(url):
         return None
 
 
+def timestamp(endpoint):
+    d = current_app.config.get('AIP_TIMESTAMP', {})
+    return d.get(endpoint, None)
+
+
+def set_timestamp(endpoint, value):
+    d = current_app.config.get('AIP_TIMESTAMP', {})
+    d[endpoint] = value
+    current_app.config['AIP_TIMESTAMP'] = d
+
+
+def timestamped(endpoint):
+    def gen(f):
+        @wraps(f)
+        def inner(*args, **kargs):
+            r = f(*args, **kargs)
+            if hasattr(r, 'content_md5') and r.content_md5:
+                set_timestamp(endpoint, r.content_md5)
+            return r
+        return inner
+    return gen
+
+
+def has_timestamp():
+    return current_app.config['AIP_TIMESTAMP_FIELD'] in request.args
+
+
+def dated_url_for(endpoint, **values):
+    if timestamp(endpoint) is not None:
+        values[current_app.config['AIP_TIMESTAMP_FIELD']] = timestamp(endpoint)
+    return url_for(endpoint, **values)
+
+
+def timed(f):
+    @wraps(f)
+    def inner(*args, **kargs):
+        try:
+            start = time()
+            return f(*args, **kargs)
+        finally:
+            log.info('%s take %.4f' % (f.__name__, time() - start))
+    return inner
+
+
 def make(app, oid, cached, store):
 
     from .momentjs import momentjs
     app.jinja_env.globals['momentjs'] = momentjs
 
-    def timed(f):
-        @wraps(f)
-        def inner(*args, **kargs):
-            try:
-                start = time()
-                return f(*args, **kargs)
-            finally:
-                log.info('%s take %.4f' % (f.__name__, time() - start))
-        return inner
+    @app.context_processor
+    def override_url_for():
+        return dict(url_for=dated_url_for)
 
     @prop
     def last_update_time(self):
@@ -298,12 +339,32 @@ def make(app, oid, cached, store):
         return c.compile(), 200, {'Content-Type': 'text/css'}
 
     @app.route('/js')
+    @timestamped('.js')
     def js():
-        return (
-            render_template('base.js'),
-            200,
-            {'Content-Type': 'text/javascript'}
+        name = 'base.js'
+        content = render_template(name)
+        mtime = datetime.fromtimestamp(os.path.getmtime(os.path.join(
+            current_app.root_path,
+            current_app.template_folder,
+            name
+        )))
+        if request.headers.get('if-modified-since') == mtime.ctime():
+            return Response(status=304)
+
+        resp = Response(
+            content,
+            mimetype='text/javascript',
         )
+        resp.content_md5 = calcmd5(content.encode('utf-8'))
+        resp.last_modified = mtime
+
+        if has_timestamp():
+            cache_timeout = current_app.config.get('AIP_TIMESTAMPED_TIMEOUT', None)
+            if cache_timeout is not None:
+                resp.cache_control.max_age = cache_timeout
+                resp.expires = int(time() + cache_timeout)
+
+        return resp
 
     @app.route('/about')
     def about():
@@ -328,22 +389,27 @@ def make(app, oid, cached, store):
         ) if k in r.headers}
         return r.data, 200, headers
 
-    @app.route('/thumbnail/<md5>/<int:width>', methods=['GET'])
-    def thumbnail(md5, width):
+    @app.route('/thumbnail/<md5>', methods=['GET'])
+    @timed
+    @timestamped('.thumbnail')
+    def thumbnail(md5):
         try:
             if request.headers.get('if-modified-since') == store.thumbnail_mtime_bi_md5(md5).ctime():
                 return Response(status=304)
         except:
             pass
 
-        en = store.get_entry_bi_md5(md5)
-        resp = Response(en.thumbnail(width), mimetype='image/' + en.kind)
-        resp.headers['last-modified'] = store.thumbnail_mtime_bi_md5(md5).ctime()
-        cache_timeout = store.thumbnail_cache_timeout_bi_md5(md5)
+        width = int(request.args['width'])
+        content = store.thumbnail_bi_md5(md5, width)
+        resp = Response(content, mimetype='image/' + img.kind(data=content))
+        resp.content_md5 = calcmd5(content)
+        resp.last_modified = store.thumbnail_mtime_bi_md5(md5)
 
-        if cache_timeout is not None:
-            resp.cache_control.max_age = cache_timeout
-            resp.expires = int(time() + cache_timeout)
+        if has_timestamp():
+            cache_timeout = store.thumbnail_cache_timeout_bi_md5(md5)
+            if cache_timeout is not None:
+                resp.cache_control.max_age = cache_timeout
+                resp.expires = int(time() + cache_timeout)
 
         return resp
 

@@ -71,6 +71,14 @@ def make(app):
             return f(*args, **kargs)
         return inner
 
+    @contextmanager
+    def make_session():
+        s = db.create_scoped_session()
+        try:
+            yield s
+        finally:
+            s.remove()
+
     @stored
     class Meta(db.Model):
 
@@ -682,6 +690,17 @@ def make(app):
     @stored
     def thumbnail_cache_timeout_bi_md5(md5):
         return imfs.cache_timeout(md5)
+
+    @stored
+    def thumbnail_bi_md5(md5, width):
+        with make_session() as session:
+            en = (
+                session.query(Entry)
+                .filter_by(md5=md5)
+                .options(db.joinedload(Entry.posts, inner=True))
+                .first()
+            )
+        return en.thumbnail(width)
 
     if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
         optimize_sqlite(db)

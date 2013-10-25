@@ -65,7 +65,7 @@
             rejected = true;
             $d.reject(reason);
         };
-        var es = new EventSource(kargs.url + '?' + $.param(kargs.data));
+        var es = new EventSource($.param.querystring(kargs.url, $.param(kargs.data)));
         es.onmessage = function(e) {
             $.Deferred()
             .resolve($.parseJSON(e.data))
@@ -345,7 +345,11 @@
                             // to archive smooth transition on ipad
                             $.aip.load_image({
                                 img: $img,
-                                src: '/thumbnail/' + $item.data('md5') + '/' + Math.round($preview.width()),
+                                src: $.param.querystring(
+                                    $item.data('thumbnail'), $.param({
+                                        width: Math.round($preview.width())
+                                    })
+                                ),
                                 timeout: 1e3 * {{ config['AIP_DETAIL_LOADING_TIMEOUT'] }},
                                 reloads: $.aip.range({{ config['AIP_DETAIL_RELOAD_LIMIT'] }}).map(function() {
                                     return $.aip.disturb(1e3 * {{ config['AIP_DETAIL_RELOAD_INTERVAL'] }});
@@ -452,7 +456,11 @@
                     var $img = $item.find('img.preview');
                     $.aip.load_image({
                         img: $img,
-                        src: '/thumbnail/' + $img.data('md5') + '/' + Math.round($img.width()),
+                        src: $.param.querystring(
+                            $item.data('thumbnail'), $.param({
+                                width: Math.round($img.width())
+                            })
+                        ),
                         timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
                         reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
                             return $.aip.disturb(1e3 * {{ config['AIP_RELOAD_INTERVAL'] }});
