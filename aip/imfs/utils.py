@@ -31,7 +31,7 @@ def use_pil(data, kind, width, height, quality=80):
         PIL.Image.ANTIALIAS
     )
     output_stream = BytesIO()
-    if kind == 'gif':
+    if kind == 'gif' or pim.mode == 'P':
         pim = pim.convert('RGB')
 
     if transp:

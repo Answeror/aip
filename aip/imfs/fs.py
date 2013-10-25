@@ -1,9 +1,10 @@
 import os
-from .base import NameMixin
+from .base import NameMixin, ImfsError, NotFoundError
 import glob
 from .. import img
 from .utils import thumbnail
 from time import time as now
+from datetime import datetime
 
 
 def ensure_root(root):
@@ -22,10 +23,6 @@ def touch(fname, times=None):
 def sorted_ls(path):
     atime = lambda f: os.path.getatime(os.path.join(path, f))
     return list(sorted(os.listdir(path), key=atime))
-
-
-class FSException(Exception):
-    pass
 
 
 class FS(NameMixin):
@@ -97,7 +94,7 @@ class FS(NameMixin):
             if data is not None:
                 kind = img.kind(data=data)
                 if kind is None:
-                    raise FSException('cannot detect image type')
+                    raise ImfsError('cannot detect image type')
                 data = thumbnail(data, kind, width, height)
                 self._to_cache(path, data)
         return data
@@ -111,3 +108,11 @@ class FS(NameMixin):
                 os.unlink(path)
             except:
                 pass
+
+    def _mtime(self, name):
+        if not self.has(name):
+            raise NotFoundError(name)
+        return datetime.fromtimestamp(os.path.getmtime(self._path(name)))
+
+    def _cache_timeout(self, name):
+        return self.life

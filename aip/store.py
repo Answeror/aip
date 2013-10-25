@@ -675,6 +675,14 @@ def make(app):
     def get_entry_bi_md5(md5):
         return Entry.get_bi_md5(md5)
 
+    @stored
+    def thumbnail_mtime_bi_md5(md5):
+        return imfs.mtime(md5)
+
+    @stored
+    def thumbnail_cache_timeout_bi_md5(md5):
+        return imfs.cache_timeout(md5)
+
     if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
         optimize_sqlite(db)
 

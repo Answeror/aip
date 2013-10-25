@@ -14,7 +14,8 @@ from flask import (
     request,
     current_app,
     render_template,
-    abort
+    abort,
+    Response
 )
 from operator import attrgetter as attr
 from io import BytesIO
@@ -24,6 +25,7 @@ from urllib.parse import urlparse, urlunparse
 from .layout import render_layout
 from functools import wraps
 from .log import Log
+from time import time
 
 
 Post = namedtuple('Post', (
@@ -147,7 +149,6 @@ def make(app, oid, cached, store):
         @wraps(f)
         def inner(*args, **kargs):
             try:
-                from time import time
                 start = time()
                 return f(*args, **kargs)
             finally:
@@ -329,8 +330,16 @@ def make(app, oid, cached, store):
 
     @app.route('/thumbnail/<md5>/<int:width>', methods=['GET'])
     def thumbnail(md5, width):
+        if request.headers.get('if-modified-since') == store.thumbnail_mtime_bi_md5(md5).ctime():
+            return Response(status=304)
+
         en = store.get_entry_bi_md5(md5)
-        return en.thumbnail(width), 200, {'content-type': 'image/' + en.kind}
+        resp = Response(en.thumbnail(width), mimetype='image/' + en.kind)
+        resp.headers['last-modified'] = store.thumbnail_mtime_bi_md5(md5).ctime()
+        cache_timeout = store.thumbnail_cache_timeout_bi_md5(md5)
+        resp.cache_control.max_age = cache_timeout
+        resp.expires = int(time() + cache_timeout)
+        return resp
 
     def page_ext(id):
         r = slice(g.per * id, g.per * (id + 1), 1)

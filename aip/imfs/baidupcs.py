@@ -1,13 +1,14 @@
-from .base import NameMixin
+from .base import NameMixin, ImfsError, NotFoundError
 from .utils import thumbnail
 from pprint import pformat
 from .. import img
+from datetime import datetime
 
 
 BASE = '/apps/aip/cache/'
 
 
-class PCSException(Exception):
+class PCSException(ImfsError):
     pass
 
 
@@ -70,6 +71,17 @@ class BaiduPCS(NameMixin):
         r = self.pcs.delete(wrap(name))
         if not r.ok and r.status_code not in (404,):
             raise BadResponse(r)
+
+    def _mtime(self, name):
+        r = self.pcs.meta(wrap(name))
+        if not r.ok:
+            if r.status_code == 404:
+                raise NotFoundError(name)
+            raise BadResponse(r)
+        return datetime.fromtimestamp(r.json()['list'][0]['mtime'])
+
+    def _cache_timeout(self, name):
+        return None
 
     @property
     def pcs(self):

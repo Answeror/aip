@@ -34,3 +34,22 @@ class NameMixin(object):
 
     def remove(self, name):
         return self._remove(wrap(name))
+
+    def mtime(self, name):
+        return self._mtime(wrap(name))
+
+    def cache_timeout(self, name):
+        return self._cache_timeout(wrap(name))
+
+
+class ImfsError(Exception):
+    pass
+
+
+class NotFoundError(ImfsError):
+
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return '%s not found' % self.name

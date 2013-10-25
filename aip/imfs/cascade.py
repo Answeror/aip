@@ -2,30 +2,35 @@ from .base import NameMixin
 
 
 def load_ext(name, bases):
-    assert bases
-    if len(bases) == 1:
-        return bases[0].load(name)
-    try:
-        data = bases[0].load(name)
-        if data is not None:
-            return data
-    except:
-        pass
-    data = load_ext(name, bases[1:])
-    if data is not None:
-        try:
-            bases[0].save(name, data)
-        except:
-            pass
-    return data
+    return need_raw(
+        name,
+        bases,
+        lambda base: base.load(name)
+    )
 
 
 def thumbnail_ext(name, width, height, bases):
+    return need_raw(
+        name,
+        bases,
+        lambda base: base.thumbnail(name, width, height)
+    )
+
+
+def mtime_ext(name, bases):
+    return need_raw(
+        name,
+        bases,
+        lambda base: base.mtime(name)
+    )
+
+
+def need_raw(name, bases, f):
     assert bases
     if len(bases) == 1:
-        return bases[0].thumbnail(name, width, height)
+        return f(bases[0])
     try:
-        data = bases[0].thumbnail(name, width, height)
+        data = f(bases[0])
         if data is not None:
             return data
     except:
@@ -36,7 +41,7 @@ def thumbnail_ext(name, width, height, bases):
             bases[0].save(name, data)
         except:
             pass
-    return bases[0].thumbnail(name, width, height)
+    return f(bases[0])
 
 
 class Cascade(NameMixin):
@@ -64,3 +69,13 @@ class Cascade(NameMixin):
     def _remove(self, name):
         for base in self.bases:
             base.remove(name)
+
+    def _mtime(self, name):
+        return mtime_ext(name, self.bases)
+
+    def _cache_timeout(self, name):
+        for base in self.bases:
+            ret = base.cache_timeout(name)
+            if ret is not None:
+                return ret
+        return None
