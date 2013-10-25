@@ -35,6 +35,13 @@
         if (value == undefined) value = 1;
         $t.text(parseInt($t.text()) + value);
     };
+    $.aip.thumbnail_uri = function($item) {
+        return $.param.querystring(
+            $item.data('thumbnail'), $.param({
+                width: Math.round($item.find('img.preview').width())
+            })
+        );
+    };
     $.aip.actual_size = function($img, callback) {
         //callback($img[0].naturalWidth, $img[0].naturalHeight);
 
@@ -345,11 +352,7 @@
                             // to archive smooth transition on ipad
                             $.aip.load_image({
                                 img: $img,
-                                src: $.param.querystring(
-                                    $item.data('thumbnail'), $.param({
-                                        width: Math.round($preview.width())
-                                    })
-                                ),
+                                src: $.aip.thumbnail_uri($item),
                                 timeout: 1e3 * {{ config['AIP_DETAIL_LOADING_TIMEOUT'] }},
                                 reloads: $.aip.range({{ config['AIP_DETAIL_RELOAD_LIMIT'] }}).map(function() {
                                     return $.aip.disturb(1e3 * {{ config['AIP_DETAIL_RELOAD_INTERVAL'] }});
@@ -456,11 +459,7 @@
                     var $img = $item.find('img.preview');
                     $.aip.load_image({
                         img: $img,
-                        src: $.param.querystring(
-                            $item.data('thumbnail'), $.param({
-                                width: Math.round($img.width())
-                            })
-                        ),
+                        src: $.aip.thumbnail_uri($item),
                         timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
                         reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
                             return $.aip.disturb(1e3 * {{ config['AIP_RELOAD_INTERVAL'] }});
