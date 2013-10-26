@@ -49,9 +49,13 @@
                 reloads: reloads
             });
         };
-        if (!kargs.src.startswith('http://')) {
-            return inner(kargs.img, kargs.src, kargs.timeout, kargs.reloads);
+        var options = $.extend({
+            timeout: 1e8,
+            reloads: $.aip.range(0).map($.noop)
+        }, kargs);
+        if (!options.src.startswith('http://')) {
+            return inner(options.img, options.src, options.timeout, options.reloads);
         }
-        return $.Deferred().reject(kargs.src + ' not support ssl');
+        return $.Deferred().reject(options.src + ' not support ssl');
     };
 })(jQuery);

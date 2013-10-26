@@ -99,6 +99,35 @@
                             $item.attr('data-done', true);
                         }
                     };
+                    var init_unload = function($item) {
+                        $('.level-wall').on('resize scrollstop', function() {
+                            var $img = $item.find('img.preview');
+                            if ($item.visible(true)) {
+                                console.log('vis ' + $img.attr('src'));
+                                if (!$img.attr('src')) {
+                                    $.aip.load_image({
+                                        img: $img,
+                                        src: $img.data('src')
+                                    }).done(function() {
+                                        // must be wrapped in anonymous function
+                                        // don't know why
+                                        // $img.show();
+                                        $img.fadeIn(500);
+                                    }).fail(function(reason) {
+                                        console.log('load ' + $img.data('src') + 'failed');
+                                    });
+                                } else {
+                                    $img.show();
+                                }
+                            } else {
+                                if ($img.attr('src')) {
+                                    $img.data('src', $img.attr('src'));
+                                    $img.attr('src', '');
+                                }
+                                $img.hide();
+                            }
+                        });
+                    };
                     var dealone = function($item) {
                         if ($item.data('dealed')) return;
                         try {
@@ -106,6 +135,7 @@
                             $.aip.init_tags($item);
                             $.aip.init_detail($item);
                             mars($item);
+                            init_unload($item);
                             inc('done');
                         } catch (e) {
                             console.log('dealone failed');
