@@ -12,7 +12,6 @@
         var need = aa * r < va;
         console.log('super resolution ' + aa + ' x ' + r + ' < ' + va + ' -> ' + need);
         if (need) {
-            $.aip.inc('need-enlarge');
             callback();
         } else {
             otherwise();

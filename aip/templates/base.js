@@ -11,7 +11,8 @@
                 $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
             };
             var options = {
-                makePageData: $.noop
+                makePageData: $.noop,
+                pulling_threshold: {{ config['AIP_PULLING_THRESHOLD'] }}
             };
             var $container = $('#items');
             var page = 0;
@@ -34,16 +35,29 @@
                     $container.masonry('appended', $item, true);
                 }
             };
-            var $buffer = $('#buffer');
+            var $buf = $('#buffer');
             var nomore = false;
+            var pulling = false;
+            var rest = function() {
+                return $buf.find('.item').length;
+            };
+            var enough = function() {
+                return rest() >= options.pulling_threshold;
+            };
             var pull = function() {
-                if ($.aip.pulling) return;
                 if (nomore) return;
-                $.aip.pulling = true;
+                if (pulling) return;
+                if (enough()) {
+                    console.log('enough (' + rest() + '), pulling cancel');
+                    return;
+                } else {
+                    console.log('not enough (' + rest() + '), pulling start');
+                }
+                pulling = true;
                 $this = $(this);
                 progress(0);
                 $('#loading').show();
-                $buffer.empty();
+                $buf.empty();
                 var data = options.makePageData(page);
                 if ($.aip.user_id()) {
                     data.user_id = $.aip.user_id();
@@ -52,13 +66,13 @@
                     options.makePageUrl(page),
                     data
                 ).done(function(data) {
+                    pulling = false;
                     var $items = $(data).find('.item');
                     var n = $items.length;
                     var cleanup = function() {
                         $('#loading').hide();
                         $('#alert_box').html('');
                         page += 1;
-                        $.aip.pulling = false;
                         if (n) {
                             $.waypoints('refresh');
                             if ($container.outerHeight() <= $.waypoints('viewportHeight')) pull();
@@ -73,7 +87,7 @@
                     $items.each(function() {
                         $(this).attr('data-done', false);
                     });
-                    $buffer.append($items);
+                    $buf.append($items);
                     var loaded = 0;
                     // no exception
                     var doneone = function($item) {
