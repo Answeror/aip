@@ -1,3 +1,11 @@
+import PIL.Image
+from io import BytesIO
+from ..log import Log
+
+
+log = Log(__name__)
+
+
 #def thumbnail(data, kind, width, height):
     #try:
         #try:
@@ -20,11 +28,18 @@ def transparent(pim):
     return pim.mode == "RGBA" or "transparency" in pim.info
 
 
+def openpil(data):
+    if type(data) is bytes:
+        input_stream = BytesIO(data)
+        return PIL.Image.open(input_stream)
+    elif type(data) is PIL.Image:
+        return data
+    else:
+        assert False, 'unknown type: %s' % type(data)
+
+
 def use_pil(data, kind, width, height, quality=80):
-    import PIL.Image
-    from io import BytesIO
-    input_stream = BytesIO(data)
-    pim = PIL.Image.open(input_stream)
+    pim = openpil(data)
     transp = transparent(pim)
     pim.thumbnail(
         (width, height),
@@ -78,10 +93,36 @@ def use_gifsicle(data, kind, width, height):
         os.unlink(ferr.name)
 
 
+def use_gifsicle_safe(*args, **kargs):
+    try:
+        return use_gifsicle(*args, **kargs)
+    except:
+        log.exception('thumbnail using gifsicle failed')
+
+
+def use_pil_safe(*args, **kargs):
+    try:
+        return use_pil(*args, **kargs)
+    except:
+        log.exception('thumbnail using pil failed')
+
+
 def thumbnail(data, kind, width, height):
+    pim = openpil(data)
+    if expanding(pim, width, height):
+        return data
     if kind == 'gif':
-        try:
-            return use_gifsicle(data, kind, width, height)
-        except:
-            pass
-    return use_pil(data, kind, width, height)
+        ret = use_gifsicle_safe(data, kind, width, height)
+        if ret is not None:
+            return ret
+    return use_pil_safe(pim, kind, width, height)
+
+
+def expanding(data, target_width, target_height):
+    pim = openpil(data)
+    source_width, source_height = pim.size
+    eps = 1e-8
+    return (
+        source_width < target_width + eps and
+        target_height < target_height + eps
+    )
