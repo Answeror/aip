@@ -341,16 +341,32 @@ def make(app, oid, cached, store):
     @app.route('/js')
     @timestamped('.js')
     def js():
-        name = 'base.js'
-        content = render_template(name)
-        mtime = datetime.fromtimestamp(os.path.getmtime(os.path.join(
-            current_app.root_path,
-            current_app.template_folder,
-            name
-        )))
+        names = [
+            'head.js',
+            'ut.js',
+            'redo.js',
+            'stream.js',
+            'super_resolution.js',
+            'load_image.js',
+            'plus.js',
+            'detail.js',
+            'tag.js',
+            'base.js',
+        ]
+
+        def gen():
+            for name in names:
+                yield datetime.fromtimestamp(os.path.getmtime(os.path.join(
+                    current_app.root_path,
+                    current_app.template_folder,
+                    name
+                )))
+        mtime = max(gen())
+
         if request.headers.get('if-modified-since') == mtime.ctime():
             return Response(status=304)
 
+        content = '\n'.join(render_template(name) for name in names)
         resp = Response(
             content,
             mimetype='text/javascript',
