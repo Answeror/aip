@@ -2,7 +2,7 @@
     $.aip.init_tags = function($item) {
         // sticky popover
         // http://stackoverflow.com/a/9400740/238472
-        var timer;
+        var timer = null;
         var clicked = false;
         $item.find('.btn[name="tags"]').popover({
             container: 'body',
@@ -31,6 +31,7 @@
                 if (timer) {
                     // prevent popup flash
                     clearTimeout(timer);
+                    timer = null;
                 } else {
                     $('.popover').hide();
                     $(this).popover('show');
@@ -43,11 +44,11 @@
             var $this = $(this);
             $this.popover('show');
             timer = setTimeout(function(){
-                if (!$('.popover:hover').length) {
+                if (!$('.popover:hover').length && !$this.is(':hover')) {
                     $this.popover('hide');
                 }
                 // make further click take effect
-                timer = undefined;
+                timer = null;
             }, 1000);
         });
     };
