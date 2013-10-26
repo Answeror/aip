@@ -100,10 +100,14 @@
                         }
                     };
                     var init_unload = function($item) {
+                        var tid = null;
                         $('.level-wall').on('resize scrollstop', function() {
                             var $img = $item.find('img.preview');
                             if ($item.visible(true)) {
-                                console.log('vis ' + $img.attr('src'));
+                                if (tid) {
+                                    clearTimeout(tid);
+                                    tid = null;
+                                }
                                 if (!$img.attr('src')) {
                                     $.aip.load_image({
                                         img: $img,
@@ -111,8 +115,8 @@
                                     }).done(function() {
                                         // must be wrapped in anonymous function
                                         // don't know why
-                                        // $img.show();
-                                        $img.fadeIn(500);
+                                        $img.show();
+                                        //$img.fadeIn(500);
                                     }).fail(function(reason) {
                                         console.log('load ' + $img.data('src') + 'failed');
                                     });
@@ -120,11 +124,16 @@
                                     $img.show();
                                 }
                             } else {
-                                if ($img.attr('src')) {
-                                    $img.data('src', $img.attr('src'));
-                                    $img.attr('src', '');
+                                if (!tid) {
+                                    tid = setTimeout(function() {
+                                        tid = null;
+                                        if ($img.attr('src')) {
+                                            $img.data('src', $img.attr('src'));
+                                            $img.attr('src', '');
+                                        }
+                                        $img.hide();
+                                    }, 1e3 * {{ config['AIP_FADEOUT_TIMEOUT'] }});
                                 }
-                                $img.hide();
                             }
                         });
                     };
