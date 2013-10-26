@@ -40,4 +40,17 @@
             e.preventDefault();
         });
     };
+
+    // smooth scrolling of detail page
+    $(function() {
+        $('#detail button[name=back]').click(function(e) {
+            $('#detail').stop().animate({
+                left: '100%'
+            }, 500, 'swing', function() {
+                window.location.hash = '#wall';
+                $('#detail').hide();
+            });
+            e.preventDefault();
+        });
+    });
 })(jQuery);

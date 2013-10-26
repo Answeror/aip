@@ -351,6 +351,7 @@ def make(app, oid, cached, store):
             'plus.js',
             'detail.js',
             'tag.js',
+            'thumbnail.js',
             'base.js',
         ]
 

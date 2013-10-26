@@ -110,27 +110,16 @@
                     }
                 };
                 var thumbnail = function($item) {
-                    $.aip.inc('need-proxied');
                     var error = function(message) {
                         $.aip.error(message);
                         guarded_doneone($item);
                     };
-                    var $img = $item.find('img.preview');
-                    $.aip.load_image({
-                        img: $img,
-                        src: $.param.querystring(
-                            $item.data('thumbnail'), $.param({
-                                width: Math.round($img.width())
-                            })
-                        ),
-                        timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
-                        reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
-                            return $.aip.disturb(1e3 * {{ config['AIP_RELOAD_INTERVAL'] }});
-                        })
+                    $.aip.thumbnail({
+                        '$item': $item
                     }).done(function() {
                         $.aip.inc('proxied');
                         $item.find('.loading').hide();
-                        $img.show();
+                        $item.find('img.preview').show();
                         dealone($item);
                     }).fail(function(reason) {
                         error('load image failed, reason: ' + JSON.stringify(reason));
@@ -179,17 +168,4 @@
         console.log('init');
         $.aip.init(kargs);
     };
-
-    // smooth scrolling of detail page
-    $(function() {
-        $('#detail button[name=back]').click(function(e) {
-            $('#detail').stop().animate({
-                left: '100%'
-            }, 500, 'swing', function() {
-                window.location.hash = '#wall';
-                $('#detail').hide();
-            });
-            e.preventDefault();
-        });
-    });
 })();
