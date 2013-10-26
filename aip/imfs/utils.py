@@ -32,10 +32,9 @@ def openpil(data):
     if type(data) is bytes:
         input_stream = BytesIO(data)
         return PIL.Image.open(input_stream)
-    elif type(data) is PIL.Image:
-        return data
     else:
-        assert False, 'unknown type: %s' % type(data)
+        # pil image
+        return data
 
 
 def use_pil(data, kind, width, height, quality=80):
