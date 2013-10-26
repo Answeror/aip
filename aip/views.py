@@ -344,6 +344,7 @@ def make(app, oid, cached, store):
         names = [
             'head.js',
             'ut.js',
+            'notice.js',
             'redo.js',
             'stream.js',
             'super_resolution.js',

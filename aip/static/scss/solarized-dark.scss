@@ -211,4 +211,12 @@ body.solarized {
     .footer {
         border-top: 1px dotted $base02;
     }
+
+    .notice {
+        p {
+            background: $base02;
+            color: $yellow;
+            border-top: 1px solid $base03;
+        }
+    }
 }

@@ -6,6 +6,28 @@ html, body {
     height: 100%;
     overflow: hidden;
 }
+.notice-out {
+    position: fixed;
+    z-index: 2;
+    height: 0;
+    overflow: visible;
+    left: 0;
+    right: 0;
+    top: 40px;
+}
+.notice {
+    width: 320px;
+    margin: 0 auto;
+    p {
+        height: 32px;
+        line-height: 32px;
+        background: #e2eaf2;
+        color: #626a72;
+        text-align: center;
+        margin: 0;
+        border-top: 1px solid #c5d5e5;
+    }
+}
 .bottom-anchor-out {
     position: relative;
     width: 100%;
@@ -303,6 +325,9 @@ p:last-child {
     }
     .levels {
         padding-top: 50px;
+    }
+    .notice-out {
+        top: 50px;
     }
     .item {
         [name="tags"] {

@@ -6,10 +6,6 @@
                 if (value == undefined) value = 1;
                 $t.text(parseInt($t.text()) + value);
             };
-            var notice = function(message) {
-                console.log(message);
-                $('#alert_box').html('<div class="alert"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
-            };
             var options = {
                 makePageData: $.noop,
                 pulling_threshold: {{ config['AIP_PULLING_THRESHOLD'] }}
@@ -48,10 +44,10 @@
                 if (nomore) return;
                 if (pulling) return;
                 if (enough()) {
-                    console.log('enough (' + rest() + '), pulling cancel');
+                    $.aip.notice('enough (' + rest() + '), pulling cancel');
                     return;
                 } else {
-                    console.log('not enough (' + rest() + '), pulling start');
+                    $.aip.notice('not enough (' + rest() + '), pulling start');
                 }
                 pulling = true;
                 $this = $(this);
@@ -124,7 +120,7 @@
                     };
                     var thumbnail = function($item) {
                         var error = function(message) {
-                            notice(message);
+                            $.aip.notice(message);
                             guarded_doneone($item);
                         };
                         $.aip.thumbnail({
@@ -168,7 +164,7 @@
                     });
                 }).fail(function(reason) {
                     $('#loading').hide();
-                    notice('load more failed, reason: ' + JSON.stringify(reason));
+                    $.aip.notice('load more failed, reason: ' + JSON.stringify(reason));
                 });
             };
             return {
