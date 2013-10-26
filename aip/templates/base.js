@@ -44,7 +44,7 @@
                 if (nomore) return;
                 if (pulling) return;
                 if (enough()) {
-                    $.aip.notice('enough (' + rest() + '), pulling cancel');
+                    console.log('enough (' + rest() + '), pulling cancel');
                     return;
                 } else {
                     $.aip.notice('not enough (' + rest() + '), pulling start');
@@ -52,7 +52,6 @@
                 pulling = true;
                 $this = $(this);
                 progress(0);
-                $('#loading').show();
                 $buf.empty();
                 var data = options.makePageData(page);
                 if ($.aip.user_id()) {
@@ -66,7 +65,6 @@
                     var $items = $(data).find('.item');
                     var n = $items.length;
                     var cleanup = function() {
-                        $('#loading').hide();
                         $('#alert_box').html('');
                         page += 1;
                         if (n) {
@@ -163,7 +161,6 @@
                         }).done(done).fail(fail);
                     });
                 }).fail(function(reason) {
-                    $('#loading').hide();
                     $.aip.notice('load more failed, reason: ' + JSON.stringify(reason));
                 });
             };
