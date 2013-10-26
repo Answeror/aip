@@ -3,7 +3,7 @@
     {{ super() }}
     <script>
         $(function() {
-            $.aip.is({
+            $.aip.wall.init({
                 makePageUrl: function(page) { return '/page/' + page; },
                 makePageData: function(page) { return { tags: '{{ tags }}' }; }
             });
