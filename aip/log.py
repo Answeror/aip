@@ -1,11 +1,4 @@
 import logging
-from functools import partial
-
-
-def indirect(self, *args, **kargs):
-    method = kargs['_method']
-    del kargs['_method']
-    return getattr(self.log, method)(*args, **kargs)
 
 
 class Meta(type):
