@@ -11,7 +11,6 @@ import threading
 import pickle
 from contextlib import contextmanager
 #import logging
-from .dag import Dag
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy.orm.util import identity_key
@@ -338,35 +337,6 @@ def make(app):
     def table(cls):
         return cls.__table__
 
-    def dagw(f):
-        '''dag for write'''
-        @wraps(f)
-        def inner(*args, **kargs):
-            if 'dag' in kargs and kargs['dag'] is not None:
-                return f(*args, **kargs)
-            else:
-                dag = kargs['dag'] = get_dag()
-                ret = f(*args, **kargs)
-                set_dag(dag)
-                return ret
-        return inner
-
-    def dagr(f):
-        '''dag for read'''
-        @wraps(f)
-        def inner(*args, **kargs):
-            if 'dag' in kargs and kargs['dag'] is not None:
-                kargs['dag'] = get_dag()
-            return f(*args, **kargs)
-        return inner
-
-    @stored
-    @contextmanager
-    def autodag():
-        dag = get_dag()
-        yield dag
-        set_dag(dag)
-
     @stored
     class Post(db.Model):
 
@@ -398,11 +368,10 @@ def make(app):
 
         @classmethod
         @flushed
-        @dagw
-        def put(cls, dag, **kargs):
+        def put(cls, **kargs):
             entry = Entry.get_or_add_bi_md5(md5=kargs['md5'], ctime=kargs['ctime'])
 
-            tags = [Tag.get_or_add_bi_name(name, dag=dag) for name in set(kargs['tags'])]
+            tags = [Tag.get_or_add_bi_name(name) for name in set(kargs['tags'])]
             del kargs['tags']
 
             try:
@@ -422,11 +391,10 @@ def make(app):
 
         @classmethod
         @flushed
-        @dagw
-        def puts(cls, dag, posts):
+        def puts(cls, posts):
             posts = list(posts)
             tagnames = set(chain.from_iterable([post['tags'] for post in posts]))
-            tags = {name: Tag.get_or_add_bi_name(name, dag=dag) for name in tagnames}
+            tags = {name: Tag.get_or_add_bi_name(name) for name in tagnames}
 
             def inner(posts):
                 for kargs in posts:
@@ -479,15 +447,6 @@ def make(app):
         ctime = db.Column(db.DateTime, default=datetime.utcnow)
 
     @stored
-    def get_dag():
-        data = get_meta(app.config['AIP_META_DAG'])
-        return Dag() if data is None else Dag.from_dict(pickle.loads(data))
-
-    @stored
-    def set_dag(dag):
-        set_meta(app.config['AIP_META_DAG'], pickle.dumps(dag.to_dict()))
-
-    @stored
     class Tag(db.Model):
 
         id = db.Column(db.Integer, primary_key=True)
@@ -516,54 +475,30 @@ def make(app):
 
         @classmethod
         @locked
-        @dagw
-        def add(cls, tag, dag):
+        def add(cls, tag):
             # http://stackoverflow.com/a/5083472
             db.session.add(tag)
             db.session.flush()
             db.session.refresh(tag, ['id'])
-            dag.add(tag.id)
             #logging.debug('new tag (%d, %s)' % (tag.id, tag.name))
             return tag
 
         @classmethod
-        @dagw
-        def get_or_add_bi_name(cls, name, dag):
+        def get_or_add_bi_name(cls, name):
             try:
                 db.session.flush()
                 return cls.query.filter_by(name=name).one()
             except NoResultFound:
                 inst = cls(name=name)
-                cls.add(inst, dag=dag)
+                cls.add(inst)
                 db.session.flush()
                 db.session.expire(inst, ['id'])
                 return inst
 
         @classmethod
         @locked
-        @dagw
-        def remove(cls, id, dag):
+        def remove(cls, id):
             db.session.execute(db.delete(cls.__table__, db.where(cls.id == id)))
-            dag.remove(id)
-
-        @classmethod
-        @locked
-        @dagw
-        def link(cls, child, parent, dag):
-            dag.link(child, parent)
-
-        @classmethod
-        @locked
-        @dagw
-        def unlink(cls, child, parent, dag):
-            dag.unlink(child, parent)
-
-        #@classmethod
-        #@locked
-        #@dagr
-        #def entries(cls, ids, dag):
-            #down = set().union(*[cls.dag.down[i] for i in ids])
-            #return Entry.query.join(Post).join(tagged_table).filter(tagged_table.c.tag_id.in_(list(down))).all()
 
     def _random_name():
         import uuid
