@@ -62,11 +62,11 @@
                     data
                 ).done(function(data) {
                     pulling = false;
+                    page += 1;
                     var $items = $(data).find('.item');
                     var n = $items.length;
                     var cleanup = function() {
                         $('#alert_box').html('');
-                        page += 1;
                         if (n) {
                             $.waypoints('refresh');
                             if ($container.outerHeight() <= $.waypoints('viewportHeight')) pull();
