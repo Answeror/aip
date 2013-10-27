@@ -179,17 +179,19 @@
                             var $item = $(this);
                             $item.reset_fadeout_timer();
                             var $img = $item.find('img.preview');
-                            $.aip.load_image({
-                                img: $img,
-                                src: $img.data('src')
-                            }).done(function() {
-                                // must be wrapped in anonymous function
-                                // don't know why
-                                $item.show();
-                                //$img.fadeIn(500);
-                            }).fail(function(reason) {
-                                console.log('load ' + $img.data('src') + 'failed');
-                            });
+                            if ($img.attr('src') != $img.data('src')) {
+                                $.aip.load_image({
+                                    img: $img,
+                                    src: $img.data('src')
+                                }).done(function() {
+                                    // must be wrapped in anonymous function
+                                    // don't know why
+                                    $item.show();
+                                    //$img.fadeIn(500);
+                                }).fail(function(reason) {
+                                    console.log('load ' + $img.data('src') + 'failed');
+                                });
+                            }
                         });
                     });
                 }

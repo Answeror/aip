@@ -35,7 +35,9 @@
             } else {
                 $this.find('img').each(function() {
                     var $img = $(this);
-                    $img.attr('src', $.aip.placehold($img.width(), $img.height()));
+                    if ($img.attr('src') == $img.data('src')) {
+                        $img.attr('src', $.aip.placehold($img.width(), $img.height()));
+                    }
                     $this.hide();
                 });
             }
