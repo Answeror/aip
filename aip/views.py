@@ -366,7 +366,7 @@ def make(app, oid, cached, store):
                 )))
         mtime = max(gen())
 
-        if has_timestamp() and expired_request(mtime):
+        if has_timestamp() and not expired_request(mtime):
             return Response(status=304)
 
         c = scss.Scss(
@@ -420,7 +420,7 @@ def make(app, oid, cached, store):
                 )))
         mtime = max(gen())
 
-        if has_timestamp() and expired_request(mtime):
+        if has_timestamp() and not expired_request(mtime):
             return Response(status=304)
 
         content = '\n'.join(render_template(name) for name in names)
@@ -466,7 +466,7 @@ def make(app, oid, cached, store):
     @timed
     def thumbnail(md5):
         try:
-            if has_timestamp() and expired_request(store.thumbnail_mtime_bi_md5(md5)):
+            if has_timestamp() and not expired_request(store.thumbnail_mtime_bi_md5(md5)):
                 return Response(status=304)
         except:
             pass
