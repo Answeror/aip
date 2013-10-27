@@ -1,5 +1,6 @@
 (function($) {
     $.fn.inviewport = function(selector) {
+        //var start = new Date().getTime();
         if (selector) {
             var $a = $(this).eq(0).find(selector);
         } else {
@@ -19,7 +20,7 @@
         ++begin;
         end = mid + 1;
         while (end < n && $a.eq(end).visible(true)) ++end;
-        //$.aip.notice('(' + begin + ',' + end + ')');
+        //$.aip.notice('(' + begin + ',' + end + ') take ' + (new Date().getTime() - start));
         return $a.slice(begin, end);
     };
     $.fn.reset_fadeout_timer = function() {
@@ -34,10 +35,7 @@
             } else {
                 $this.find('img').each(function() {
                     var $img = $(this);
-                    if ($img.attr('src')) {
-                        $img.data('src', $img.attr('src'));
-                        $img.attr('src', '');
-                    }
+                    $img.attr('src', $.aip.placehold($img.width(), $img.height()));
                     $img.hide();
                 });
             }

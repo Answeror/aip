@@ -1,5 +1,8 @@
 (function($) {
     $.extend($.aip, {
+        placehold: function(width, height) {
+            return "{{ url_for('.static', filename='images/p.png') }}";
+        },
         now: function() {
             return new Date().getTime() / 1000;
         },
