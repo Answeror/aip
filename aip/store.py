@@ -67,6 +67,7 @@ def make(app):
     def flushed(f):
         @wraps(f)
         def inner(*args, **kargs):
+            db.session.flush()
             return f(*args, **kargs)
         return inner
 
@@ -585,6 +586,11 @@ def make(app):
     @flushed
     def get_imgur_bi_md5(md5):
         return Imgur.query.get(md5)
+
+    @stored
+    def imgur_bi_md5(md5):
+        with make_session() as session:
+            return session.query(Imgur).get(md5)
 
     @stored
     @flushed

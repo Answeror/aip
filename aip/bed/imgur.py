@@ -8,7 +8,11 @@ from base64 import b64encode
 from collections import namedtuple
 from urllib.error import HTTPError
 from .base import FetchImageMixin
+from ..log import Log
+from random import shuffle
 
+
+log = Log(__name__)
 
 imgur_thumbnails = (
     ('t', 160, 160),
@@ -18,7 +22,7 @@ imgur_thumbnails = (
 )
 
 
-Image = namedtuple('Image', ('md5', 'id', 'deletehash', 'link'))
+Image = namedtuple('Image', ('kind', 'md5', 'id', 'deletehash', 'link'))
 
 
 class Imgur(FetchImageMixin):
@@ -28,16 +32,14 @@ class Imgur(FetchImageMixin):
     def __init__(
         self,
         client_ids,
-        resolution_level,
-        max_size,
         timeout,
         album_deletehash,
+        resolution_level=1,
         http=None
     ):
         super(Imgur, self).__init__(http=http, timeout=timeout)
         self.client_ids = client_ids
         self.resolution_level = resolution_level
-        self.max_size = max_size
         self.timeout = timeout
         self.album_deletehash = album_deletehash
 
@@ -55,8 +57,59 @@ class Imgur(FetchImageMixin):
         except HTTPError as e:
             return json.loads(e.read().decode('utf-8'))
 
-    def upload(self, url, md5):
-        from random import shuffle
+    def shuffled_client_ids(self):
+        client_ids = self.client_ids[:]
+        shuffle(client_ids)
+        return client_ids
+
+    def upload_bi_data(self, data, md5):
+        def use_one_client_id(client_id):
+            try:
+                log.info(
+                    'upload %s data to imgur using client_id %s',
+                    md5,
+                    client_id
+                )
+                r = self.call(
+                    client_id=client_id,
+                    method='POST',
+                    url='https://api.imgur.com/3/image',
+                    data={
+                        'image': b64encode(data),
+                        'type': 'base64',
+                        'title': md5,
+                        'album': self.album_deletehash
+                    }
+                )
+                return Image(
+                    kind='imgur',
+                    md5=md5,
+                    id=r['data']['id'],
+                    deletehash=r['data']['deletehash'],
+                    link=r['data']['link']
+                )
+            except:
+                log.exception(
+                    'upload %s data to imgur using client_id %s failed',
+                    md5,
+                    client_id
+                )
+                return None
+
+        for client_id in self.shuffled_client_ids():
+            ret = use_one_client_id(client_id)
+            if ret is not None:
+                return ret
+
+    def upload(self, **kargs):
+        if 'data' in kargs:
+            return self.upload_bi_data(data=kargs['data'], md5=kargs['md5'])
+        elif 'url' in kargs:
+            return self.upload_bi_url(url=kargs['url'], md5=kargs['md5'])
+        else:
+            assert False, 'must provide data or url field'
+
+    def upload_bi_url(self, url, md5):
 
         def use_one_client_id(client_id):
             image_url = url
@@ -114,6 +167,7 @@ class Imgur(FetchImageMixin):
 
             data = r['data']
             return Image(
+                kind='imgur',
                 md5=md5,
                 id=data['id'],
                 deletehash=data['deletehash'],

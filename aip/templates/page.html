@@ -5,6 +5,7 @@
         data-md5={{ e.md5 }}
         data-source={{ e.post_url }}
         data-thumbnail={{ url_for('.thumbnail', md5=e.md5) }}
+        data-thumbnail-link={{ url_for('.thumbnail_link', md5=e.md5) }}
     >
         <div class='thumbnail'>
             <p class=preview>

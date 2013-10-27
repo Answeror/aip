@@ -6,6 +6,7 @@ import logging
 import os
 import re
 from flask import (
+    jsonify,
     g,
     session,
     redirect,
@@ -16,6 +17,7 @@ from flask import (
     render_template,
     abort,
     Response,
+    copy_current_request_context,
 )
 from operator import attrgetter as attr
 from io import BytesIO
@@ -29,6 +31,7 @@ from time import time
 from .utils import md5 as calcmd5
 from . import img
 from datetime import datetime
+from . import work
 
 
 Post = namedtuple('Post', (
@@ -191,6 +194,13 @@ def make(app, oid, cached, store):
 
     from .momentjs import momentjs
     app.jinja_env.globals['momentjs'] = momentjs
+
+    from .bed.imgur import Imgur
+    bed = Imgur(
+        client_ids=app.config['AIP_IMGUR_CLIENT_IDS'],
+        timeout=app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
+        album_deletehash=app.config['AIP_IMGUR_ALBUM_DELETEHASH']
+    )
 
     @app.context_processor
     def override_url_for():
@@ -484,3 +494,34 @@ def make(app, oid, cached, store):
 
     def authed():
         return try_get_user_bi_someid() is not None
+
+    @app.route('/thumbnail/link/<md5>', methods=['GET'])
+    @timed
+    def thumbnail_link(md5):
+        width = int(request.args['width'])
+        thumbmd5 = calcmd5(('%s.%d' % (md5, width)).encode('ascii'))
+        bim = store.imgur_bi_md5(thumbmd5)
+        if bim:
+            log.info('imgur hit %s, width %d' % (md5, width))
+            link = bim.link.replace('http://', 'https://')
+        else:
+            @copy_current_request_context
+            def done(result):
+                store.session.flush()
+                store.session.merge(store.Imgur(
+                    id=result.id,
+                    md5=result.md5,
+                    link=result.link,
+                    deletehash=result.deletehash
+                ))
+                store.session.commit()
+
+            data = store.thumbnail_bi_md5(md5, width)
+            work.callback(
+                bed.upload,
+                data=data,
+                md5=thumbmd5,
+                done=done
+            )
+            link = url_for('.thumbnail', md5=md5, width=width)
+        return jsonify(dict(result=link))

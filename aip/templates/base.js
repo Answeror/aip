@@ -209,7 +209,7 @@
                     options = $.extend(options, kargs);
                     setInterval(function() {
                         if ($('.bottom-anchor').visible(true)) pull();
-                    }, 1e3 * {{ config['AIP_PULLING_INTERVAL }});
+                    }, 1e3 * {{ config['AIP_PULLING_INTERVAL'] }});
                 }
             };
         })();

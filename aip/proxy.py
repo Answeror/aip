@@ -39,13 +39,11 @@ def immio_url(store, md5):
 def imgur_url(store, md5, width=None, resolution=None):
     im = store.Entry.get_bi_md5(md5)
     imgur_image = store.get_imgur_bi_md5(md5)
-    limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
     if resolution is None:
         resolution = current_app.config['AIP_RESOLUTION_LEVEL']
     imgur = Imgur(
         client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
         resolution_level=resolution,
-        max_size=(limit, limit),
         timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
         album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH']
     )
@@ -95,11 +93,9 @@ def imgur_url_gen(store, md5, width=None, resolution=None):
 
     def dealpost(post):
         imgur_image = store.get_imgur_bi_md5(md5)
-        limit = current_app.config['AIP_IMGUR_RESIZE_LIMIT']
         imgur = Imgur(
             client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
             resolution_level=resolution,
-            max_size=(limit, limit),
             timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
             album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH']
         )

@@ -18,3 +18,16 @@ def nonblock(f, *args, **kargs):
         q.enqueue(f, *args, **kargs)
     except:
         return f(*args, **kargs)
+
+
+def _thread_main(f, done):
+    done(f())
+
+
+def callback(f, done, *args, **kargs):
+    from threading import Thread
+    from functools import partial
+    Thread(
+        target=_thread_main,
+        args=(partial(block, f, *args, **kargs), done)
+    ).start()
