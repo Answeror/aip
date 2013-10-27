@@ -6,6 +6,10 @@ html, body {
     height: 100%;
     overflow: hidden;
 }
+.wall-items {
+    position: relative;
+    z-index: 1;
+}
 .notice-out {
     position: fixed;
     z-index: 2;
