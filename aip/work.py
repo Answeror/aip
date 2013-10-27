@@ -29,5 +29,6 @@ def callback(f, done, *args, **kargs):
     from functools import partial
     Thread(
         target=_thread_main,
-        args=(partial(block, f, *args, **kargs), done)
+        args=(partial(block, f, *args, **kargs), done),
+        daemon=False,
     ).start()
