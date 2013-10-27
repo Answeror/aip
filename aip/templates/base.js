@@ -15,6 +15,7 @@
             function progress(p) {
                 $('#bar').width(p + '%');
             };
+            var $items = null;
             var marsed = false;
             var mars = function($item) {
                 $container.append($item);
@@ -30,6 +31,7 @@
                 } else {
                     $container.masonry('appended', $item, true);
                 }
+                $items = $container.find('.item');
             };
             var $buf = $('#buffer');
             var nomore = false;
@@ -65,15 +67,7 @@
                     page += 1;
                     var $items = $(data).find('.item');
                     var n = $items.length;
-                    var cleanup = function() {
-                        $('#alert_box').html('');
-                        if (n) {
-                            $.waypoints('refresh');
-                            if ($container.outerHeight() <= $.waypoints('viewportHeight')) pull();
-                        }
-                    };
                     if (!n) {
-                        cleanup();
                         nomore = true;
                         return;
                     }
@@ -87,9 +81,7 @@
                     var doneone = function($item) {
                         ++loaded;
                         progress(100 * loaded / n);
-                        if (loaded == n) {
-                            cleanup();
-                        } else if (loaded > n) {
+                        if (loaded > n) {
                             throw 'loaded(' + loaded + ') > n(' + n + ')';
                         }
                     };
@@ -100,42 +92,7 @@
                         }
                     };
                     var init_unload = function($item) {
-                        var tid = null;
-                        $('.level-wall').on('resize scrollstop', function() {
-                            var $img = $item.find('img.preview');
-                            if ($item.visible(true)) {
-                                if (tid) {
-                                    clearTimeout(tid);
-                                    tid = null;
-                                }
-                                if (!$img.attr('src')) {
-                                    $.aip.load_image({
-                                        img: $img,
-                                        src: $img.data('src')
-                                    }).done(function() {
-                                        // must be wrapped in anonymous function
-                                        // don't know why
-                                        $img.show();
-                                        //$img.fadeIn(500);
-                                    }).fail(function(reason) {
-                                        console.log('load ' + $img.data('src') + 'failed');
-                                    });
-                                } else {
-                                    $img.show();
-                                }
-                            } else {
-                                if (!tid) {
-                                    tid = setTimeout(function() {
-                                        tid = null;
-                                        if ($img.attr('src')) {
-                                            $img.data('src', $img.attr('src'));
-                                            $img.attr('src', '');
-                                        }
-                                        $img.hide();
-                                    }, 1e3 * {{ config['AIP_FADEOUT_TIMEOUT'] }});
-                                }
-                            }
-                        });
+                        $item.reset_fadeout_timer();
                     };
                     var dealone = function($item) {
                         if ($item.data('dealed')) return;
@@ -157,7 +114,7 @@
                     };
                     var thumbnail = function($item) {
                         var error = function(message) {
-                            $.aip.notice(message);
+                            console.log(message);
                             guarded_doneone($item);
                         };
                         $.aip.thumbnail({
@@ -207,9 +164,33 @@
                 init: function(kargs) {
                     console.log('init wall');
                     options = $.extend(options, kargs);
+
                     setInterval(function() {
                         if ($('.bottom-anchor').visible(true)) pull();
                     }, 1e3 * {{ config['AIP_PULLING_INTERVAL'] }});
+
+                    $('.level-wall').on('resize scrollstop', function() {
+                        $items.inviewport().each(function() {
+                            var $item = $(this);
+                            $item.reset_fadeout_timer();
+                            var $img = $item.find('img.preview');
+                            if (!$img.attr('src')) {
+                                $.aip.load_image({
+                                    img: $img,
+                                    src: $img.data('src')
+                                }).done(function() {
+                                    // must be wrapped in anonymous function
+                                    // don't know why
+                                    $img.show();
+                                    //$img.fadeIn(500);
+                                }).fail(function(reason) {
+                                    console.log('load ' + $img.data('src') + 'failed');
+                                });
+                            } else {
+                                $img.show();
+                            }
+                        });
+                    });
                 }
             };
         })();

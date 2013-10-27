@@ -408,6 +408,7 @@ def make(app, oid, cached, store):
             'detail.js',
             'tag.js',
             'thumbnail.js',
+            'fade.js',
             'base.js',
         ]
 

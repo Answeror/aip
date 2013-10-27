@@ -18,7 +18,7 @@
                 })
             }).done($d.resolve).fail($d.reject);
         }).fail(function() {
-            $.aip.notice('get thumbnail link of ' + $item.data('md5') + ' failed');
+            console.log('get thumbnail link of ' + $item.data('md5') + ' failed');
         });
         return $d;
     };
