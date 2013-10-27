@@ -207,10 +207,9 @@
                 init: function(kargs) {
                     console.log('init wall');
                     options = $.extend(options, kargs);
-                    pull();
-                    $('.level-wall').on('resize scrollstop', function() {
+                    setInterval(function() {
                         if ($('.bottom-anchor').visible(true)) pull();
-                    });
+                    }, 1e3 * {{ config['AIP_PULLING_INTERVAL }});
                 }
             };
         })();
