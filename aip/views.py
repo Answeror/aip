@@ -30,8 +30,10 @@ from .log import Log
 from time import time
 from .utils import md5 as calcmd5
 from . import img
-from datetime import datetime
+from datetime import datetime, timedelta
 from . import work
+import scss
+from collections import OrderedDict
 
 
 Post = namedtuple('Post', (
@@ -325,12 +327,48 @@ def make(app, oid, cached, store):
     def plused():
         return render_layout('plused.html')
 
+    def scss_sources(root):
+        sources = []
+        for filename in os.listdir(root):
+            if re.match(r'aip-\w+\.scss', filename):
+                with open(os.path.join(root, filename), 'rb') as f:
+                    content = f.read().decode('utf-8')
+                sources.append((filename, content))
+        return sources
+
+    def expired_request(mtime):
+        try:
+            return (
+                'if-modified-since' not in request.headers or
+                datetime.strptime(
+                    request.headers['if-modified-since'],
+                    '%a, %d %b %Y %H:%M:%S GMT'
+                ) + timedelta(seconds=1) < mtime
+            )
+        except ValueError:
+            log.info(
+                'wrong if-modified-since format: %s',
+                request.headers['if-modified-since']
+            )
+            return True
+
     @app.route('/style.css')
-    #@cached(timeout=24 * 60 * 60)
+    @timestamped('.style')
     def style():
-        import scss
-        from collections import OrderedDict
         root = os.path.join(app.static_folder, 'scss')
+        sources = scss_sources(root)
+
+        def gen():
+            for filename, _ in sources:
+                yield datetime.fromtimestamp(os.path.getmtime(os.path.join(
+                    root,
+                    filename
+                )))
+        mtime = max(gen())
+
+        if has_timestamp() and expired_request(mtime):
+            return Response(status=304)
+
         c = scss.Scss(
             scss_vars={},
             scss_opts={
@@ -339,14 +377,21 @@ def make(app, oid, cached, store):
                 'load_paths': [root]
             }
         )
-        sources = []
-        for filename in os.listdir(root):
-            if re.match(r'aip-\w+\.scss', filename):
-                with open(os.path.join(root, filename), 'rb') as f:
-                    content = f.read().decode('utf-8')
-                sources.append((filename, content))
         c._scss_files = OrderedDict(sources)
-        return c.compile(), 200, {'Content-Type': 'text/css'}
+        content = c.compile()
+        resp = Response(
+            content,
+            mimetype='text/css',
+        )
+        resp.content_md5 = calcmd5(content.encode('utf-8'))
+        resp.last_modified = mtime
+
+        if has_timestamp():
+            if cache_timeout() is not None:
+                resp.cache_control.max_age = cache_timeout()
+                resp.expires = int(time() + cache_timeout())
+
+        return resp
 
     @app.route('/js')
     @timestamped('.js')
@@ -375,7 +420,7 @@ def make(app, oid, cached, store):
                 )))
         mtime = max(gen())
 
-        if request.headers.get('if-modified-since') == mtime.ctime():
+        if has_timestamp() and expired_request(mtime):
             return Response(status=304)
 
         content = '\n'.join(render_template(name) for name in names)
@@ -387,10 +432,9 @@ def make(app, oid, cached, store):
         resp.last_modified = mtime
 
         if has_timestamp():
-            cache_timeout = current_app.config.get('AIP_TIMESTAMPED_TIMEOUT', None)
-            if cache_timeout is not None:
-                resp.cache_control.max_age = cache_timeout
-                resp.expires = int(time() + cache_timeout)
+            if cache_timeout() is not None:
+                resp.cache_control.max_age = cache_timeout()
+                resp.expires = int(time() + cache_timeout())
 
         return resp
 
@@ -418,11 +462,11 @@ def make(app, oid, cached, store):
         return r.data, 200, headers
 
     @app.route('/thumbnail/<md5>', methods=['GET'])
-    @timed
     @timestamped('.thumbnail')
+    @timed
     def thumbnail(md5):
         try:
-            if request.headers.get('if-modified-since') == store.thumbnail_mtime_bi_md5(md5).ctime():
+            if has_timestamp() and expired_request(store.thumbnail_mtime_bi_md5(md5)):
                 return Response(status=304)
         except:
             pass
@@ -496,6 +540,7 @@ def make(app, oid, cached, store):
         return try_get_user_bi_someid() is not None
 
     @app.route('/thumbnail/link/<md5>', methods=['GET'])
+    @timestamped('.thumbnail_link')
     @timed
     def thumbnail_link(md5):
         width = int(request.args['width'])
@@ -524,4 +569,16 @@ def make(app, oid, cached, store):
                 done=done
             )
             link = url_for('.thumbnail', md5=md5, width=width)
-        return jsonify(dict(result=link))
+
+        resp = jsonify(dict(result=link))
+        resp.content_md5 = calcmd5(resp.data)
+
+        if has_timestamp():
+            if cache_timeout() is not None:
+                resp.cache_control.max_age = cache_timeout()
+                resp.expires = int(time() + cache_timeout())
+
+        return resp
+
+    def cache_timeout():
+        return current_app.config.get('AIP_TIMESTAMPED_TIMEOUT', None)
