@@ -30,15 +30,8 @@
                         clearTimeout(tid);
                         if (!rejected) {
                             console.log('loaded: ' + preview_src);
-                            $.aip.actual_size($img, function(width, height) {
-                                console.log('sized(' + width + 'x' + height + '): ' + preview_src);
-                                $img.data('src', preview_src);
-                                $img.attr('width', width);
-                                $img.attr('height', height);
-                                $img.data('preview-width', width);
-                                $img.data('preview-height', height);
-                                $d.resolve();
-                            });
+                            $img.data('src', preview_src);
+                            $d.resolve();
                         }
                     }).fail(function() {
                         clearTimeout(tid);

@@ -129,9 +129,14 @@
                             inc('proxied-preview-loading-failed');
                         });
                     };
+                    var init_img = function($img) {
+                        $img.attr('width', $img.width());
+                        $img.attr('height', $img.width() / $img.data('ratio'));
+                    };
                     $items.each(function() {
                         var $this = $(this);
                         var $img = $this.find('img.preview');
+                        init_img($img);
                         var done = function() {
                             console.log($img.attr('src') + 'loaded');
                             $this.find('.loading').hide();
