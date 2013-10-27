@@ -15,27 +15,30 @@
             }, 500, 'swing', function() {
                 var hash = '#' + $item.data('md5');
                 window.location.hash = hash;
-
+                $detail.find('[name="source"]').attr('href', $item.data('source'));
+                $detail.find('[name="raw"]').attr('href', '/raw/' + $item.data('md5'));
                 $loading.show();
                 // load image after animation
                 // to archive smooth transition on ipad
-                $.aip.load_image({
-                    img: $img,
-                    src: $.param.querystring(
-                        $item.data('thumbnail'), $.param({
-                            width: Math.round($preview.width())
+                $.get($item.data('thumbnail-link'), $.param({
+                    width: Math.round($preview.width())
+                })).done(function(r) {
+                    $.aip.load_image({
+                        img: $img,
+                        src: r.result,
+                        timeout: 1e3 * {{ config['AIP_DETAIL_LOADING_TIMEOUT'] }},
+                        reloads: $.aip.range({{ config['AIP_DETAIL_RELOAD_LIMIT'] }}).map(function() {
+                            return $.aip.disturb(1e3 * {{ config['AIP_DETAIL_RELOAD_INTERVAL'] }});
                         })
-                    ),
-                    timeout: 1e3 * {{ config['AIP_DETAIL_LOADING_TIMEOUT'] }},
-                    reloads: $.aip.range({{ config['AIP_DETAIL_RELOAD_LIMIT'] }}).map(function() {
-                        return $.aip.disturb(1e3 * {{ config['AIP_DETAIL_RELOAD_INTERVAL'] }});
-                    })
-                }).done(function() {
-                    $loading.hide();
-                    $img.show();
+                    }).done(function() {
+                        $loading.hide();
+                        $img.show();
+                    }).fail(function() {
+                        $.aip.notice('get detail of ' + $item.data('md5') + ' failed');
+                    });
+                }).fail(function() {
+                    $.aip.notice('get detail link of ' + $item.data('md5') + ' failed');
                 });
-                $detail.find('[name="source"]').attr('href', $item.data('source'));
-                $detail.find('[name="raw"]').attr('href', '/raw/' + $item.data('md5'));
             });
             e.preventDefault();
         });
