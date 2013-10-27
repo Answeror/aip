@@ -19,7 +19,7 @@
         ++begin;
         end = mid + 1;
         while (end < n && $a.eq(end).visible(true)) ++end;
-        $.aip.notice('(' + begin + ',' + end + ')');
+        //$.aip.notice('(' + begin + ',' + end + ')');
         return $a.slice(begin, end);
     };
     $.fn.reset_fadeout_timer = function() {
