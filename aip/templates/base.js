@@ -180,7 +180,7 @@
                             }).done(function() {
                                 // must be wrapped in anonymous function
                                 // don't know why
-                                $img.show();
+                                $item.show();
                                 //$img.fadeIn(500);
                             }).fail(function(reason) {
                                 console.log('load ' + $img.data('src') + 'failed');

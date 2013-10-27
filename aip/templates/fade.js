@@ -36,7 +36,7 @@
                 $this.find('img').each(function() {
                     var $img = $(this);
                     $img.attr('src', $.aip.placehold($img.width(), $img.height()));
-                    $img.hide();
+                    $this.hide();
                 });
             }
         }, 1e3 * {{ config['AIP_FADEOUT_TIMEOUT'] }}));
