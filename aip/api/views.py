@@ -330,10 +330,10 @@ def make(app, api, cached, store):
                 ex.map(partial(fetch_posts, begin, limit), sources)
             ))
 
-        log.info('fetch posts done, %d fetched, take %.4fs' % (len(posts), time.time() - start))
+        log.info('fetch posts done, %d fetched, take %.4f', len(posts), float(time.time() - start))
         start = time.time()
         store.Post.puts(posts=posts)
-        log.info('put posts done, take %.4fs', time.time() - start)
+        log.info('put posts done, take %.4f', float(time.time() - start))
 
     @api.route('/add_user', methods=['POST'])
     @guarded
