@@ -3,7 +3,6 @@
 
 
 import json
-import logging
 from base64 import b64encode
 from collections import namedtuple
 from urllib.error import HTTPError
@@ -67,7 +66,7 @@ class Imgur(FetchImageMixin):
         def use_one_client_id(client_id):
             try:
                 log.info(
-                    'upload %s data to imgur using client_id %s',
+                    'upload {} data to imgur using client_id {}',
                     md5,
                     client_id
                 )
@@ -94,7 +93,7 @@ class Imgur(FetchImageMixin):
                 )
             except:
                 log.exception(
-                    'upload %s data to imgur using client_id %s failed',
+                    'upload {} data to imgur using client_id {} failed',
                     md5,
                     client_id
                 )
@@ -120,7 +119,7 @@ class Imgur(FetchImageMixin):
 
             def use_file():
                 try:
-                    logging.info('upload file %s' % image_url)
+                    log.info('upload file {}', image_url)
                     r = self.call(
                         client_id=client_id,
                         method='POST',
@@ -132,15 +131,14 @@ class Imgur(FetchImageMixin):
                             'album': self.album_deletehash
                         }
                     )
-                    logging.info('upload file %s done' % image_url)
+                    log.info('upload file {} done', image_url)
                     return r
-                except Exception as e:
-                    logging.error('upload file %s failed' % image_url)
-                    logging.exception(e)
+                except:
+                    log.exception('upload file {} failed', image_url)
                     return None
 
             try:
-                logging.info('upload link %s' % image_url)
+                log.info('upload link {}', image_url)
                 r = self.call(
                     client_id=client_id,
                     method='POST',
@@ -153,7 +151,11 @@ class Imgur(FetchImageMixin):
                     }
                 )
                 if not r['success']:
-                    logging.error('upload link {} failed, response: {}'.format(image_url, r))
+                    log.error(
+                        'upload link {} failed, response: {}',
+                        image_url,
+                        r
+                    )
                     if r['status'] == 400:
                         r = use_file()
                         if r is None:
@@ -161,10 +163,9 @@ class Imgur(FetchImageMixin):
                     else:
                         return None
                 else:
-                    logging.info('upload link %s done' % image_url)
-            except Exception as e:
-                logging.error('upload link %s failed' % image_url)
-                logging.exception(e)
+                    log.info('upload link {} done', image_url)
+            except:
+                log.exception('upload link {} failed', image_url)
                 r = use_file()
                 if r is None:
                     return None
@@ -184,11 +185,11 @@ class Imgur(FetchImageMixin):
         client_ids = self.client_ids[:]
         shuffle(client_ids)
         for client_id in client_ids:
-            logging.info('use client id %s' % client_id)
+            log.info('use client id {}', client_id)
             ret = use_one_client_id(client_id)
             if ret is not None:
                 return ret
-            logging.info('client id %s failed' % client_id)
+            log.info('client id {} failed', client_id)
 
         fail()
 
