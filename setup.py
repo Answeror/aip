@@ -20,7 +20,7 @@ setup(
     include_package_data=True,
     entry_points='''\
     [console_scripts]
-    aiplog = aip.scripts.log:main
+    aiplog = log:main
     ''',
     zip_safe=False,
     install_requires=[
