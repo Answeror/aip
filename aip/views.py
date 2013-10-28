@@ -429,7 +429,6 @@ def make(app, oid, cached, store):
 
     @app.route('/thumbnail/<md5>', methods=['GET'])
     @timestamped('.thumbnail')
-    @timed
     def thumbnail(md5):
         try:
             if (
@@ -510,7 +509,6 @@ def make(app, oid, cached, store):
 
     @app.route('/thumbnail/link/<md5>', methods=['GET'])
     @timestamped('.thumbnail_link')
-    @timed
     def thumbnail_link(md5):
         width = int(request.args['width'])
         thumbmd5 = calcmd5(('%s.%d' % (md5, width)).encode('ascii'))
