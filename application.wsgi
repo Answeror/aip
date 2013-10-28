@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 
+from logbook.compat import redirect_logging
+redirect_logging()
+
 import os
 import sys
 
@@ -20,7 +23,10 @@ exec(compile(open(activate_this).read(), activate_this, 'exec'), dict(__file__=a
 sys.path.insert(0, os.path.dirname(__file__))
 
 from aip import make
-application = make(
-    instance_path=DATA_PATH,
-    instance_relative_config=True
-)
+from aip.log import RedisPub
+
+with RedisPub():
+    application = make(
+        instance_path=DATA_PATH,
+        instance_relative_config=True
+    )

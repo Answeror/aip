@@ -15,16 +15,21 @@ def runbg(cmd, sockname="dtach"):
     return run('dtach -n `mktemp -u /tmp/%s.XXXX` %s'  % (sockname,cmd))
 
 
+def kill(name):
+    run("ps auxww | grep %s | grep -v \"grep\" | awk '{print $2}' | xargs kill >& /dev/null" % name)
+
+
 def deploy():
     with settings(warn_only=True):
-        #run("ps auxww | grep celery | grep -v \"grep\" | awk '{print $2}' | xargs kill >& /dev/null")
-        run("ps auxww | grep rqworker | grep -v \"grep\" | awk '{print $2}' | xargs kill >& /dev/null")
+        kill('rqworker')
+        kill('aiplog')
     with cd('/www/aip/repo'):
         run('git pull')
         with prefix('pyenv virtualenvwrapper'):
             with prefix('workon aip'):
                 run('python setup.py develop')
                 #runbg('celery -A tasks worker')
+                runbg('aiplog')
                 for i in range(4):
                     runbg('rqworker')
     # and finally touch the .wsgi file so that mod_wsgi triggers

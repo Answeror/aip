@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-import logging
 from flask import (
     jsonify,
     request,
@@ -23,19 +22,10 @@ import time
 from ..layout import render_layout
 from fn.iters import chain
 from nose.tools import assert_equal
+from ..log import Log
 
 
-class Log(object):
-
-    @property
-    def log(self):
-        return logging.getLogger(__name__)
-
-    def info(self, *args, **kargs):
-        return self.log.info(*args, **kargs)
-
-
-log = Log()
+log = Log(__name__)
 
 
 def ex():
@@ -74,9 +64,10 @@ def failed(name, args=None, form=None, json=None, e=None):
         lines.append('form: {}'.format(form))
     if json:
         lines.append('json: {}'.format(json))
-    logging.error('\n'.join(lines))
     if e:
-        logging.exception(e)
+        log.exception('\n'.join(lines))
+    else:
+        log.error('\n'.join(lines))
 
 
 def logged(f):
@@ -84,9 +75,9 @@ def logged(f):
     def inner(*args, **kargs):
         try:
             start = time.time()
-            logging.info('%s start' % f.__name__)
+            log.info('%s start' % f.__name__)
             r = f(*args, **kargs)
-            logging.info('%s done' % f.__name__)
+            log.info('%s done' % f.__name__)
             return r
         except Exception as e:
             failed(
@@ -98,7 +89,7 @@ def logged(f):
             )
             raise
         finally:
-            logging.info('%s take %.3fs' % (f.__name__, time.time() - start))
+            log.info('%s take %.3fs' % (f.__name__, time.time() - start))
     return inner
 
 
@@ -149,24 +140,23 @@ def make(app, api, cached, store):
             try:
                 key, value = api.sp.pop(sid, timeout=timeout)
                 timeout = app.config['AIP_STREAM_EVENT_TIMEOUT']
-                logging.info('stream(%s) event: %s' % (sid, key))
+                log.info('stream(%s) event: %s' % (sid, key))
                 if key == 'reply':
                     hello_count = 0
                 else:
                     yield b'data: ' + value + b'\n\n'
             except Exception as e:
                 if str(e) == 'timeout':
-                    logging.info('stream event timeout: %s' % sid)
+                    log.info('stream event timeout: %s' % sid)
                     if hello_count >= app.config['AIP_STREAM_HELLO_LIMIT']:
-                        logging.info('close stream %s' % sid)
+                        log.info('close stream %s' % sid)
                         api.sp.kill(sid)
                         again = False
                     else:
                         hello(sid)
                         hello_count += 1
                 else:
-                    logging.error('event stream failed')
-                    logging.exception(e)
+                    log.exception('event stream failed')
                     api.sp.kill(sid)
                     again = False
                     raise
@@ -186,7 +176,7 @@ def make(app, api, cached, store):
     @api.route('/async/stream/<sid>')
     @logged
     def stream(sid):
-        logging.info('stream: %s' % sid)
+        log.info('stream: %s' % sid)
         return Response(event_stream(sid), mimetype='text/event-stream')
 
     def format_stream_piece(piece):
@@ -397,7 +387,7 @@ def make(app, api, cached, store):
 
         if request.args and 'tags' in request.args:
             tags = request.args['tags'].split(';')
-            logging.debug('query tags: {}'.format(tags))
+            log.debug('query tags: {}'.format(tags))
             tags = [store.Tag.escape_name(tag) for tag in tags if tag]
         else:
             tags = []
@@ -559,47 +549,6 @@ def make(app, api, cached, store):
     def immio_url(md5):
         from .. import proxy
         return proxy.immio_url(store, md5)
-
-    @guarded
-    @logged
-    def proxied_url(md5):
-        for make in (imgur_url, ):
-            logging.info('use %s' % make.__name__)
-            try:
-                uri = make(md5)
-                logging.info('get %s' % uri)
-                return jsonify(dict(result=uri))
-            except Exception as e:
-                logging.exception(e)
-        raise Exception('all gallery failed')
-
-    @api.route('/proxied_url/<md5>', methods=['GET'])
-    @guarded
-    @logged
-    def sync_proxied_url(md5):
-        return proxied_url(md5)
-
-    @api.route('/async/<sid>/proxied_url/<md5>', methods=['GET'])
-    @guarded
-    @logged
-    @async()
-    def async_proxied_url(sid, md5):
-        return proxied_url(md5)
-
-    @api.route('/stream/proxied_url/<md5>', methods=['GET'])
-    @logged
-    @streamed
-    @optional_args([('width', float), ('resolution', float)])
-    def stream_proxied_url(md5, width=None, resolution=None):
-        for make in (imgur_url_gen, ):
-            logging.info('use %s' % make.__name__)
-            try:
-                for uri in make(md5=md5, width=width, resolution=resolution):
-                    logging.info('get %s' % uri)
-                    yield dump_result(uri)
-            except Exception as e:
-                logging.exception(e)
-        raise Exception('all gallery failed')
 
     @api.after_request
     def after_request(response):

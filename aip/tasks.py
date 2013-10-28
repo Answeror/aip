@@ -1,5 +1,5 @@
-from .log import Log
 from .utils import md5 as calcmd5
+from .log import Log
 
 
 log = Log(__name__)
@@ -31,3 +31,7 @@ def persist_thumbnail(makeapp, md5, width):
             deletehash=r.deletehash
         ))
         app.store.session.commit()
+
+
+def test_log():
+    log.info('work')

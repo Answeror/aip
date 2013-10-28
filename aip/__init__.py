@@ -3,8 +3,8 @@
 
 
 import os
-import logging
-import logging.config
+from flask import Flask
+from .log import RedisPub
 
 
 def init_slaves(app):
@@ -43,49 +43,21 @@ def init_conf(app, config):
         app.config['AIP_TEMP_PATH'] = tempfile.mkdtemp()
 
 
-def init_log(app):
-    # setup logging
-    logging.config.dictConfig({
-        'version': 1,
-        'disable_existing_loggers': True,
-        'formatters': {
-            'detailed': {
-                'class': 'logging.Formatter',
-                'format': '%(asctime)s %(name)-16s %(levelname)-8s %(message)s'
-            },
-            'simple': {
-                'class': 'logging.Formatter',
-                'format': '%(message)s'
-            }
-        },
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-                'level': 'INFO',
-                'formatter': 'simple'
-            },
-            'file': {
-                'class': 'logging.FileHandler',
-                'level': app.config.get('AIP_LOG_LEVEL', logging.DEBUG),
-                'filename': app.config.get(
-                    'AIP_LOG_FILE_PATH',
-                    os.path.join(app.instance_path, 'aip.log')
-                ),
-                'mode': 'a',
-                'formatter': 'detailed'
-            }
-        },
-        'root': {
-            'level': 'DEBUG',
-            'handlers': ['console', 'file']
-        }
-    })
-
-
 def init_store(app):
     from . import store
     store = store.make(app=app)
     app.store = store
+
+
+class App(Flask):
+
+    def __init__(self, *args, **kargs):
+        super(App, self).__init__(*args, **kargs)
+        self.redispub = RedisPub()
+
+    def __call__(self, *args, **kargs):
+        with self.redispub.threadbound():
+            return super(App, self).__call__(*args, **kargs)
 
 
 def make(config=None, dbmode=False, **kargs):
@@ -97,8 +69,7 @@ def make(config=None, dbmode=False, **kargs):
     if 'instance_path' in kargs:
         kargs['instance_path'] = os.path.abspath(kargs['instance_path'])
 
-    from flask import Flask
-    app = Flask(
+    app = App(
         __name__,
         template_folder='templates',
         static_folder='static',
@@ -107,9 +78,6 @@ def make(config=None, dbmode=False, **kargs):
     app.kargs = kargs
 
     init_conf(app, config)
-
-    if not dbmode:
-        init_log(app)
 
     if dbmode:
         init_store(app)

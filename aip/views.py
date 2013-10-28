@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-import logging
 import os
 import re
 from flask import (
@@ -19,8 +18,6 @@ from flask import (
     Response,
 )
 from operator import attrgetter as attr
-from io import BytesIO
-from PIL import Image
 from collections import namedtuple
 from urllib.parse import urlparse, urlunparse
 from .layout import render_layout
@@ -36,6 +33,7 @@ from collections import OrderedDict
 from . import make as makeapp
 from . import tasks
 from functools import partial
+from .utils import timed
 
 
 Post = namedtuple('Post', (
@@ -139,17 +137,6 @@ def _fetch(url):
     return g.http.request('GET', url)
 
 
-def _fetch_image(url):
-    try:
-        logging.info('fetch image: %s' % url)
-        r = _fetch(url)
-        return r.data
-    except Exception as e:
-        logging.error('fetch image failed: %s' % url)
-        logging.exception(e)
-        return None
-
-
 def timestamp(endpoint):
     d = current_app.config.get('AIP_TIMESTAMP', {})
     return d.get(endpoint, None)
@@ -181,17 +168,6 @@ def dated_url_for(endpoint, **values):
     if timestamp(endpoint) is not None:
         values[current_app.config['AIP_TIMESTAMP_FIELD']] = timestamp(endpoint)
     return url_for(endpoint, **values)
-
-
-def timed(f):
-    @wraps(f)
-    def inner(*args, **kargs):
-        try:
-            start = time()
-            return f(*args, **kargs)
-        finally:
-            log.info('%s take %.4f' % (f.__name__, time() - start))
-    return inner
 
 
 def make(app, oid, cached, store):
@@ -239,9 +215,13 @@ def make(app, oid, cached, store):
             return redirect(oid.get_next_url())
 
         if 'openid' in session:
-            logging.info('openid %s already in session' % session['openid'])
+            log.info('openid %s already in session' % session['openid'])
             if store.Openid.exists(resp.identity_url):
-                logging.info('group openid %s with %s' % (resp.identity_url, session['openid']))
+                log.info(
+                    'group openid %s with %s',
+                    resp.identity_url,
+                    session['openid']
+                )
                 store.User.group_openid(resp.identity_url, session['openid'])
                 return redirect(url_for('.posts'))
 
@@ -292,26 +272,16 @@ def make(app, oid, cached, store):
                     )
                     store.db.session.commit()
                     return redirect(oid.get_next_url())
-        return render_layout('create_profile.html', next_url=oid.get_next_url())
+        return render_layout(
+            'create_profile.html',
+            next_url=oid.get_next_url()
+        )
 
     @app.route('/logout')
     def logout():
         session.pop('openid', None)
         flash('You were signed out')
         return redirect(oid.get_next_url())
-
-    @app.route('/sample/<md5>')
-    @cached(timeout=24 * 60 * 60)
-    def sample(md5):
-        im = store.get_image_bi_md5(md5)
-        url = im.sample_url if im.sample_url else im.image_url
-        height = im.height
-        input_stream = BytesIO(_fetch_image(url))
-        im = Image.open(input_stream)
-        im.thumbnail((g.sample_width, height), Image.ANTIALIAS)
-        output_stream = BytesIO()
-        im.save(output_stream, format='JPEG')
-        return output_stream.getvalue(), 200, {'Content-Type': 'image/jpeg'}
 
     @app.route('/')
     def posts():
@@ -462,7 +432,10 @@ def make(app, oid, cached, store):
     @timed
     def thumbnail(md5):
         try:
-            if has_timestamp() and not expired_request(store.thumbnail_mtime_bi_md5(md5)):
+            if (
+                has_timestamp() and
+                not expired_request(store.thumbnail_mtime_bi_md5(md5))
+            ):
                 return Response(status=304)
         except:
             pass
@@ -486,7 +459,7 @@ def make(app, oid, cached, store):
 
         if request.args and 'tags' in request.args:
             tags = request.args['tags'].split(';')
-            logging.debug('query tags: {}'.format(tags))
+            log.debug('query tags: {}'.format(tags))
             tags = [store.Tag.escape_name(tag) for tag in tags if tag]
         else:
             tags = []
@@ -563,6 +536,11 @@ def make(app, oid, cached, store):
                 resp.expires = int(time() + cache_timeout())
 
         return resp
+
+    @app.route('/test/log', methods=['GET'])
+    def test_log():
+        work.nonblock(tasks.test_log)
+        return jsonify({})
 
     def cache_timeout():
         return current_app.config.get('AIP_TIMESTAMPED_TIMEOUT', None)

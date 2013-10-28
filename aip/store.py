@@ -10,7 +10,6 @@ from datetime import datetime
 import threading
 import pickle
 from contextlib import contextmanager
-#import logging
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy.orm.util import identity_key

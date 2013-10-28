@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-from setuptools import setup
+from setuptools import setup, find_packages
 import subprocess as sp
 
 
@@ -15,9 +15,13 @@ setup(
     version=version,
     author='answeror',
     author_email='answeror@gmail.com',
-    packages=['aip'],
+    packages=find_packages(),
     description='AIP Instrumentality Project',
     include_package_data=True,
+    entry_points='''\
+    [console_scripts]
+    aiplog = aip.scripts.log:main
+    ''',
     zip_safe=False,
     install_requires=[
         'Flask==0.10.1',
@@ -35,7 +39,8 @@ setup(
         'requests==2.0.0',
         'redis',
         'rq',
-        'Wand'
+        'setproctitle',
+        'logbook',
     ],
     dependency_links = [
         'https://github.com/Answeror/ConfigIt/tarball/version#egg=ConfigIt-0.1.3',
