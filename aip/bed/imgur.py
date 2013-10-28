@@ -10,6 +10,7 @@ from urllib.error import HTTPError
 from .base import FetchImageMixin
 from ..log import Log
 from random import shuffle
+import requests
 
 
 log = Log(__name__)
@@ -70,10 +71,9 @@ class Imgur(FetchImageMixin):
                     md5,
                     client_id
                 )
-                r = self.call(
-                    client_id=client_id,
-                    method='POST',
+                r = requests.post(
                     url='https://api.imgur.com/3/image',
+                    headers={'Authorization': 'Client-ID %s' % client_id},
                     data={
                         'image': b64encode(data),
                         'type': 'base64',
@@ -81,12 +81,16 @@ class Imgur(FetchImageMixin):
                         'album': self.album_deletehash
                     }
                 )
+                if not r.ok:
+                    raise Exception(r.text)
+
+                d = r.json()
                 return Image(
                     kind='imgur',
                     md5=md5,
-                    id=r['data']['id'],
-                    deletehash=r['data']['deletehash'],
-                    link=r['data']['link']
+                    id=d['data']['id'],
+                    deletehash=d['data']['deletehash'],
+                    link=d['data']['link']
                 )
             except:
                 log.exception(

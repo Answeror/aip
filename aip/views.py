@@ -17,7 +17,6 @@ from flask import (
     render_template,
     abort,
     Response,
-    copy_current_request_context,
 )
 from operator import attrgetter as attr
 from io import BytesIO
@@ -34,6 +33,9 @@ from datetime import datetime, timedelta
 from . import work
 import scss
 from collections import OrderedDict
+from . import make as makeapp
+from . import tasks
+from functools import partial
 
 
 Post = namedtuple('Post', (
@@ -196,13 +198,6 @@ def make(app, oid, cached, store):
 
     from .momentjs import momentjs
     app.jinja_env.globals['momentjs'] = momentjs
-
-    from .bed.imgur import Imgur
-    bed = Imgur(
-        client_ids=app.config['AIP_IMGUR_CLIENT_IDS'],
-        timeout=app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
-        album_deletehash=app.config['AIP_IMGUR_ALBUM_DELETEHASH']
-    )
 
     @app.context_processor
     def override_url_for():
@@ -551,23 +546,11 @@ def make(app, oid, cached, store):
             log.info('imgur hit %s, width %d' % (md5, width))
             link = bim.link.replace('http://', 'https://')
         else:
-            @copy_current_request_context
-            def done(result):
-                store.session.flush()
-                store.session.merge(store.Imgur(
-                    id=result.id,
-                    md5=result.md5,
-                    link=result.link,
-                    deletehash=result.deletehash
-                ))
-                store.session.commit()
-
-            data = store.thumbnail_bi_md5(md5, width)
-            work.callback(
-                bed.upload,
-                data=data,
-                md5=thumbmd5,
-                done=done
+            work.nonblock(
+                tasks.persist_thumbnail,
+                makeapp=partial(makeapp, dbmode=True, **app.kargs),
+                md5=md5,
+                width=width,
             )
             link = url_for('.thumbnail', md5=md5, width=width)
 

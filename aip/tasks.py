@@ -1,18 +1,36 @@
-from celery.utils.log import get_task_logger
-from .bunch import Bunch
+from .log import Log
+from .utils import md5 as calcmd5
 
 
-log = get_task_logger(__name__)
+log = Log(__name__)
 
 
-def make(celery):
+def persist_thumbnail(makeapp, md5, width):
+    print('persist_thumbnail start')
+    app = makeapp()
 
-    @celery.task()
-    def upload(bed, *args, **kargs):
-        print('foooooooooooooooooooooooooooooooo')
-        log.info('%s upload start' % bed.name)
-        return bed.upload(*args, **kargs)
-
-    return Bunch(
-        upload=upload
+    from .bed.imgur import Imgur
+    bed = Imgur(
+        client_ids=app.config['AIP_IMGUR_CLIENT_IDS'],
+        timeout=app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
+        album_deletehash=app.config['AIP_IMGUR_ALBUM_DELETEHASH']
     )
+
+    thumbmd5 = calcmd5(('%s.%d' % (md5, width)).encode('ascii'))
+
+    with app.test_request_context():
+        data = app.store.thumbnail_bi_md5(md5, width)
+        r = bed.upload(
+            data=data,
+            md5=thumbmd5,
+        )
+        app.store.session.flush()
+        app.store.session.merge(app.store.Imgur(
+            id=r.id,
+            md5=r.md5,
+            link=r.link,
+            deletehash=r.deletehash
+        ))
+        app.store.session.commit()
+
+    print('persist_thumbnail done')

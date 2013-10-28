@@ -9,7 +9,10 @@ def block(f, *args, **kargs):
         job.cancel()
         return ret
     except:
-        return f(*args, **kargs)
+        from concurrent.futures import ProcessPoolExecutor as Ex
+        with Ex() as ex:
+            future = ex.submit(f, *args, **kargs)
+            return future.result()
 
 
 def nonblock(f, *args, **kargs):
@@ -17,7 +20,12 @@ def nonblock(f, *args, **kargs):
         from .rq import q
         q.enqueue(f, *args, **kargs)
     except:
-        return f(*args, **kargs)
+        from multiprocessing import Process
+        from functools import partial
+        Process(
+            target=partial(f, *args, **kargs),
+            daemon=False,
+        ).start()
 
 
 def _thread_main(f, done):

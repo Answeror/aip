@@ -104,9 +104,12 @@ def make(config=None, dbmode=False, **kargs):
         static_folder='static',
         **kargs
     )
+    app.kargs = kargs
 
     init_conf(app, config)
-    init_log(app)
+
+    if not dbmode:
+        init_log(app)
 
     if dbmode:
         init_store(app)

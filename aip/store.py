@@ -48,7 +48,7 @@ def make_imfs(app):
     )
 
 
-def make(app):
+def make(app, create=False):
     db = SQLAlchemy(app)
 
     class Store(object):
@@ -646,7 +646,9 @@ def make(app):
     if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
         optimize_sqlite(db)
 
-    db.create_all()
+    if create:
+        db.create_all()
+
     db.configure_mappers()
 
     store.db = db
