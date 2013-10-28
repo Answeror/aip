@@ -6,7 +6,6 @@ log = Log(__name__)
 
 
 def persist_thumbnail(makeapp, md5, width):
-    print('persist_thumbnail start')
     app = makeapp()
 
     from .bed.imgur import Imgur
@@ -32,5 +31,3 @@ def persist_thumbnail(makeapp, md5, width):
             deletehash=r.deletehash
         ))
         app.store.session.commit()
-
-    print('persist_thumbnail done')
