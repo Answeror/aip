@@ -1,6 +1,7 @@
 import PIL.Image
 from io import BytesIO
 from ..log import Log
+from nose.tools import assert_greater
 
 
 log = Log(__name__)
@@ -107,6 +108,9 @@ def use_pil_safe(*args, **kargs):
 
 
 def thumbnail(data, kind, width, height):
+    assert_greater(width, 0)
+    assert_greater(height, 0)
+
     pim = openpil(data)
     if expanding(pim, width, height):
         return data
