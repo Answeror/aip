@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
-from logbook.compat import redirect_logging
-redirect_logging()
-
 import os
 import sys
 
@@ -21,6 +17,10 @@ else:
 activate_this = os.path.join(virtualenv_path, mid, 'activate_this.py')
 exec(compile(open(activate_this).read(), activate_this, 'exec'), dict(__file__=activate_this))
 sys.path.insert(0, os.path.dirname(__file__))
+
+
+from logbook.compat import redirect_logging
+redirect_logging()
 
 from aip import make
 from aip.log import RedisPub
