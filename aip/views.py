@@ -544,3 +544,24 @@ def make(app, oid, cached, store):
 
     def cache_timeout():
         return current_app.config.get('AIP_TIMESTAMPED_TIMEOUT', None)
+
+    @app.route('/art/<md5>', methods=['GET'])
+    def art(md5):
+        try:
+            art = store.art_bi_md5(md5=md5)
+            resp = jsonify({
+                'result': { key: getattr(art, key) for key in [
+                    'id',
+                    'md5',
+                    'width',
+                    'height',
+                ] }
+            })
+        except:
+            resp = jsonify({
+                'error': {
+                    'message': 'not exist'
+                }
+            })
+            resp.status_code = 404
+        return resp

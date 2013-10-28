@@ -642,6 +642,19 @@ def make(app, create=False):
             )
         return en.thumbnail(width)
 
+    def sessioned(f):
+        @wraps(f)
+        def inner(*args, **kargs):
+            if 'session' not in kargs:
+                kargs['session'] = db.session
+            return f(*args, **kargs)
+        return inner
+
+    @stored
+    @sessioned
+    def art_bi_md5(md5, session):
+        return session.query(Entry).filter_by(md5=md5).one()
+
     if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
         optimize_sqlite(db)
 
