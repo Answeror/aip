@@ -157,6 +157,12 @@ def make(app, create=False):
         tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), primary_key=True, index=True)
         entry_id = db.Column(db.Integer, db.ForeignKey('entry.id'), index=True)
 
+    def valid_size(width, height):
+        return width > 0 and height > 0
+
+    def valid_size_post(post):
+        return valid_size(post.width, post.height)
+
     @stored
     class Entry(db.Model):
 
@@ -170,7 +176,7 @@ def make(app, create=False):
         @classmethod
         def __declare_last__(cls):
             cls.best_post = property(lambda self: max(self.posts, key=lambda p: p.score))
-            for key in ('post_url', 'preview_url', 'image_url', 'sample_url', 'height', 'width', 'score'):
+            for key in ('post_url', 'preview_url', 'image_url', 'sample_url', 'score'):
                 setattr(cls, key, property(partial(lambda key, self: getattr(self.best_post, key), key)))
 
             cls.plus_count = property(lambda self: len(self.plused))
@@ -181,6 +187,32 @@ def make(app, create=False):
                 #.correlate(cls.__table__)
                 #.as_scalar()
             #)
+
+        def _select_valid_size_post(self):
+            if valid_size_post(self.best_post):
+                return self.best_post
+            for post in self.posts:
+                if valie_size_post(post):
+                    return post
+
+        def _cache_size(self):
+            post = self._select_valid_size_post()
+            if post is None:
+                raise Exception('all posts of %s wrong size' % self.md5)
+            self._width = post.width
+            self._height = post.height
+
+        @property
+        def width(self):
+            if not hasattr(self, '_width'):
+                self._cache_size()
+            return self._width
+
+        @property
+        def height(self):
+            if not hasattr(self, '_height'):
+                self._cache_size()
+            return self._height
 
         @property
         def preview_url_ssl(self):
