@@ -18,18 +18,26 @@
             var $items = null;
             var marsed = false;
             var mars = function($item) {
-                $container.append($item);
-                if (!marsed) {
-                    console.log('initialize masonry');
-                    $container.masonry({
-                        itemSelector: '.item',
-                        isAnimated: true,
-                        columnWidth: '.span2',
-                        transitionDuration: '0.4s'
-                    });
-                    marsed = true;
+                var $old = $container.find('.item[data-md5="' + $item.data('md5') + '"]');
+                if ($old.length) {
+                    //$old.replaceWith($item);
+                    $item.insertAfter($old);
+                    $item.attr('style', $old.attr('style'));
+                    $old.remove();
                 } else {
-                    $container.masonry('appended', $item, true);
+                    $container.append($item);
+                    if (!marsed) {
+                        console.log('initialize masonry');
+                        $container.masonry({
+                            itemSelector: '.item',
+                            isAnimated: true,
+                            columnWidth: '.span2',
+                            transitionDuration: '0.4s'
+                        });
+                        marsed = true;
+                    } else {
+                        $container.masonry('appended', $item, true);
+                    }
                 }
                 $items = $container.find('.item');
             };
@@ -41,6 +49,70 @@
             };
             var enough = function() {
                 return rest() >= options.pulling_threshold;
+            };
+            var dealone = function($item) {
+                if ($item.data('dealed')) return;
+                try {
+                    $.aip.init_plus($item);
+                    $.aip.init_tags($item);
+                    $.aip.init_detail($item);
+                    mars($item);
+                    $item.reset_fadeout_timer();
+                    inc('done');
+                } catch (e) {
+                    console.log('dealone failed');
+                    console.log(e);
+                    console.trace();
+                } finally {
+                    $item.data('dealed', true);
+                }
+            };
+            var thumbnail = function($item) {
+                var error = function(message) {
+                    console.log(message);
+                };
+                $.aip.thumbnail({
+                    '$item': $item
+                }).done(function() {
+                    inc('proxied');
+                    $item.find('.loading').hide();
+                    $item.find('img.preview').show();
+                    dealone($item);
+                }).fail(function(reason) {
+                    error('load image failed, reason: ' + JSON.stringify(reason));
+                    inc('proxied-preview-loading-failed');
+                });
+            };
+            var init_img = function($img) {
+                $img.attr('width', $img.width());
+                $img.attr('height', $img.width() / $img.data('ratio'));
+            };
+            var load_one = function($this) {
+                var $img = $this.find('img.preview');
+                init_img($img);
+                var done = function() {
+                    console.log($img.attr('src') + 'loaded');
+                    $this.find('.loading').hide();
+                    $img.show();
+                    $.aip.super_resolution($img, function() {
+                        thumbnail($this);
+                    }, function() {
+                        dealone($this);
+                    });
+                };
+                var fail = function(reason) {
+                    console.log('load image failed, reason: ' + reason);
+                    inc('original-preview-loading-failed');
+                    thumbnail($this);
+                };
+                $.aip.load_image({
+                    img: $img,
+                    src: $img.data('src'),
+                    timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
+                    reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
+                        return $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }});
+                    })
+                }).done(done).fail(fail);
             };
             var pull = function() {
                 if (nomore) return;
@@ -72,95 +144,8 @@
                         return;
                     }
                     inc('in-json', n);
-                    $items.each(function() {
-                        $(this).attr('data-done', false);
-                    });
                     $buf.append($items);
-                    var loaded = 0;
-                    // no exception
-                    var doneone = function($item) {
-                        ++loaded;
-                        progress(100 * loaded / n);
-                        if (loaded > n) {
-                            throw 'loaded(' + loaded + ') > n(' + n + ')';
-                        }
-                    };
-                    var guarded_doneone = function($item) {
-                        if ($item.attr('data-done') == 'false') {
-                            doneone($item);
-                            $item.attr('data-done', true);
-                        }
-                    };
-                    var init_unload = function($item) {
-                        $item.reset_fadeout_timer();
-                    };
-                    var dealone = function($item) {
-                        if ($item.data('dealed')) return;
-                        try {
-                            $.aip.init_plus($item);
-                            $.aip.init_tags($item);
-                            $.aip.init_detail($item);
-                            mars($item);
-                            init_unload($item);
-                            inc('done');
-                        } catch (e) {
-                            console.log('dealone failed');
-                            console.log(e);
-                            console.trace();
-                        } finally {
-                            $item.data('dealed', true);
-                            guarded_doneone($item);
-                        }
-                    };
-                    var thumbnail = function($item) {
-                        var error = function(message) {
-                            console.log(message);
-                            guarded_doneone($item);
-                        };
-                        $.aip.thumbnail({
-                            '$item': $item
-                        }).done(function() {
-                            inc('proxied');
-                            $item.find('.loading').hide();
-                            $item.find('img.preview').show();
-                            dealone($item);
-                        }).fail(function(reason) {
-                            error('load image failed, reason: ' + JSON.stringify(reason));
-                            inc('proxied-preview-loading-failed');
-                        });
-                    };
-                    var init_img = function($img) {
-                        $img.attr('width', $img.width());
-                        $img.attr('height', $img.width() / $img.data('ratio'));
-                    };
-                    $items.each(function() {
-                        var $this = $(this);
-                        var $img = $this.find('img.preview');
-                        init_img($img);
-                        var done = function() {
-                            console.log($img.attr('src') + 'loaded');
-                            $this.find('.loading').hide();
-                            $img.show();
-                            $.aip.super_resolution($img, function() {
-                                thumbnail($this);
-                            }, function() {
-                                dealone($this);
-                            });
-                        };
-                        var fail = function(reason) {
-                            console.log('load image failed, reason: ' + reason);
-                            inc('original-preview-loading-failed');
-                            thumbnail($this);
-                        };
-                        $.aip.load_image({
-                            img: $img,
-                            src: $img.data('src'),
-                            timeout: 1e3 * {{ config['AIP_LOADING_TIMEOUT'] }},
-                            reloads: $.aip.range({{ config['AIP_RELOAD_LIMIT'] }}).map(function() {
-                                return $.aip.disturb({{ config['AIP_RELOAD_INTERVAL'] }});
-                            })
-                        }).done(done).fail(fail);
-                    });
+                    $items.each(function() { load_one($(this)); });
                 }).fail(function(reason) {
                     $.aip.notice('load more failed, reason: ' + JSON.stringify(reason));
                 });
@@ -175,23 +160,19 @@
                     }, 1e3 * {{ config['AIP_PULLING_INTERVAL'] }});
 
                     $('.level-wall').on('resize scrollstop', function() {
-                        $items.inviewport().each(function() {
-                            var $item = $(this);
-                            $item.reset_fadeout_timer();
-                            var $img = $item.find('img.preview');
-                            if ($img.attr('src') != $img.data('src')) {
-                                $.aip.load_image({
-                                    img: $img,
-                                    src: $img.data('src')
-                                }).done(function() {
-                                    // must be wrapped in anonymous function
-                                    // don't know why
-                                    $item.show();
-                                    //$img.fadeIn(500);
-                                }).fail(function(reason) {
-                                    console.log('load ' + $img.data('src') + 'failed');
-                                });
+                        var md5 = $items.inviewport().map(function() {
+                            return $(this).data('md5');
+                        }).get();
+                        $.get('/arts', {
+                            q: JSON.stringify({ 'md5': md5 })
+                        }).then($.aip.jsonresult).done(function(r) {
+                            for (var md5 in r) {
+                                var $item = $(r[md5]);
+                                $buf.append($item);
+                                load_one($item);
                             }
+                        }).fail(function(reason) {
+                            $.aip.notice('arts fail: ' + reason);
                         });
                     });
                 }

@@ -1,7 +1,7 @@
 <div>
     {% for e in entries %}
     <div
-        class='item span2'
+        class='item span2 on'
         data-md5={{ e.md5 }}
         data-source={{ e.post_url }}
         data-thumbnail={{ url_for('.thumbnail', md5=e.md5) }}

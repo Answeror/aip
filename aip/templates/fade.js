@@ -33,13 +33,8 @@
             if ($this.visible(true)) {
                 $this.reset_fadeout_timer();
             } else {
-                $this.find('img').each(function() {
-                    var $img = $(this);
-                    if ($img.attr('src') == $img.data('src')) {
-                        $img.attr('src', $.aip.placehold($img.width(), $img.height()));
-                    }
-                    $this.hide();
-                });
+                $this.empty();
+                $this.removeClass('on').addClass('off');
             }
         }, 1e3 * {{ config['AIP_FADEOUT_TIMEOUT'] }}));
     };

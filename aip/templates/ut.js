@@ -22,6 +22,19 @@
                 }
             });
         },
+        jsonresult: function(r) {
+            return $.Deferred(function($d) {
+                if (r && 'error' in r) {
+                    $d.reject(r.error.message);
+                } else {
+                    if (r && 'result' in r) {
+                        $d.resolve(r.result);
+                    } else {
+                        $d.reject(r);
+                    }
+                }
+            });
+        },
         range: function(n) {
             return Array.apply(0, Array(n)).map(function(e, i) { return i; });
         },

@@ -34,6 +34,8 @@ from . import make as makeapp
 from . import tasks
 from functools import partial
 from .utils import timed
+from nose.tools import assert_in, assert_is
+import json
 
 
 Post = namedtuple('Post', (
@@ -514,7 +516,7 @@ def make(app, oid, cached, store):
         thumbmd5 = calcmd5(('%s.%d' % (md5, width)).encode('ascii'))
         bim = store.imgur_bi_md5(thumbmd5)
         if bim:
-            log.info('imgur hit %s, width %d' % (md5, width))
+            #log.info('imgur hit %s, width %d' % (md5, width))
             link = bim.link.replace('http://', 'https://')
         else:
             work.nonblock(
@@ -543,10 +545,19 @@ def make(app, oid, cached, store):
     def cache_timeout():
         return current_app.config.get('AIP_TIMESTAMPED_TIMEOUT', None)
 
+    def not_exist_resp():
+        resp = jsonify({
+            'error': {
+                'message': 'not exist'
+            }
+        })
+        resp.status_code = 404
+        return resp
+
     @app.route('/art/<md5>', methods=['GET'])
     def art(md5):
         try:
-            art = store.art_bi_md5(md5=md5)
+            art = store.art_bi_md5(md5)
             resp = jsonify({
                 'result': { key: getattr(art, key) for key in [
                     'id',
@@ -556,10 +567,30 @@ def make(app, oid, cached, store):
                 ] }
             })
         except:
-            resp = jsonify({
-                'error': {
-                    'message': 'not exist'
-                }
-            })
-            resp.status_code = 404
+            resp = not_exist_resp()
         return resp
+
+    def bad_arg_resp():
+        return jsonify({
+            'error': {
+                'message': 'bad arg'
+            }
+        })
+
+    @app.route('/arts', methods=['GET'])
+    def arts():
+        try:
+            q = json.loads(request.args['q'])
+            assert_in('md5', q)
+            assert_is(type(q['md5']), list)
+        except:
+            log.exception('bad arg: {}', request.args.get('q'))
+            return bad_arg_resp()
+
+        res = {}
+        for md5 in q['md5']:
+            try:
+                res[md5] = render_layout('art.html', art=store.art_bi_md5(md5))
+            except:
+                pass
+        return jsonify({ 'result': res })
