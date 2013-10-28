@@ -223,6 +223,9 @@ article {
         top: 50%;
         margin-top: -30px;
     }
+    .btn[name="source"]:before {
+        content: "src";
+    }
 }
 @-webkit-keyframes rotation {
     from {-webkit-transform: rotate(0deg);}
@@ -279,6 +282,9 @@ p:last-child {
     }
     .main {
         margin-top: 10px;
+    }
+    .item .btn[name="source"]:before {
+        content: "source";
     }
 }
 
