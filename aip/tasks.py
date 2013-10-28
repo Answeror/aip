@@ -23,14 +23,17 @@ def persist_thumbnail(makeapp, md5, width):
             data=data,
             md5=thumbmd5,
         )
-        app.store.session.flush()
-        app.store.session.merge(app.store.Imgur(
-            id=r.id,
-            md5=r.md5,
-            link=r.link,
-            deletehash=r.deletehash
-        ))
-        app.store.session.commit()
+        if r is None:
+            log.info('imgur upload failed: ({}, {})', md5, width)
+        else:
+            app.store.session.flush()
+            app.store.session.merge(app.store.Imgur(
+                id=r.id,
+                md5=r.md5,
+                link=r.link,
+                deletehash=r.deletehash
+            ))
+            app.store.session.commit()
 
 
 def test_log():
