@@ -75,9 +75,9 @@ def logged(f):
     def inner(*args, **kargs):
         try:
             start = time.time()
-            log.info('%s start' % f.__name__)
+            log.info('{} start', f.__name__)
             r = f(*args, **kargs)
-            log.info('%s done' % f.__name__)
+            log.info('{} done', f.__name__)
             return r
         except Exception as e:
             failed(
@@ -89,7 +89,7 @@ def logged(f):
             )
             raise
         finally:
-            log.info('%s take %.3fs' % (f.__name__, time.time() - start))
+            log.info('{} take {}', f.__name__, time.time() - start)
     return inner
 
 
@@ -132,35 +132,6 @@ def make(app, api, cached, store):
                 return jsonify(dict(error=dict(message=str(e))))
         return inner
 
-    def event_stream(sid):
-        hello_count = 0
-        again = True
-        timeout = 1
-        while again:
-            try:
-                key, value = api.sp.pop(sid, timeout=timeout)
-                timeout = app.config['AIP_STREAM_EVENT_TIMEOUT']
-                log.info('stream(%s) event: %s' % (sid, key))
-                if key == 'reply':
-                    hello_count = 0
-                else:
-                    yield b'data: ' + value + b'\n\n'
-            except Exception as e:
-                if str(e) == 'timeout':
-                    log.info('stream event timeout: %s' % sid)
-                    if hello_count >= app.config['AIP_STREAM_HELLO_LIMIT']:
-                        log.info('close stream %s' % sid)
-                        api.sp.kill(sid)
-                        again = False
-                    else:
-                        hello(sid)
-                        hello_count += 1
-                else:
-                    log.exception('event stream failed')
-                    api.sp.kill(sid)
-                    again = False
-                    raise
-
     def hello(sid):
         data = json.dumps(dict(
             key='hello',
@@ -172,12 +143,6 @@ def make(app, api, cached, store):
     def reply(sid):
         api.sp.push(sid, ('reply', None))
         return jsonify(dict())
-
-    @api.route('/async/stream/<sid>')
-    @logged
-    def stream(sid):
-        log.info('stream: %s' % sid)
-        return Response(event_stream(sid), mimetype='text/event-stream')
 
     def format_stream_piece(piece):
         return b'data: ' + piece + b'\n\n'
@@ -330,10 +295,10 @@ def make(app, api, cached, store):
                 ex.map(partial(fetch_posts, begin, limit), sources)
             ))
 
-        log.info('fetch posts done, %d fetched, take %.4f', len(posts), float(time.time() - start))
+        log.info('fetch posts done, {} fetched, take {}', len(posts), time.time() - start)
         start = time.time()
         store.Post.puts(posts=posts)
-        log.info('put posts done, take %.4f', float(time.time() - start))
+        log.info('put posts done, take {}', time.time() - start)
 
     @api.route('/add_user', methods=['POST'])
     @guarded

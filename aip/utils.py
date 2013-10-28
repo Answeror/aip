@@ -20,5 +20,5 @@ def timed(f):
             start = time()
             return f(*args, **kargs)
         finally:
-            log.info('%s take %.4f', f.__name__, float(time() - start))
+            log.info('{} take {}', f.__name__, time() - start)
     return inner
