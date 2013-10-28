@@ -9,7 +9,7 @@ Log = logbook.Logger
 
 class RedisPub(logbook.queues.RedisHandler):
 
-    def __init__(self, level=logbook.INFO, bubble=True):
+    def __init__(self, level=logbook.DEBUG, bubble=True):
         super(RedisPub, self).__init__(
             key='aip.log',
             level=level,

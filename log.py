@@ -21,7 +21,7 @@ def main():
     with logbook.NullHandler().applicationbound():
         with FileHandler(
             os.path.join(CURRENT_PATH, 'data', 'aip.redis.log'),
-            level=logbook.INFO,
+            level=logbook.DEBUG,
             bubble=True,
         ):
             sub.dispatch_forever()
