@@ -95,13 +95,6 @@ body.solarized {
     }
 
     /* label */
-    .label {
-        background: $base2;
-        &:hover {
-            background: $base01;
-            color: $base2;
-        };
-    }
     .label-info {
         background: $blue;
     }
@@ -207,6 +200,13 @@ body.solarized {
 
     .detail {
         background: $base03;
+        .tag {
+            background: $base02;
+            &:hover {
+                background: $base01;
+                color: $base2;
+            };
+        }
     }
     .footer {
         border-top: 1px dotted $base02;

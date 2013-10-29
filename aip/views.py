@@ -200,8 +200,8 @@ def make(app, oid, cached, store):
             g.user = store.get_user_bi_openid(session['openid'])
         elif 'id' in session:
             g.user = store.get_user_bi_id(session['id'])
-        #else:
-            #g.user = store.get_user_bi_id(1)
+        else:
+            g.user = store.get_user_bi_id(1)
 
     @app.route('/login', methods=['GET', 'POST'])
     @oid.loginhandler
@@ -476,7 +476,7 @@ def make(app, oid, cached, store):
     def main_page(id):
         res = {}
         for art in page_ext(id):
-            res[art.md5] = render_layout('art.html', art=art)
+            res[art.md5] = render_template('art.html', art=art)
         return jsonify({'result': res})
 
     @app.route('/plused/page/<int:id>', methods=['GET'])
@@ -486,7 +486,7 @@ def make(app, oid, cached, store):
         r = slice(g.per * id, g.per * (id + 1), 1)
         res = {}
         for art in user.get_plused(r):
-            res[art.md5] = render_layout('art.html', art=art)
+            res[art.md5] = render_template('art.html', art=art)
         return jsonify({'result': res})
 
     def try_get_user_bi_someid():
@@ -597,7 +597,20 @@ def make(app, oid, cached, store):
         res = {}
         for md5 in q['md5']:
             try:
-                res[md5] = render_layout('art.html', art=store.art_bi_md5(md5))
+                res[md5] = render_template('art.html', art=store.art_bi_md5(md5))
             except:
                 pass
         return jsonify({'result': res})
+
+    @app.route('/art/detail/part/<md5>', methods=['GET'])
+    def art_detail_part(md5):
+        try:
+            resp = jsonify({
+                'result': render_template(
+                    'detail.html',
+                    art=store.art_bi_md5(md5)
+                )
+            })
+        except:
+            resp = not_exist_resp()
+        return resp

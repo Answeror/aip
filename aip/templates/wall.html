@@ -35,30 +35,7 @@
         </div>
         {% include "footer.html" %}
     </div>
-    <div class='detail level level-1'>
-        <div class=hero-unit>
-            <div class=container>
-                <div name=preview class=row>
-                    <div class='span12 text-center'>
-                        <img src=# style='max-width:100%'>
-                        <span class=loading><span class=spinner></span></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class=container>
-            <div class=row>
-                <div class=span12>
-                    <p>
-                        <button name=back class='btn btn-primary'>back</button>
-                        <a name=source class=btn href='#' target=_blank>source</a>
-                        <a name=raw class=btn href='#' target=_blank>raw</a>
-                    </p>
-                </div>
-            </div>
-        </div>
-        {% include "footer.html" %}
-    </div>
+    <div class='level level-1'></div>
 {% endblock %}
 {% block script %}
     <script src="{{ url_for('.static', filename='js/scroll.js') }}"></script>

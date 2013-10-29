@@ -6,7 +6,7 @@
     data-thumbnail-link={{ url_for('.thumbnail_link', md5=art.md5) }}
 >
     <div class='thumbnail'>
-        <p class=preview>
+        <div class=preview>
             <a
                 class='preview embed-container'
                 style='padding-bottom:{{ 100 * art.height / art.width }}%'
@@ -23,8 +23,8 @@
                 >
                 <span class='loading embed'><span class=spinner></span></span>
             </a>
-        </p>
-        <p>
+        </div>
+        <div class=button-group>
             {% if g.user %}
                 <button
                     class='plus btn btn-mini'
@@ -35,16 +35,7 @@
             {% else %}
                 <a class='plus disabled btn btn-mini' title='login to plus' href='/login'>+{{ art.plus_count }}</a>
             {% endif %}
-            <a name=tags class='btn btn-mini' rel=popover href=#>tags</a>
             <a name=source class='btn btn-mini' href='{{ art.post_url }}' target=_blank></a>
-        </p>
-    </div>
-    <div class='tags' style='display:none'>
-        {% for tag in art.tags %}
-            {% if tag.name %}
-                <a class='tag label' href='/?q={{ tag.name | urlencode }}'>{{ tag.display_name }}</a>
-            {% endif %}
-        {% endfor %}
-        <div class=clearfix></div>
+        </div>
     </div>
 </div>
