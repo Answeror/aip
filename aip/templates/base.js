@@ -15,7 +15,6 @@
             function progress(p) {
                 $('#bar').width(p + '%');
             };
-            var $items = null;
             var marsed = false;
             var mars = function($item) {
                 var $old = $container.find('.item[data-md5="' + $item.data('md5') + '"]');
@@ -39,7 +38,6 @@
                         $container.masonry('appended', $item, true);
                     }
                 }
-                $items = $container.find('.item');
             };
             var $buf = $('#buffer');
             var nomore = false;
@@ -57,7 +55,6 @@
                     $.aip.init_tags($item);
                     $.aip.init_detail($item);
                     mars($item);
-                    $item.reset_fadeout_timer();
                     inc('done');
                 } catch (e) {
                     console.log('dealone failed');
@@ -88,6 +85,7 @@
                 $img.attr('height', $img.width() / $img.data('ratio'));
             };
             var load_one = function($this) {
+                $this.touch();
                 var $img = $this.find('img.preview');
                 init_img($img);
                 var done = function() {
@@ -151,7 +149,7 @@
                 });
             };
             var onmove = function() {
-                var md5 = $items.inviewport().datalist('md5');
+                var md5 = $container.find('.item.off').inviewport().datalist('md5');
                 $.get('/arts', {
                     q: JSON.stringify({ 'md5': md5 })
                 }).then($.aip.jsonresult).done(function(r) {
@@ -174,6 +172,10 @@
                     }, 1e3 * {{ config['AIP_PULLING_INTERVAL'] }});
 
                     $('.level-wall').on('resize scrollstop', onmove);
+
+                    setInterval(function() {
+                        $container.find('.item.on').old().vacuum();
+                    }, 1e3 * {{ config['AIP_PULLING_INTERVAL'] }});
                 }
             };
         })();

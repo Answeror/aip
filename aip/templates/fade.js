@@ -12,7 +12,8 @@
         var top = $(window).scrollTop();
         while (begin < end) {
             var mid = Math.floor((begin + end) / 2);
-            if ($a.eq(mid).offset().top < top) begin = mid + 1;
+            var $t = $a.eq(mid);
+            if ($t.offset().top + $t.height() < top) begin = mid + 1;
             else end = mid;
         }
         var mid = begin;
@@ -21,21 +22,28 @@
         end = mid + 1;
         while (end < n && $a.eq(end).visible(true)) ++end;
         //$.aip.notice('(' + begin + ',' + end + ') take ' + (new Date().getTime() - start));
-        return $a.slice(begin, end);
+        // 6 columns at most
+        return $a.slice(Math.max(0, begin - 6), Math.min(n, end + 6));
     };
-    $.fn.reset_fadeout_timer = function() {
-        var $this = $(this);
-        if ($this.data('tid')) {
-            clearTimeout($this.data('tid'));
-            $this.data('tid', null);
-        }
-        $this.data('tid', setTimeout(function() {
+
+    $.fn.old = function() {
+        return $(this).each(function() {
+            var $this = $(this);
             if ($this.visible(true)) {
-                $this.reset_fadeout_timer();
-            } else {
-                $this.empty();
-                $this.removeClass('on').addClass('off');
+                $this.touch();
             }
-        }, 1e3 * {{ config['AIP_FADEOUT_TIMEOUT'] }}));
+        }).filter(function() {
+            return $(this).elapsed() >= {{ config['AIP_PULLING_INTERVAL'] }};
+        });
+    };
+    $.fn.vacuum = function() {
+        $(this).removeClass('on').addClass('off').empty();
+    };
+
+    $.fn.touch = function() {
+        $(this).data('touch', $.aip.now());
+    };
+    $.fn.elapsed = function() {
+        return $.aip.now() - $(this).data('touch');
     };
 })(jQuery);
