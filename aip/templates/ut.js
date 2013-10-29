@@ -1,4 +1,8 @@
 (function($) {
+    $.fn.datalist = function(name) {
+        return $(this).map(function() { return $(this).data(name); }).get();
+    };
+
     $.extend($.aip, {
         placehold: function(width, height) {
             return "{{ url_for('.static', filename='images/p.png') }}";

@@ -150,6 +150,20 @@
                     $.aip.notice('load more failed, reason: ' + JSON.stringify(reason));
                 });
             };
+            var onmove = function() {
+                var md5 = $items.inviewport().datalist('md5');
+                $.get('/arts', {
+                    q: JSON.stringify({ 'md5': md5 })
+                }).then($.aip.jsonresult).done(function(r) {
+                    for (var md5 in r) {
+                        var $item = $(r[md5]);
+                        $buf.append($item);
+                        load_one($item);
+                    }
+                }).fail(function(reason) {
+                    $.aip.notice('arts fail: ' + reason);
+                });
+            };
             return {
                 init: function(kargs) {
                     console.log('init wall');
@@ -159,22 +173,7 @@
                         if ($('.bottom-anchor').visible(true)) pull();
                     }, 1e3 * {{ config['AIP_PULLING_INTERVAL'] }});
 
-                    $('.level-wall').on('resize scrollstop', function() {
-                        var md5 = $items.inviewport().map(function() {
-                            return $(this).data('md5');
-                        }).get();
-                        $.get('/arts', {
-                            q: JSON.stringify({ 'md5': md5 })
-                        }).then($.aip.jsonresult).done(function(r) {
-                            for (var md5 in r) {
-                                var $item = $(r[md5]);
-                                $buf.append($item);
-                                load_one($item);
-                            }
-                        }).fail(function(reason) {
-                            $.aip.notice('arts fail: ' + reason);
-                        });
-                    });
+                    $('.level-wall').on('resize scrollstop', onmove);
                 }
             };
         })();
