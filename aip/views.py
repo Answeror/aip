@@ -474,14 +474,20 @@ def make(app, oid, cached, store):
     @app.route('/page/<int:id>', methods=['GET'])
     @timed
     def main_page(id):
-        return render_layout('page.html', entries=page_ext(id))
+        res = {}
+        for art in page_ext(id):
+            res[art.md5] = render_layout('art.html', art=art)
+        return jsonify({'result': res})
 
     @app.route('/plused/page/<int:id>', methods=['GET'])
     @timed
     def plused_page(id):
         user = get_user_bi_someid()
         r = slice(g.per * id, g.per * (id + 1), 1)
-        return render_layout('page.html', entries=user.get_plused(r))
+        res = {}
+        for art in user.get_plused(r):
+            res[art.md5] = render_layout('art.html', art=art)
+        return jsonify({'result': res})
 
     def try_get_user_bi_someid():
         if request.json:
@@ -559,12 +565,12 @@ def make(app, oid, cached, store):
         try:
             art = store.art_bi_md5(md5)
             resp = jsonify({
-                'result': { key: getattr(art, key) for key in [
+                'result': {key: getattr(art, key) for key in [
                     'id',
                     'md5',
                     'width',
                     'height',
-                ] }
+                ]}
             })
         except:
             resp = not_exist_resp()
@@ -578,6 +584,7 @@ def make(app, oid, cached, store):
         })
 
     @app.route('/arts', methods=['GET'])
+    @timed
     def arts():
         try:
             q = json.loads(request.args['q'])
@@ -593,4 +600,4 @@ def make(app, oid, cached, store):
                 res[md5] = render_layout('art.html', art=store.art_bi_md5(md5))
             except:
                 pass
-        return jsonify({ 'result': res })
+        return jsonify({'result': res})

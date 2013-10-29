@@ -129,13 +129,16 @@
                 if ($.aip.user_id()) {
                     data.user_id = $.aip.user_id();
                 }
-                $.get(
+                $.aip.arts({ '$d': $.get(
                     options.makePageUrl(page),
                     data
-                ).done(function(data) {
+                ).then($.aip.jsonresult) }).done(function(r) {
                     pulling = false;
                     page += 1;
-                    var $items = $(data).find('.item');
+                    var $items = $();
+                    for (var md5 in r) {
+                        $items = $items.add(r[md5]);
+                    }
                     var n = $items.length;
                     if (!n) {
                         nomore = true;
@@ -150,9 +153,7 @@
             };
             var onmove = function() {
                 var md5 = $container.find('.item.off').inviewport().datalist('md5');
-                $.get('/arts', {
-                    q: JSON.stringify({ 'md5': md5 })
-                }).then($.aip.jsonresult).done(function(r) {
+                $.aip.arts({ 'md5': md5 }).done(function(r) {
                     for (var md5 in r) {
                         var $item = $(r[md5]);
                         $buf.append($item);
