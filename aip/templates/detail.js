@@ -17,7 +17,7 @@
                 // must hide loading first
                 // other wise detail layer won't show properly
                 $loading.hide();
-                $wall.hide();
+                $wall.css('left', '100%');
                 $detail.show();
                 $detail.stop().animate({
                     left: '0%'
@@ -54,7 +54,7 @@
                     }, 500, 'swing', function() {
                         window.location.hash = '#wall';
                         $detail.hide();
-                        $wall.show();
+                        $wall.css('left', '0%');
                     });
                     e.preventDefault();
                 });
