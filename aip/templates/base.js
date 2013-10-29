@@ -175,7 +175,7 @@
 
                     setInterval(function() {
                         $container.find('.item.on').old().vacuum();
-                    }, 1e3 * {{ config['AIP_PULLING_INTERVAL'] }});
+                    }, 1e3 * {{ config['AIP_FADEOUT_TIMEOUT'] }});
                 }
             };
         })();

@@ -33,7 +33,7 @@
                 $this.touch();
             }
         }).filter(function() {
-            return $(this).elapsed() >= {{ config['AIP_PULLING_INTERVAL'] }};
+            return $(this).elapsed() >= {{ config['AIP_FADEOUT_TIMEOUT'] }};
         });
     };
     $.fn.vacuum = function() {
