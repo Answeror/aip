@@ -172,7 +172,7 @@
                         if ($('.bottom-anchor').visible(true)) pull();
                     }, 1e3 * {{ config['AIP_PULLING_INTERVAL'] }});
 
-                    $('.level-wall').on('resize scrollstop', onmove);
+                    $('.level-0').on('resize scrollstop', onmove);
 
                     setInterval(function() {
                         $container.find('.item.on').old().vacuum();

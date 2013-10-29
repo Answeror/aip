@@ -1,7 +1,7 @@
 (function($) {
     $.aip.init_detail = function($item) {
         $item.find('a.preview').click(function(e) {
-            var $detail = $('#detail');
+            var $detail = $('.detail');
             var $preview = $detail.find('div[name=preview]');
             var $img = $preview.find('img');
             var $loading = $detail.find('.loading');
@@ -46,12 +46,12 @@
 
     // smooth scrolling of detail page
     $(function() {
-        $('#detail button[name=back]').click(function(e) {
-            $('#detail').stop().animate({
+        $('.detail button[name=back]').click(function(e) {
+            $('.detail').stop().animate({
                 left: '100%'
             }, 500, 'swing', function() {
                 window.location.hash = '#wall';
-                $('#detail').hide();
+                $('.detail').hide();
             });
             e.preventDefault();
         });

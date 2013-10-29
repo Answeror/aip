@@ -1,50 +1,41 @@
 {% extends 'layout.html' %}
-{% block middle %}
-    <div id=buffer style='height:0;overflow:hidden' class='row thumbnails'></div>
-    <div id=items class='wall-items row thumbnails'></div>
-    <div class=bottom-anchor-out>
-        <div class=bottom-anchor></div>
-    </div>
-    <div id=alert_box></div>
-{% endblock %}
-{% block bottom %}
-    <div id='loading' style='display:none' class="navbar navbar-fixed-bottom">
-        <div class="navbar-inner">
-            <div class='container'>
-                <div id=barout class='span8 offset2'>
-                    <ul class='text-info inline text-center'>
-                        {% for field in (
-                            'in-json',
-                            'done',
-                            'need-enlarge',
-                            'original-preview-loading-failed',
-                            'proxied-preview-loading-failed',
-                            'need-proxied',
-                            'proxied'
-                        ) %}
-                            <li class=detail name='{{ field }}'>0</li>
-                        {% endfor %}
-                    </ul>
-                    <div class="progress progress-striped active">
-                        <div id='bar' class="bar"></div>
+{% block levels %}
+    <div class='level level-0'>
+        <div class='main container'>
+            <div id=buffer style='height:0;overflow:hidden' class='row thumbnails'></div>
+            <div id=items class='wall-items row thumbnails'></div>
+            <div class=bottom-anchor-out>
+                <div class=bottom-anchor></div>
+            </div>
+            <div id=alert_box></div>
+        </div>
+        <div id='loading' style='display:none' class="navbar navbar-fixed-bottom">
+            <div class="navbar-inner">
+                <div class='container'>
+                    <div id=barout class='span8 offset2'>
+                        <ul class='text-info inline text-center'>
+                            {% for field in (
+                                'in-json',
+                                'done',
+                                'need-enlarge',
+                                'original-preview-loading-failed',
+                                'proxied-preview-loading-failed',
+                                'need-proxied',
+                                'proxied'
+                            ) %}
+                                <li class=detail name='{{ field }}'>0</li>
+                            {% endfor %}
+                        </ul>
+                        <div class="progress progress-striped active">
+                            <div id='bar' class="bar"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        {% include "footer.html" %}
     </div>
-    {% include "footer.html" %}
-{% endblock %}
-{% block script %}
-    <script src="{{ url_for('.static', filename='js/scroll.js') }}"></script>
-    <script src="{{ url_for('.static', filename='jquery-visible/jquery.visible.js') }}"></script>
-    <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
-    <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
-    <script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
-    <script src="{{ url_for('.static', filename='js/jquery.ba-bbq.min.js') }}"></script>
-    <script src="{{ url_for('.js') }}"></script>
-{% endblock %}
-{% block levels %}
-    <div id=detail class=level>
+    <div class='detail level level-1'>
         <div class=hero-unit>
             <div class=container>
                 <div name=preview class=row>
@@ -68,4 +59,13 @@
         </div>
         {% include "footer.html" %}
     </div>
+{% endblock %}
+{% block script %}
+    <script src="{{ url_for('.static', filename='js/scroll.js') }}"></script>
+    <script src="{{ url_for('.static', filename='jquery-visible/jquery.visible.js') }}"></script>
+    <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
+    <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
+    <script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
+    <script src="{{ url_for('.static', filename='js/jquery.ba-bbq.min.js') }}"></script>
+    <script src="{{ url_for('.js') }}"></script>
 {% endblock %}
