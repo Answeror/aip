@@ -23,6 +23,9 @@ from ..layout import render_layout
 from fn.iters import chain
 from nose.tools import assert_equal
 from ..log import Log
+from .. import make as makeapp
+from .. import work
+from .. import tasks
 
 
 log = Log(__name__)
@@ -30,16 +33,6 @@ log = Log(__name__)
 
 def ex():
     return current_app.config['AIP_EXECUTOR']
-
-
-def fetch_posts(begin, limit, source):
-    def gen():
-        tags = []
-        for _, post in zip(list(range(limit)), source.get_images(tags)):
-            if begin is not None and post['ctime'] <= begin:
-                break
-            yield post
-    return list(gen())
 
 
 def locked(lock=None):
@@ -282,24 +275,6 @@ def make(app, api, cached, store):
 
         return gen
 
-    def _set_last_update_time(value):
-        store.set_meta('last_update_time', pickle.dumps(value))
-
-    def _update_images(begin=None, limit=65536):
-        start = time.time()
-        sources = [make(dict) for make in g.sources]
-
-        from concurrent.futures import ThreadPoolExecutor as Ex
-        with Ex(len(sources)) as ex:
-            posts = list(chain.from_iterable(
-                ex.map(partial(fetch_posts, begin, limit), sources)
-            ))
-
-        log.info('fetch posts done, {} fetched, take {}', len(posts), time.time() - start)
-        start = time.time()
-        store.Post.puts(posts=posts)
-        log.info('put posts done, take {}', time.time() - start)
-
     @api.route('/add_user', methods=['POST'])
     @guarded
     @logged
@@ -380,21 +355,23 @@ def make(app, api, cached, store):
     @guarded
     @logged
     def update(begin):
-        now = datetime.utcnow()
         begin = datetime.strptime(begin, '%Y%m%d%H%M%S')
-        _update_images(begin)
-        _set_last_update_time(now)
-        store.db.session.commit()
+        work.nonblock(
+            tasks.update,
+            makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
+            begin=begin
+        );
         return jsonify(dict())
 
     @api.route('/update/past/<int:seconds>')
     @guarded
     @logged
     def update_past(seconds):
-        now = datetime.utcnow()
-        _update_images(now - timedelta(seconds=seconds))
-        _set_last_update_time(now)
-        store.db.session.commit()
+        work.nonblock(
+            tasks.update_past,
+            makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
+            seconds=seconds
+        )
         return jsonify(dict())
 
     @api.route('/last_update_time')
