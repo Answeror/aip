@@ -200,8 +200,8 @@ def make(app, oid, cached, store):
             g.user = store.get_user_bi_openid(session['openid'])
         elif 'id' in session:
             g.user = store.get_user_bi_id(session['id'])
-        else:
-            g.user = store.get_user_bi_id(1)
+        #else:
+            #g.user = store.get_user_bi_id(1)
 
     @app.route('/login', methods=['GET', 'POST'])
     @oid.loginhandler
