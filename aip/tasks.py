@@ -1,20 +1,18 @@
-from .utils import md5 as calcmd5
 from .log import Log
 from datetime import datetime, timedelta
 from time import time
-from flask import (
-    current_app,
-)
+from flask import current_app
 import os
 from fn.iters import chain
 from functools import partial
 import pickle
+from .utils import thumbmd5
 
 
 log = Log(__name__)
 
 
-def persist_thumbnail(makeapp, md5, width):
+def persist_thumbnail_to_imgur(makeapp, md5, width):
     app = makeapp()
 
     from .bed.imgur import Imgur
@@ -24,17 +22,13 @@ def persist_thumbnail(makeapp, md5, width):
         album_deletehash=app.config['AIP_IMGUR_ALBUM_DELETEHASH']
     )
 
-    thumbmd5 = calcmd5(('%s.%d' % (md5, width)).encode('ascii'))
-
     with app.test_request_context():
         data = app.store.thumbnail_bi_md5(md5, width)
         r = bed.upload(
             data=data,
-            md5=thumbmd5,
+            md5=thumbmd5(md5, width),
         )
-        if r is None:
-            log.info('imgur upload failed: ({}, {})', md5, width)
-        else:
+        if r is not None:
             app.store.session.flush()
             app.store.session.merge(app.store.Imgur(
                 id=r.id,
@@ -43,6 +37,17 @@ def persist_thumbnail(makeapp, md5, width):
                 deletehash=r.deletehash
             ))
             app.store.session.commit()
+            log.info('width {} thumbnail of {} saved to imgur', width, md5)
+
+
+def persist_thumbnail_to_baidupan(makeapp, md5, width):
+    app = makeapp()
+    from .imfs.baidupcs import BaiduPCS
+    imfs = BaiduPCS(app.config['AIP_BAIDUPCS_ACCESS_TOKEN'])
+    with app.test_request_context():
+        data = app.store.thumbnail_bi_md5(md5, width)
+        imfs.save(thumbmd5(md5, width), data)
+        log.info('width {} thumbnail of {} saved to baidupan', width, md5)
 
 
 def test_log():
@@ -55,7 +60,7 @@ def update(begin, makeapp):
         now = datetime.utcnow()
         _update_images(begin)
         _set_last_update_time(now)
-        current_app.store.db.session.commit()
+        app.store.db.session.commit()
 
 
 def update_past(seconds, makeapp):
@@ -64,7 +69,7 @@ def update_past(seconds, makeapp):
         now = datetime.utcnow()
         _update_images(now - timedelta(seconds=seconds))
         _set_last_update_time(now)
-        current_app.store.db.session.commit()
+        app.store.db.session.commit()
 
 
 def makesources():

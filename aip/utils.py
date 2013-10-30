@@ -13,6 +13,9 @@ def md5(data):
     return m.hexdigest()
 
 
+calcmd5 = md5
+
+
 def timed(f):
     @wraps(f)
     def inner(*args, **kargs):
@@ -22,3 +25,7 @@ def timed(f):
         finally:
             log.info('{} take {}', f.__name__, time() - start)
     return inner
+
+
+def thumbmd5(md5, width):
+    return calcmd5(('%s.%d' % (md5, width)).encode('ascii'))
