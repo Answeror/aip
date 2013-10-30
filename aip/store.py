@@ -685,7 +685,7 @@ def make(app, create=False):
     @stored
     @sessioned
     def art_bi_md5(md5, session):
-        return session.query(Entry).filter_by(md5=md5).one()
+        return session.query(Entry).filter_by(md5=md5).first()
 
     if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
         optimize_sqlite(db)

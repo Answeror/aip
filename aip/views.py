@@ -30,9 +30,7 @@ from datetime import datetime, timedelta
 from . import work
 import scss
 from collections import OrderedDict
-from . import make as makeapp
 from . import tasks
-from functools import partial
 from .utils import timed
 from nose.tools import assert_in, assert_is
 import json
@@ -176,6 +174,9 @@ def make(app, oid, cached, store):
 
     from .momentjs import momentjs
     app.jinja_env.globals['momentjs'] = momentjs
+
+    from .core import Core
+    core = Core(db=store)
 
     @app.context_processor
     def override_url_for():
@@ -435,20 +436,20 @@ def make(app, oid, cached, store):
         try:
             if (
                 has_timestamp() and
-                not expired_request(store.thumbnail_mtime_bi_md5(md5))
+                not expired_request(core.thumbnail_mtime_bi_md5(md5))
             ):
                 return Response(status=304)
         except:
             pass
 
         width = int(request.args['width'])
-        content = store.thumbnail_bi_md5(md5, width)
+        content = core.thumbnail_bi_md5(md5, width)
         resp = Response(content, mimetype='image/' + img.kind(data=content))
         resp.content_md5 = calcmd5(content)
-        resp.last_modified = store.thumbnail_mtime_bi_md5(md5)
+        resp.last_modified = core.thumbnail_mtime_bi_md5(md5)
 
         if has_timestamp():
-            cache_timeout = store.thumbnail_cache_timeout_bi_md5(md5)
+            cache_timeout = core.thumbnail_cache_timeout_bi_md5(md5)
             if cache_timeout is not None:
                 resp.cache_control.max_age = cache_timeout
                 resp.expires = int(time() + cache_timeout)
@@ -519,28 +520,22 @@ def make(app, oid, cached, store):
     @timestamped('.thumbnail_link')
     def thumbnail_link(md5):
         width = int(request.args['width'])
-        thumbmd5 = calcmd5(('%s.%d' % (md5, width)).encode('ascii'))
-        bim = store.imgur_bi_md5(thumbmd5)
-        if bim:
-            #log.info('imgur hit %s, width %d' % (md5, width))
-            link = bim.link.replace('http://', 'https://')
-        else:
-            work.nonblock(
-                tasks.persist_thumbnail,
-                makeapp=partial(makeapp, dbmode=True, **app.kargs),
-                md5=md5,
-                width=width,
-            )
+
+        link = core.thumbnail_linkout(md5, width)
+        if link is None:
             link = url_for('.thumbnail', md5=md5, width=width)
 
-        resp = jsonify(dict(result=link))
-        resp.content_md5 = calcmd5(resp.data)
+        return enable_timestamp(jsonify(dict(result=link)))
 
+    def enable_timestamp(resp):
+        resp.content_md5 = calcmd5(resp.data)
+        return expire_based_on_timestamp(resp)
+
+    def expire_based_on_timestamp(resp):
         if has_timestamp():
             if cache_timeout() is not None:
                 resp.cache_control.max_age = cache_timeout()
                 resp.expires = int(time() + cache_timeout())
-
         return resp
 
     @app.route('/test/log', methods=['GET'])
@@ -562,19 +557,18 @@ def make(app, oid, cached, store):
 
     @app.route('/art/<md5>', methods=['GET'])
     def art(md5):
-        try:
-            art = store.art_bi_md5(md5)
-            resp = jsonify({
-                'result': {key: getattr(art, key) for key in [
-                    'id',
-                    'md5',
-                    'width',
-                    'height',
-                ]}
-            })
-        except:
-            resp = not_exist_resp()
-        return resp
+        art = core.art_bi_md5(md5)
+        if art is None:
+            return not_exist_resp()
+
+        return jsonify({
+            'result': {key: getattr(art, key) for key in [
+                'id',
+                'md5',
+                'width',
+                'height',
+            ]}
+        })
 
     def bad_arg_resp():
         return jsonify({
@@ -597,20 +591,23 @@ def make(app, oid, cached, store):
         res = {}
         for md5 in q['md5']:
             try:
-                res[md5] = render_template('art.html', art=store.art_bi_md5(md5))
+                res[md5] = render_template(
+                    'art.html',
+                    art=core.art_bi_md5(md5)
+                )
             except:
                 pass
         return jsonify({'result': res})
 
     @app.route('/art/detail/part/<md5>', methods=['GET'])
     def art_detail_part(md5):
-        try:
-            resp = jsonify({
-                'result': render_template(
-                    'detail.html',
-                    art=store.art_bi_md5(md5)
-                )
-            })
-        except:
-            resp = not_exist_resp()
-        return resp
+        art = core.art_bi_md5(md5)
+        if art is None:
+            return not_exist_resp()
+
+        return jsonify({
+            'result': render_template(
+                'detail.html',
+                art=art
+            )
+        })
