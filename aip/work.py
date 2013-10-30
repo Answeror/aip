@@ -6,12 +6,12 @@ log = Log(__name__)
 
 
 def guard(f, *args, **kargs):
-    try:
-        with logbook.NullHandler().applicationbound():
-            with RedisPub():
+    with logbook.NullHandler().applicationbound():
+        with RedisPub():
+            try:
                 return f(*args, **kargs)
-    except:
-        pass
+            except:
+                log.exception('task {} failed' % f.__name__)
 
 
 def block(f, *args, **kargs):
