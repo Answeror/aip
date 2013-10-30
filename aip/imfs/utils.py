@@ -127,5 +127,5 @@ def expanding(data, target_width, target_height):
     eps = 1e-8
     return (
         source_width < target_width + eps and
-        target_height < target_height + eps
+        source_height < target_height + eps
     )
