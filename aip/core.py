@@ -54,6 +54,7 @@ class Core(object):
 
         uri = self.baidupan.uri(thumbmd5(md5, width))
         if uri:
+            uri = uri.replace('http://', 'https://')
             self.redis.setex(
                 baidupan_redis_key(md5, width),
                 uri.encode('ascii'),
@@ -71,7 +72,7 @@ class Core(object):
     def imgur_thumbnail_linkout(self, md5, width):
         bim = self.db.imgur_bi_md5(thumbmd5(md5, width))
         if bim:
-            return bim.link.replace('http://', '//')
+            return bim.link.replace('http://', 'https://')
         work.nonblock(
             tasks.persist_thumbnail_to_imgur,
             makeapp=partial(makeapp, dbmode=True, **current_app.kargs),

@@ -58,7 +58,7 @@ class BaiduPan(object):
             return None
 
         try:
-            return ret['list'][0]['dlink'].replace('http://', '//')
+            return ret['list'][0]['dlink']
         except:
             log.exception('get uri of {} failed, response: {}', md5, ret)
             return None
