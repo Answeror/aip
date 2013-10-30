@@ -6,9 +6,14 @@ from . import make as makeapp
 from functools import partial
 from flask import current_app
 from .bed.baidupan import BaiduPan
+from redis import Redis
 
 
 log = Log(__name__)
+
+
+def baidupan_redis_key(md5, width):
+    return 'baidupan.' + thumbmd5(md5, width)
 
 
 class Core(object):
@@ -17,10 +22,13 @@ class Core(object):
         self,
         db,
         baidupan_cookie=None,
+        baidupan_timeout=30,
     ):
         self.db = db
+        self.redis = Redis()
         if baidupan_cookie:
             self.baidupan = BaiduPan(baidupan_cookie)
+        self.baidupan_timeout = baidupan_timeout
 
     def thumbnail_mtime_bi_md5(self, md5):
         return self.db.thumbnail_mtime_bi_md5(md5)
@@ -35,11 +43,24 @@ class Core(object):
         return self.db.imgur_bi_md5(md5)
 
     def baidupan_thumbnail_linkout(self, md5, width):
+        uri = self.redis.get(baidupan_redis_key(md5, width))
+        if uri:
+            uri = uri.decode('ascii')
+            log.info('width {} thumbnail of {} hit baidupan redis', width, md5)
+            return uri
+
         if not hasattr(self, 'baidupan'):
             return None
+
         uri = self.baidupan.uri(thumbmd5(md5, width))
         if uri:
+            self.redis.setex(
+                baidupan_redis_key(md5, width),
+                uri.encode('ascii'),
+                self.baidupan_timeout,
+            )
             return uri
+
         work.nonblock(
             tasks.persist_thumbnail_to_baidupan,
             makeapp=partial(makeapp, dbmode=True, **current_app.kargs),

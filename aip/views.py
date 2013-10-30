@@ -179,6 +179,7 @@ def make(app, oid, cached, store):
     core = Core(
         db=store,
         baidupan_cookie=app.config['AIP_BAIDUPAN_COOKIE'],
+        baidupan_timeout=app.config['AIP_BAIDUPAN_TIMEOUT'],
     )
 
     @app.context_processor

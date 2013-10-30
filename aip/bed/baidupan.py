@@ -53,6 +53,12 @@ class BaiduPan(object):
                     dir='/apps/aip/cache',
                 )
             ).content.decode('utf-8'))
+        except:
+            log.exception('get uri of {} failed', md5)
+            return None
+
+        try:
             return ret['list'][0]['dlink'].replace('http://', '//')
         except:
             log.exception('get uri of {} failed, response: {}', md5, ret)
+            return None

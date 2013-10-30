@@ -42,6 +42,8 @@ AIP_PULLING_THRESHOLD = 16
 AIP_FADEOUT_TIMEOUT = 180
 AIP_PULLING_INTERVAL = 2
 
+AIP_BAIDUPAN_TIMEOUT = 60 * 60
+
 try:
     import pkg_resources
     AIP_VERSION = pkg_resources.require('aip.core')[0].version
