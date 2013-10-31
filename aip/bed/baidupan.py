@@ -40,7 +40,7 @@ class BaiduPan(object):
         c.load(cookies)
         self.session.cookies.update(c)
 
-    def uri(self, md5):
+    def raw_uri(self, md5):
         try:
             ret = parse_json(self.session.get(
                 'http://pan.baidu.com/api/search',
@@ -58,6 +58,17 @@ class BaiduPan(object):
             return None
 
         return parse_response(ret, md5)
+
+    def redirected_uri(self, md5):
+        uri = self.raw_uri(md5)
+        if uri:
+            r = self.session.get(uri)
+            return r.url
+
+    def uri(self, md5):
+        uri = self.redirected_uri(md5)
+        if uri:
+            return uri.replace('http://', '//')
 
 
 def parse_response(r, md5):

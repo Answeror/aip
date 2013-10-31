@@ -54,7 +54,6 @@ class Core(object):
 
         uri = self.baidupan.uri(thumbmd5(md5, width))
         if uri:
-            uri = uri.replace('http://', 'https://')
             self.redis.setex(
                 baidupan_redis_key(md5, width),
                 uri.encode('ascii'),
