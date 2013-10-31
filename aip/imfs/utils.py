@@ -40,6 +40,8 @@ def openpil(data):
 
 def use_pil(data, kind, width, height, quality=80):
     pim = openpil(data)
+    assert pim
+    assert kind
     transp = transparent(pim)
     pim.thumbnail(
         (width, height),
