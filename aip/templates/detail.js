@@ -2,7 +2,6 @@
     $.aip.init_detail = function($item) {
         $item.find('a.preview').click(function(e) {
             e.preventDefault();
-            var $wall = $('.level-0');
             $.get(
                 '/art/detail/part/' + $item.data('md5')
             ).then($.aip.jsonresult).done(function(r) {
@@ -17,7 +16,6 @@
                 // must hide loading first
                 // other wise detail layer won't show properly
                 $loading.hide();
-                $wall.css('left', '100%');
                 $detail.show();
                 $detail.stop().animate({
                     left: '0%'
@@ -54,7 +52,6 @@
                     }, 500, 'swing', function() {
                         window.location.hash = '#wall';
                         $detail.hide();
-                        $wall.css('left', '0%');
                     });
                     e.preventDefault();
                 });
