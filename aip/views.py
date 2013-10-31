@@ -604,6 +604,7 @@ def make(app, oid, cached, store):
         return jsonify({'result': res})
 
     @app.route('/art/detail/part/<md5>', methods=['GET'])
+    @timed
     def art_detail_part(md5):
         art = core.art_bi_md5(md5)
         if art is None:
