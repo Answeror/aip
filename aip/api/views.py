@@ -356,10 +356,13 @@ def make(app, api, cached, store):
     @logged
     def update(begin):
         begin = datetime.strptime(begin, '%Y%m%d%H%M%S')
-        work.nonblock(
-            tasks.update,
-            makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
-            begin=begin
+        work.nonblock_call(
+            partial(
+                tasks.update,
+                makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
+                begin=begin,
+            ),
+            timeout=current_app.config['AIP_UPDATE_TIMEOUT'],
         );
         return jsonify(dict())
 
@@ -367,10 +370,13 @@ def make(app, api, cached, store):
     @guarded
     @logged
     def update_past(seconds):
-        work.nonblock(
-            tasks.update_past,
-            makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
-            seconds=seconds
+        work.nonblock_call(
+            partial(
+                tasks.update_past,
+                makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
+                seconds=seconds,
+            ),
+            timeout=current_app.config['AIP_UPDATE_TIMEOUT'],
         )
         return jsonify(dict())
 

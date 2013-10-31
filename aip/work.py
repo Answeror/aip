@@ -15,10 +15,19 @@ def guard(f, *args, **kargs):
 
 
 def block(f, *args, **kargs):
+    return block_call(f, args, kargs)
+
+
+def block_call(f, args, kargs, timeout=None):
     try:
         from .rq import q
         from time import sleep
-        job = q.enqueue(guard, f, *args, **kargs)
+        job = q.enqueue_call(
+            guard,
+            args=[f] + list(args),
+            kwargs=kargs,
+            timeout=timeout,
+        )
         while job.result is None:
             sleep(0.5)
         ret = job.result
@@ -27,19 +36,33 @@ def block(f, *args, **kargs):
     except:
         from concurrent.futures import ProcessPoolExecutor as Ex
         with Ex() as ex:
-            future = ex.submit(guard, f, *args, **kargs)
+            future = ex.submit(
+                target=guard,
+                args=[f] + list(args),
+                kwargs=kargs,
+            )
             return future.result()
 
 
 def nonblock(f, *args, **kargs):
+    return nonblock_call(f, args, kargs)
+
+
+def nonblock_call(f, args, kargs, timeout=None):
     try:
         from .rq import q
-        q.enqueue(guard, f, *args, **kargs)
+        q.enqueue_call(
+            guard,
+            args=[f] + list(args),
+            kwargs=kargs,
+            timeout=timeout,
+        )
     except:
         from multiprocessing import Process
-        from functools import partial
         Process(
-            target=partial(guard, f, *args, **kargs),
+            target=guard,
+            args=[f] + list(args),
+            kwargs=kargs,
             daemon=False,
         ).start()
 
