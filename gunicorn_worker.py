@@ -54,7 +54,7 @@ class Worker(base.SyncWorker):
             # workers to come give us some love.
 
             for sock in ready:
-                ex.submite(self._handle, sock)
+                ex.submit(self._handle, sock)
 
             # If our parent changed then we shut down.
             if self.ppid != os.getppid():
