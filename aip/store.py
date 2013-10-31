@@ -167,7 +167,7 @@ def make(app, create=False):
     class Entry(db.Model):
 
         id = db.Column(db.Integer, primary_key=True)
-        md5 = db.Column(db.Unicode(128), unique=True)
+        md5 = db.Column(db.Unicode(128), unique=True, index=True)
         ctime = db.Column(db.DateTime, index=True)
         posts = db.relationship('Post', backref=db.backref('entry'))
         plused = db.relationship('Plus', backref=db.backref('entry'))
