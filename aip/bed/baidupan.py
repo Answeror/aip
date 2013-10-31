@@ -65,7 +65,7 @@ class BaiduPan(object):
         if uri:
             r = self.session.get(uri)
             parts = list(urllib.parse.urlparse(r.url))
-            parts[1] = 'p.baidupcs.com'
+            parts[1] = 'www.baidupcs.com'
             return urllib.parse.urlunparse(parts)
 
     def uri(self, md5):
