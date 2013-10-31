@@ -18,7 +18,7 @@ def block(f, *args, **kargs):
     return block_call(f, args, kargs)
 
 
-def block_call(f, args, kargs, timeout=None):
+def block_call(f, args=[], kargs={}, timeout=None):
     try:
         from .rq import q
         from time import sleep
@@ -48,7 +48,7 @@ def nonblock(f, *args, **kargs):
     return nonblock_call(f, args, kargs)
 
 
-def nonblock_call(f, args, kargs, timeout=None):
+def nonblock_call(f, args=[], kargs={}, timeout=None):
     try:
         from .rq import q
         q.enqueue_call(

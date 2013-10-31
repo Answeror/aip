@@ -357,8 +357,8 @@ def make(app, api, cached, store):
     def update(begin):
         begin = datetime.strptime(begin, '%Y%m%d%H%M%S')
         work.nonblock_call(
-            partial(
-                tasks.update,
+            tasks.update,
+            kargs=dict(
                 makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
                 begin=begin,
             ),
@@ -371,8 +371,8 @@ def make(app, api, cached, store):
     @logged
     def update_past(seconds):
         work.nonblock_call(
-            partial(
-                tasks.update_past,
+            tasks.update_past,
+            kargs=dict(
                 makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
                 seconds=seconds,
             ),
