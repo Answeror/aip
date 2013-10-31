@@ -46,7 +46,7 @@ class Core(object):
         uri = self.redis.get(baidupan_redis_key(md5, width))
         if uri:
             uri = uri.decode('ascii')
-            log.info('width {} thumbnail of {} hit baidupan redis', width, md5)
+            #log.info('width {} thumbnail of {} hit baidupan redis', width, md5)
             return uri
 
         if not hasattr(self, 'baidupan'):

@@ -57,8 +57,18 @@ class BaiduPan(object):
             log.exception('get uri of {} failed', md5)
             return None
 
-        try:
-            return ret['list'][0]['dlink']
-        except:
-            log.exception('get uri of {} failed, response: {}', md5, ret)
-            return None
+        return parse_response(ret, md5)
+
+
+def parse_response(r, md5):
+    if 'list' not in r:
+        log.error('get uri of {} failed, response: {}', md5, r)
+
+    if not r['list']:
+        return None
+
+    try:
+        return r['list'][0]['dlink']
+    except:
+        log.exception('get uri of {} failed, response: {}', md5, r)
+        return None
