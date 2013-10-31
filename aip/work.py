@@ -11,7 +11,7 @@ def guard(f, *args, **kargs):
             try:
                 return f(*args, **kargs)
             except:
-                log.exception('task {} failed' % f.__name__)
+                log.exception('task {} failed', f.__name__)
 
 
 def block(f, *args, **kargs):
