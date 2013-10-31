@@ -688,7 +688,6 @@ def make(app, create=False):
         return (
             session.query(Entry)
             .filter_by(md5=md5)
-            .options(db.joinedload(Entry.posts, inner=True))
             .first()
         )
 
