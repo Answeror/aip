@@ -3,6 +3,7 @@ import json
 import requests
 import http.cookies
 from ..log import Log
+import urllib.parse
 
 
 log = Log(__name__)
@@ -63,7 +64,9 @@ class BaiduPan(object):
         uri = self.raw_uri(md5)
         if uri:
             r = self.session.get(uri)
-            return r.url
+            parts = list(urllib.parse.urlparse(r.url))
+            parts[1] = 'p.baidupcs.com'
+            return urllib.parse.urlunparse(parts)
 
     def uri(self, md5):
         uri = self.redirected_uri(md5)
