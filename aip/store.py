@@ -346,18 +346,16 @@ def make(app, create=False):
             if not hasattr(self, '_data'):
                 data = imfs.load(self.md5)
                 if data is None:
-                    urls = []
                     for post in self.posts:
                         try:
-                            urls.append(self.image_url)
-                            r = requests.get(self.image_url)
+                            r = requests.get(post.image_url)
                             if r.ok:
                                 data = r.content
                                 break
                         except:
                             pass
                     else:
-                        raise Exception('get data of %s failed, tried: %s' % (self.md5, urls))
+                        raise Exception('get data of %s failed' % self.md5)
                     imfs.save(self.md5, data)
                 self._data = data
             return self._data
