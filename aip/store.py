@@ -357,7 +357,7 @@ def make(app, create=False):
                         except:
                             pass
                     else:
-                        raise Exception('get data of %s failed, tried: ' % (self.md5, urls))
+                        raise Exception('get data of %s failed, tried: %s' % (self.md5, urls))
                     imfs.save(self.md5, data)
                 self._data = data
             return self._data
