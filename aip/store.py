@@ -632,15 +632,6 @@ def make(app, create=False):
         Plus.query.filter_by(user_id=user_id, entry_id=entry_id).delete()
 
     @stored
-    @flushed
-    def plus_count(entry_id):
-        return db.session.scalar(
-            db.select([db.func.count('*')])
-            .select_from(Plus.__table__)
-            .where(Plus.entry_id == entry_id)
-        )
-
-    @stored
     def get_entry_bi_md5(md5):
         return Entry.get_bi_md5(md5)
 

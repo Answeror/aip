@@ -24,7 +24,7 @@ from .layout import render_layout
 from functools import wraps
 from .log import Log
 from time import time
-from .utils import md5 as calcmd5
+from .utils import md5 as calcmd5, require
 from . import img
 from datetime import datetime, timedelta
 from . import work
@@ -172,11 +172,6 @@ def dated_url_for(endpoint, **values):
 
 
 def make(app, oid, cached, store):
-
-    from .momentjs import momentjs
-    app.jinja_env.globals['momentjs'] = momentjs
-
-    core = app.core
 
     @app.context_processor
     def override_url_for():
@@ -568,10 +563,30 @@ def make(app, oid, cached, store):
             )
         })
 
+    @app.route('/plus', method=['POST'])
+    @timed
+    @require(['user_id', 'art_id'])
+    def plus(user_id, art_id):
+        core.plus(user_id, art_id)
+        return jsonify({
+            'count': core.plus_count(art_id)
+        })
+
+    @app.route('/minus', method=['POST'])
+    @timed
+    @require(['user_id', 'art_id'])
+    def minus(user_id, art_id):
+        core.minus(user_id, art_id)
+        return jsonify({
+            'count': core.minus_count(art_id)
+        })
+
     @app.context_processor
     def inject_locals():
+        from .momentjs import momentjs
         return dict(
             core=core,
             current_user=current_user,
             authed=authed,
+            momentjs=momentjs,
         )

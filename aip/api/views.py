@@ -20,7 +20,6 @@ from ..async.subpub import Subpub
 import json
 import time
 from ..layout import render_layout
-from fn.iters import chain
 from nose.tools import assert_equal
 from ..log import Log
 from .. import make as makeapp
@@ -240,8 +239,6 @@ def make(app, api, cached, store):
             return request.args[key]
         return None
 
-    from ..utils import require
-
     def optional_args(args):
         fields = args
 
@@ -297,45 +294,6 @@ def make(app, api, cached, store):
     def entry_count():
         return jsonify(dict(result=store.entry_count()))
 
-    @api.route('/entries', methods=['GET'])
-    @guarded
-    @logged
-    def entries():
-        return jsonify(result=[tod(im, ('id', 'md5')) for im in store.get_entries_order_bi_ctime(get_slice())])
-
-    def authed():
-        return try_get_user_bi_someid() is not None
-
-
-    def page_ext(id):
-        #r = slice(g.per * (2 ** id - 1), g.per * (2 ** (id + 1) - 1), 1)
-        r = slice(g.per * id, g.per * (id + 1), 1)
-
-        if request.args and 'tags' in request.args:
-            tags = request.args['tags'].split(';')
-            log.debug('query tags: {}'.format(tags))
-            tags = [store.Tag.escape_name(tag) for tag in tags if tag]
-        else:
-            tags = []
-
-        return store.Entry.get_bi_tags_order_bi_ctime(
-            tags=tags,
-            r=r,
-            safe=not authed()
-        )
-
-    @api.route('/page/<int:id>', methods=['GET'])
-    @guarded
-    @logged
-    def page(id):
-        return jsonify(result=render_layout('page.html', entries=page_ext(id)))
-
-    @api.route('/stream/page/<int:id>', methods=['GET'])
-    @logged
-    @streamed
-    def stream_page(id):
-        yield dump_result(render_layout('page.html', entries=page_ext(id)))
-
     @api.route('/update', defaults={'begin': (datetime.utcnow() - timedelta(days=1)).strftime('%Y%m%d%H%M%S')})
     @api.route('/update/<begin>')
     @guarded
@@ -349,7 +307,7 @@ def make(app, api, cached, store):
                 begin=begin,
             ),
             timeout=current_app.config['AIP_UPDATE_TIMEOUT'],
-        );
+        )
         return jsonify(dict())
 
     @api.route('/update/past/<int:seconds>')
@@ -358,6 +316,7 @@ def make(app, api, cached, store):
     def update_past(seconds):
         work.nonblock_call(
             tasks.update_past,
+            kargs=dict(
                 makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
                 seconds=seconds,
             ),
@@ -380,27 +339,6 @@ def make(app, api, cached, store):
         store.clear()
         return jsonify(dict())
 
-    @guarded
-    @logged
-    @require(['user_id', 'entry_id'])
-    def plus(user_id, entry_id):
-        store.plus(user_id, entry_id)
-        store.db.session.commit()
-        return jsonify(dict(count=store.plus_count(entry_id)))
-
-    @api.route('/plus', methods=['POST'])
-    @guarded
-    @logged
-    def sync_plus():
-        return plus()
-
-    @api.route('/async/<sid>/plus', methods=['POST'])
-    @guarded
-    @logged
-    @async(rank=app.config['AIP_RANK_PLUS'])
-    def async_plus(sid):
-        return plus()
-
     def dump_result(*args, **kargs):
         if args:
             assert_equal(len(args), 1)
@@ -408,24 +346,6 @@ def make(app, api, cached, store):
         else:
             arg = kargs
         return json.dumps(dict(result=arg)).encode('utf-8')
-
-    @api.route('/stream/plus', methods=['GET'])
-    @logged
-    @streamed
-    @require(['user_id', 'entry_id'])
-    def stream_plus(user_id, entry_id):
-        store.plus(user_id, entry_id)
-        store.db.session.commit()
-        yield dump_result(count=store.plus_count(entry_id))
-
-    @api.route('/stream/minus', methods=['GET'])
-    @logged
-    @streamed
-    @require(['user_id', 'entry_id'])
-    def stream_minus(user_id, entry_id):
-        store.minus(user_id, entry_id)
-        store.db.session.commit()
-        yield dump_result(count=store.plus_count(entry_id))
 
     @api.route('/plused/page/<int:id>.html', methods=['GET'])
     @guarded
@@ -449,39 +369,6 @@ def make(app, api, cached, store):
     def plused():
         user = get_user_bi_someid()
         return jsonify(result=[dict(id=p.entry.id, ctime=p.ctime) for p in user.plused])
-
-    @guarded
-    @logged
-    @require(['user_id', 'entry_id'])
-    def minus(user_id, entry_id):
-        store.minus(user_id, entry_id)
-        store.db.session.commit()
-        return jsonify(dict(count=store.plus_count(entry_id)))
-
-    @api.route('/minus', methods=['POST'])
-    @guarded
-    @logged
-    def sync_minus():
-        return minus()
-
-    @api.route('/async/<sid>/minus', methods=['POST'])
-    @guarded
-    @logged
-    @async(rank=app.config['AIP_RANK_MINUS'])
-    def async_minus(sid):
-        return minus()
-
-    def imgur_url(md5, width=None, resolution=None):
-        from .. import proxy
-        return proxy.imgur_url(store, md5, width=width, resolution=resolution)
-
-    def imgur_url_gen(md5, width=None, resolution=None):
-        from .. import proxy
-        yield from proxy.imgur_url_gen(store, md5, width=width, resolution=resolution)
-
-    def immio_url(md5):
-        from .. import proxy
-        return proxy.immio_url(store, md5)
 
     @api.after_request
     def after_request(response):

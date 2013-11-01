@@ -14,17 +14,27 @@ from functools import wraps
 log = Log(__name__)
 
 
+class CoreError(Exception):
+    pass
+
+
 def baidupan_redis_key(md5, width):
     return ':'.join(['baidupan', thumbmd5(md5, width)])
 
 
 def sessioned(f):
     @wraps(f)
-    def inner(self, *args, **kargs):
+    def g(self, *args, **kargs):
         if 'session' not in kargs:
-            kargs['session'] = self.db.session
-        return f(self, *args, **kargs)
-    return inner
+            with self.make_session() as session:
+                kargs['session'] = session
+                kargs['commit'] = True
+                return f(self, *args, **kargs)
+        else:
+            if 'commit' not in kargs:
+                kargs['commit'] = False
+            return f(self, *args, **kargs)
+    return g
 
 
 class Core(object):
@@ -40,6 +50,14 @@ class Core(object):
         if baidupan_cookie:
             self.baidupan = BaiduPan(baidupan_cookie)
         self.baidupan_timeout = baidupan_timeout
+
+    @contextmanager
+    def make_session(self):
+        s = self.db.create_scoped_session()
+        try:
+            yield s
+        finally:
+            s.remove()
 
     def thumbnail_mtime_bi_md5(self, md5):
         return self.db.thumbnail_mtime_bi_md5(md5)
@@ -121,7 +139,7 @@ class Core(object):
         return self.db.get_user_bi_openid(openid)
 
     @sessioned
-    def has_plused(self, user, art, session):
+    def has_plused(self, user, art, session, commit):
         '''http://stackoverflow.com/a/15314973/238472'''
         return session.scalar(
             self.db.select([
@@ -133,3 +151,56 @@ class Core(object):
                 ))
             ])
         )
+
+    @sessioned
+    def plus_count(self, art_id, session, commit):
+        return session.scalar(
+            self.db.select([self.db.func.count('*')])
+            .select_from(self.db.table(self.db.Plus))
+            .where(self.db.Plus.entry_id == art_id)
+        )
+
+    @sessioned
+    def plus(self, user_id, art_id, session, commit):
+        session.execute(
+            self.db.table(self.db.Plus).insert(dict(
+                user_id=user_id,
+                entry_id=art_id,
+            ))
+        )
+        if commit:
+            from sqlalchemy.exc import IntegrityError
+            try:
+                session.commit()
+            except IntegrityError as e:
+                code, _ = e.orig
+                # http://stackoverflow.com/q/8072537/238472
+                if code == 1062:
+                    log.warning('duplicated plus ({}, {})', user_id, art_id)
+                    pass
+                else:
+                    session.rollback()
+
+    @sessioned
+    def minus(self, user_id, art_id, session, commit):
+        rows = session.scalar(
+            self.db.table(self.db.Plus).delete(
+                self.db.and_(
+                    self.db.Plus.user_id == user_id,
+                    self.db.Plus.entry_id == art_id,
+                )
+            )
+        )
+        if rows == 0:
+            log.warning("minus didn't delete any rows")
+        if commit:
+            try:
+                session.commit()
+            except:
+                session.rollback()
+                log.exception('minus ({}, {}) failed', user_id, art_id)
+                raise CoreError(
+                    'minus ({}, {}) failed due to database error',
+                    user_id,
+                    art_id
+                )
