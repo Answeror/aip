@@ -199,7 +199,7 @@ def make(app, oid, cached, store):
             flash('Successfully signed in')
             return redirect(oid.get_next_url())
 
-        if 'openid' in session:
+        if 'user_openid' in session:
             log.info('openid %s already in session' % session['user_openid'])
             if store.Openid.exists(resp.identity_url):
                 log.info(
@@ -235,7 +235,7 @@ def make(app, oid, cached, store):
 
     @app.route('/create_profile', methods=['GET', 'POST'])
     def create_profile():
-        if authed() or 'openid' not in session:
+        if authed() or 'user_openid' not in session:
             return redirect(url_for('.posts'))
         if request.method == 'POST':
             name = request.form['name']
@@ -264,7 +264,7 @@ def make(app, oid, cached, store):
 
     @app.route('/logout')
     def logout():
-        session.pop('openid', None)
+        session.pop('user_openid', None)
         flash('You were signed out')
         return redirect(oid.get_next_url())
 
