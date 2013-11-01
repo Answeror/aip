@@ -372,7 +372,6 @@ def make(app, api, cached, store):
     def update_past(seconds):
         work.nonblock_call(
             tasks.update_past,
-            kargs=dict(
                 makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
                 seconds=seconds,
             ),

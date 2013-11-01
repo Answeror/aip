@@ -2,6 +2,7 @@ from werkzeug.local import LocalProxy
 from flask import (
     current_app,
     session,
+    request,
     g,
 )
 
@@ -39,3 +40,17 @@ def get_current_user():
 
 
 current_user = LocalProxy(get_current_user)
+
+
+def get_request_kargs():
+    d = getattr(g, '_request_kargs', None)
+    if d is None:
+        d = {}
+        for name in ('form', 'json', 'args'):
+            if getattr(request, name):
+                d.update(getattr(request, name))
+        g._request_kargs = d
+    return d
+
+
+request_kargs = LocalProxy(get_request_kargs)
