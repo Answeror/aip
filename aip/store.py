@@ -49,15 +49,7 @@ def make_imfs(app):
 
 
 def make(app, create=False):
-    db = SQLAlchemy(app)
-
-    class Store(object):
-
-        @property
-        def session(self):
-            return db.session
-
-    store = Store()
+    store = db = SQLAlchemy(app)
     imfs = make_imfs(app)
 
     def stored(f):
@@ -85,6 +77,7 @@ def make(app, create=False):
         id = db.Column(db.Unicode(128), primary_key=True)
         value = db.Column(db.LargeBinary)
 
+    @stored
     class Plus(db.Model):
 
         user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)

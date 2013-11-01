@@ -10,7 +10,7 @@ def get_user_bi_someid():
     if 'openid' in session:
         user = core.user_bi_openid(session['openid'])
     else:
-        user = None
+        user = core.user_bi_id(1)
     return user
 
 
