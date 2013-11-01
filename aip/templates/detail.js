@@ -46,6 +46,7 @@
                 });
                 // smooth scrolling of detail page
                 $detail.find('button[name=back]').click(function(e) {
+                    $img.hide();
                     $detail.stop().animate({
                         left: '100%'
                     }, 500, 'swing', function() {
