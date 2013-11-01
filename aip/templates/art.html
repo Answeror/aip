@@ -19,18 +19,18 @@
                     alt=loading
                     data-src='{{ art.preview_url_ssl }}'
                     data-md5={{ art.md5 }}
-                    data-ratio={{ art.width / art.height }}'
+                    data-ratio={{ art.width / art.height }}
                 >
                 <span class='loading embed'><span class=spinner></span></span>
             </a>
         </div>
         <div class=button-group>
-            {% if g.user %}
+            {% if authed() %}
                 <button
                     class='plus btn btn-mini'
-                    data-plused={{ 'true' if g.user.has_plused(art) else 'false' }}
-                    data-count='{{ art.plus_count }}'
-                    data-entry="{{ art.id }}"
+                    data-plused={{ 'true' if core.has_plused(current_user, art) else 'false' }}
+                    data-count={{ art.plus_count }}
+                    data-entry={{ art.id }}
                 >+{{ art.plus_count }}</button>
             {% else %}
                 <a class='plus disabled btn btn-mini' title='login to plus' href='/login'>+{{ art.plus_count }}</a>

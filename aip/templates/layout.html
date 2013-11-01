@@ -18,8 +18,8 @@
         {% block head %}{% endblock %}
     </head>
     <body class='solarized'>
-        {% if g.user %}
-            <input id=user-id type=hidden value={{ g.user.id }}>
+        {% if authed() %}
+            <input id=user-id type=hidden value={{ current_user.id }}>
         {% endif %}
         {% block top %}
             {% include "nav.html" %}

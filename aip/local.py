@@ -10,7 +10,8 @@ def get_user_bi_someid():
     if 'openid' in session:
         user = core.user_bi_openid(session['openid'])
     else:
-        user = core.user_bi_id(1)
+        if current_app.config.get('AIP_DEBUG', False):
+            user = core.user_bi_id(1)
     return user
 
 

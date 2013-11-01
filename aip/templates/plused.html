@@ -5,7 +5,7 @@
         $(function() {
             $.aip.wall.init({
                 makePageUrl: function(page) { return '/plused/page/' + page; },
-                makePageData: function(page) { return { user_id: '{{ g.user.id }}' }; }
+                makePageData: function(page) { return { user_id: '{{ current_user.id }}' }; }
             });
         });
     </script>

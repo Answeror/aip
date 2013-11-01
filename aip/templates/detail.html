@@ -28,8 +28,8 @@
                     <button
                         class='plus btn'
                         data-plused={{ 'true' if core.has_plused(current_user, art) else 'false' }}
-                        data-count='{{ art.plus_count }}'
-                        data-entry="{{ art.id }}"
+                        data-count={{ art.plus_count }}
+                        data-entry={{ art.id }}
                     >+{{ art.plus_count }}</button>
                 {% else %}
                     <a class='plus disabled btn' title='login to plus' href='/login'>+{{ art.plus_count }}</a>
