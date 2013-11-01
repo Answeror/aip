@@ -7,6 +7,7 @@ from functools import partial
 from flask import current_app
 from .bed.baidupan import BaiduPan
 from redis import Redis
+from contextlib import contextmanager
 
 
 log = Log(__name__)
@@ -46,7 +47,6 @@ class Core(object):
         uri = self.redis.get(baidupan_redis_key(md5, width))
         if uri:
             uri = uri.decode('ascii')
-            #log.info('width {} thumbnail of {} hit baidupan redis', width, md5)
             return uri
 
         if not hasattr(self, 'baidupan'):
@@ -90,3 +90,10 @@ class Core(object):
 
     def art_bi_md5(self, md5):
         return self.db.art_bi_md5(md5)
+
+    @contextmanager
+    def scoped_default_session(self):
+        try:
+            yield
+        finally:
+            self.db.session.remove()

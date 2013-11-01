@@ -175,12 +175,7 @@ def make(app, oid, cached, store):
     from .momentjs import momentjs
     app.jinja_env.globals['momentjs'] = momentjs
 
-    from .core import Core
-    core = Core(
-        db=store,
-        baidupan_cookie=app.config['AIP_BAIDUPAN_COOKIE'],
-        baidupan_timeout=app.config['AIP_BAIDUPAN_TIMEOUT'],
-    )
+    core = app.core
 
     @app.context_processor
     def override_url_for():

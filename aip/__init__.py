@@ -60,6 +60,15 @@ class App(Flask):
             return super(App, self).__call__(*args, **kargs)
 
 
+def init_core(app):
+    from .core import Core
+    app.core = Core(
+        db=app.store,
+        baidupan_cookie=app.config['AIP_BAIDUPAN_COOKIE'],
+        baidupan_timeout=app.config['AIP_BAIDUPAN_TIMEOUT'],
+    )
+
+
 def make(config=None, dbmode=False, **kargs):
     try:
         from .rq import q
@@ -78,10 +87,10 @@ def make(config=None, dbmode=False, **kargs):
     app.kargs = kargs
 
     init_conf(app, config)
+    init_store(app)
+    init_core(app)
 
-    if dbmode:
-        init_store(app)
-    else:
+    if not dbmode:
         #init_slaves(app)
 
         from flask.ext.openid import OpenID
@@ -89,8 +98,6 @@ def make(config=None, dbmode=False, **kargs):
 
         from . import cache
         cached = cache.make(app)
-
-        init_store(app)
 
         from . import views
         views.make(app=app, oid=oid, cached=cached, store=app.store)

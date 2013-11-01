@@ -22,7 +22,7 @@ def persist_thumbnail_to_imgur(makeapp, md5, width):
         album_deletehash=app.config['AIP_IMGUR_ALBUM_DELETEHASH']
     )
 
-    with app():
+    with app.core.scoped_default_session():
         data = app.store.thumbnail_bi_md5(md5, width)
         r = bed.upload(
             data=data,
@@ -44,7 +44,7 @@ def persist_thumbnail_to_baidupan(makeapp, md5, width):
     app = makeapp()
     from .imfs.baidupcs import BaiduPCS
     imfs = BaiduPCS(app.config['AIP_BAIDUPCS_ACCESS_TOKEN'])
-    with app():
+    with app.core.scoped_default_session():
         data = app.store.thumbnail_bi_md5(md5, width)
         imfs.save(thumbmd5(md5, width), data)
         log.info('width {} thumbnail of {} saved to baidupan', width, md5)
@@ -56,7 +56,7 @@ def test_log():
 
 def update(begin, makeapp):
     app = makeapp()
-    with app():
+    with app.core.scoped_default_session():
         now = datetime.utcnow()
         _update_images(begin)
         _set_last_update_time(now)
@@ -65,7 +65,7 @@ def update(begin, makeapp):
 
 def update_past(seconds, makeapp):
     app = makeapp()
-    with app():
+    with app.core.default_scoped_session():
         now = datetime.utcnow()
         _update_images(now - timedelta(seconds=seconds))
         _set_last_update_time(now)
