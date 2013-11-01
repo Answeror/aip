@@ -92,8 +92,9 @@ class Core(object):
         return self.db.art_bi_md5(md5)
 
     @contextmanager
-    def scoped_default_session(self):
+    def scoped_all_session(self):
         try:
             yield
         finally:
-            self.db.session.remove()
+            from sqlalchemy.orm.session import Session
+            Session.close_all()
