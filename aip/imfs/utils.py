@@ -40,9 +40,9 @@ def openpil(data):
 
 
 def use_pil(data, kind, width, height, quality=80):
-    pim = openpil(data)
-    assert pim
     assert kind
+    input_stream = BytesIO(data)
+    pim = PIL.Image.open(input_stream)
     transp = transparent(pim)
     pim.thumbnail(
         (width, height),
@@ -96,13 +96,6 @@ def use_gifsicle(data, kind, width, height):
         os.unlink(ferr.name)
 
 
-def use_gifsicle_safe(data, kind, width, height):
-    try:
-        return use_gifsicle(data, kind, width, height)
-    except:
-        log.exception('thumbnail of {} using gifsicle failed', calcmd5(data))
-
-
 def safe(f, data, kind, width, height):
     try:
         return f(data, kind, width, height)
@@ -121,15 +114,14 @@ def thumbnail(data, kind, width, height):
         ret = safe(use_gifsicle, data, kind, width, height)
         if ret is not None:
             return ret
-    ret = safe(use_pil, pim, kind, width, height)
+    ret = safe(use_pil, data, kind, width, height)
     if ret is None:
         ret = safe(use_wand, data, kind, width, height)
     assert ret is not None, 'all thumbail method failed for {}' % calcmd5(data)
     return ret
 
 
-def expanding(data, target_width, target_height):
-    pim = openpil(data)
+def expanding(pim, target_width, target_height):
     source_width, source_height = pim.size
     eps = 1e-8
     return (
