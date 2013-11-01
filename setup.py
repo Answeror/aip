@@ -41,6 +41,7 @@ setup(
         'rq',
         'setproctitle',
         'logbook',
+        'Wand',
     ],
     dependency_links = [
         'https://github.com/Answeror/ConfigIt/tarball/version#egg=ConfigIt-0.1.3',

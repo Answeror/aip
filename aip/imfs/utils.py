@@ -2,6 +2,7 @@ import PIL.Image
 from io import BytesIO
 from ..log import Log
 from nose.tools import assert_greater
+from ..utils import calcmd5
 
 
 log = Log(__name__)
@@ -95,18 +96,18 @@ def use_gifsicle(data, kind, width, height):
         os.unlink(ferr.name)
 
 
-def use_gifsicle_safe(*args, **kargs):
+def use_gifsicle_safe(data, kind, width, height):
     try:
-        return use_gifsicle(*args, **kargs)
+        return use_gifsicle(data, kind, width, height)
     except:
-        log.exception('thumbnail using gifsicle failed')
+        log.exception('thumbnail of {} using gifsicle failed', calcmd5(data))
 
 
-def use_pil_safe(*args, **kargs):
+def safe(f, data, kind, width, height):
     try:
-        return use_pil(*args, **kargs)
+        return f(data, kind, width, height)
     except:
-        log.exception('thumbnail using pil failed')
+        log.exception('thumbnail of {} {} failed', calcmd5(data), f.__name__)
 
 
 def thumbnail(data, kind, width, height):
@@ -117,10 +118,14 @@ def thumbnail(data, kind, width, height):
     if expanding(pim, width, height):
         return data
     if kind == 'gif':
-        ret = use_gifsicle_safe(data, kind, width, height)
+        ret = safe(use_gifsicle, data, kind, width, height)
         if ret is not None:
             return ret
-    return use_pil_safe(pim, kind, width, height)
+    ret = safe(use_pil, pim, kind, width, height)
+    if ret is None:
+        ret = safe(use_wand, data, kind, width, height)
+    assert ret is not None, 'all thumbail method failed for {}' % calcmd5(data)
+    return ret
 
 
 def expanding(data, target_width, target_height):
