@@ -9,7 +9,5 @@ def render_layout(*args, **kargs):
     return render_template(
         *args,
         last_update_time=t,
-        entry_count=g.entry_count,
-        user_count=g.user_count,
         **kargs
     )

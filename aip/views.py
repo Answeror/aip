@@ -190,14 +190,6 @@ def make(app, oid, cached, store):
     def last_update_time(self):
         return store.get_meta('last_update_time')
 
-    @prop
-    def entry_count(self):
-        return store.entry_count()
-
-    @prop
-    def user_count(self):
-        return store.user_count()
-
     @app.before_request
     def lookup_current_user():
         g.user = None
