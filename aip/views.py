@@ -200,17 +200,17 @@ def make(app, oid, cached, store):
             return redirect(oid.get_next_url())
 
         if 'openid' in session:
-            log.info('openid %s already in session' % session['openid'])
+            log.info('openid %s already in session' % session['user_openid'])
             if store.Openid.exists(resp.identity_url):
                 log.info(
                     'group openid %s with %s',
                     resp.identity_url,
-                    session['openid']
+                    session['user_openid']
                 )
-                store.User.group_openid(resp.identity_url, session['openid'])
+                store.User.group_openid(resp.identity_url, session['user_openid'])
                 return redirect(url_for('.posts'))
 
-        session['openid'] = resp.identity_url
+        session['user_openid'] = resp.identity_url
         return redirect(url_for(
             '.create_profile',
             next=oid.get_next_url(),
@@ -253,7 +253,7 @@ def make(app, oid, cached, store):
                     user = store.add_user(
                         name=name,
                         email=email,
-                        openid=session['openid']
+                        openid=session['user_openid']
                     )
                     store.db.session.commit()
                     return redirect(oid.get_next_url())
