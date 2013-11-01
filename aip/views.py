@@ -34,6 +34,7 @@ from . import tasks
 from .utils import timed
 from nose.tools import assert_in, assert_is
 import json
+from .local import current_user, authed, core
 
 
 Post = namedtuple('Post', (
@@ -185,26 +186,16 @@ def make(app, oid, cached, store):
     def last_update_time(self):
         return store.get_meta('last_update_time')
 
-    @app.before_request
-    def lookup_current_user():
-        g.user = None
-        if 'openid' in session:
-            g.user = store.get_user_bi_openid(session['openid'])
-        elif 'id' in session:
-            g.user = store.get_user_bi_id(session['id'])
-        #else:
-            #g.user = store.get_user_bi_id(1)
-
     @app.route('/login', methods=['GET', 'POST'])
     @oid.loginhandler
     def login():
-        if g.user is not None:
+        if authed():
             return redirect(oid.get_next_url())
         return try_login()
 
     @oid.after_login
     def create_or_login(resp):
-        if g.user is not None:
+        if authed():
             flash('Successfully signed in')
             return redirect(oid.get_next_url())
 
@@ -244,7 +235,7 @@ def make(app, oid, cached, store):
 
     @app.route('/create_profile', methods=['GET', 'POST'])
     def create_profile():
-        if g.user is not None or 'openid' not in session:
+        if authed() or 'openid' not in session:
             return redirect(url_for('.posts'))
         if request.method == 'POST':
             name = request.form['name']
@@ -474,38 +465,11 @@ def make(app, oid, cached, store):
     @app.route('/plused/page/<int:id>', methods=['GET'])
     @timed
     def plused_page(id):
-        user = get_user_bi_someid()
         r = slice(g.per * id, g.per * (id + 1), 1)
         res = {}
-        for art in user.get_plused(r):
+        for art in current_user.get_plused(r):
             res[art.md5] = render_template('art.html', art=art)
         return jsonify({'result': res})
-
-    def try_get_user_bi_someid():
-        if request.json:
-            args = request.json
-        elif request.form:
-            args = request.form
-        elif request.args:
-            args = request.args
-        else:
-            args = {}
-        if 'user_id' in args:
-            user = store.get_user_bi_id(args['user_id'])
-        elif 'user_openid' in args:
-            user = store.get_user_bi_openid(args['user_openid'])
-        else:
-            user = None
-        return user
-
-    def get_user_bi_someid():
-        user = try_get_user_bi_someid()
-        if user is None:
-            raise Exception('must provider user id or openid')
-        return user
-
-    def authed():
-        return try_get_user_bi_someid() is not None
 
     @app.route('/thumbnail/link/<md5>', methods=['GET'])
     @timestamped('.thumbnail_link')
@@ -603,3 +567,11 @@ def make(app, oid, cached, store):
                 art=art
             )
         })
+
+    @app.context_processor
+    def inject_locals():
+        return dict(
+            core=core,
+            current_user=current_user,
+            authed=authed,
+        )

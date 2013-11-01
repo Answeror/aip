@@ -24,10 +24,10 @@
             </div>
             <div class='button-group span12'>
                 <button name=back class='btn btn-primary'>back</button>
-                {% if g.user %}
+                {% if authed() %}
                     <button
                         class='plus btn'
-                        data-plused={{ 'true' if g.user.has_plused(art) else 'false' }}
+                        data-plused={{ 'true' if core.has_plused(current_user, art) else 'false' }}
                         data-count='{{ art.plus_count }}'
                         data-entry="{{ art.id }}"
                     >+{{ art.plus_count }}</button>

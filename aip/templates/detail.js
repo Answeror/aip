@@ -6,8 +6,7 @@
                 '/art/detail/part/' + $item.data('md5')
             ).then($.aip.jsonresult).done(function(r) {
                 var $detail = $('.level-1');
-                $detail.empty();
-                $detail.html(r);
+                $detail.empty().html(r);
                 $detail.find('.plus').plus_init();
                 var $preview = $detail.find('div[name=preview]');
                 var $img = $preview.find('img.detail');

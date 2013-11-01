@@ -18,6 +18,7 @@ from .sources import sources
 import requests
 from . import img
 from .imfs.utils import thumbnail
+from sqlalchemy import inspect
 
 
 def _scalar_all(self):
@@ -125,14 +126,12 @@ def make(app, create=False):
         def plus(self, entry):
             if entry not in [p.entry for p in self.plused]:
                 self.plused.append(Plus(entry=entry))
-            db.session.expire(entry, ['plus_count'])
 
         def minus(self, entry):
             for p in self.plused:
                 if p.entry == entry:
                     db.session.delete(p)
                     break
-            db.session.expire(entry, ['plus_count'])
 
         def has_plused(self, entry):
             return db.session.query(db.exists().where(and_(
@@ -179,14 +178,14 @@ def make(app, create=False):
             for key in ('post_url', 'preview_url', 'image_url', 'sample_url', 'score'):
                 setattr(cls, key, property(partial(lambda key, self: getattr(self.best_post, key), key)))
 
-            cls.plus_count = property(lambda self: len(self.plused))
-            #cls.plus_count = db.column_property(
-                #db.select([db.func.count('*')])
-                #.select_from(Plus.__table__)
-                #.where(Plus.entry_id == cls.id)
-                #.correlate(cls.__table__)
-                #.as_scalar()
-            #)
+        @property
+        def plus_count(self):
+            session = inspect(self).session
+            return session.scalar(
+                db.select([db.func.count('*')])
+                .select_from(table(Plus))
+                .where(Plus.entry_id == self.id)
+            )
 
         def _select_valid_size_post(self):
             if valid_size_post(self.best_post):
@@ -366,6 +365,7 @@ def make(app, create=False):
                 self._kind = img.kind(data=self.data)
             return self._kind
 
+    @stored
     def table(cls):
         return cls.__table__
 
@@ -632,15 +632,11 @@ def make(app, create=False):
     @flushed
     def plus(user_id, entry_id):
         db.session.merge(Plus(user_id=user_id, entry_id=entry_id))
-        if identity_key(Entry, entry_id) in db.session.identity_map:
-            db.session.expire(Entry.query.get(entry_id), ['plus_count'])
 
     @stored
     @flushed
     def minus(user_id, entry_id):
         Plus.query.filter_by(user_id=user_id, entry_id=entry_id).delete()
-        if identity_key(Entry, entry_id) in db.session.identity_map:
-            db.session.expire(Entry.query.get(entry_id), ['plus_count'])
 
     @stored
     @flushed

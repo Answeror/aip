@@ -62,7 +62,7 @@ class App(Flask):
 
 def init_core(app):
     from .core import Core
-    app.core = Core(
+    app.core = app._core = Core(
         db=app.store,
         baidupan_cookie=app.config['AIP_BAIDUPAN_COOKIE'],
         baidupan_timeout=app.config['AIP_BAIDUPAN_TIMEOUT'],
