@@ -199,18 +199,18 @@ def make(app, oid, cached, store):
             flash('Successfully signed in')
             return redirect(oid.get_next_url())
 
-        if 'user_openid' in session:
-            log.info('openid %s already in session' % session['user_openid'])
+        if 'openid' in session:
+            log.info('openid %s already in session' % session['openid'])
             if store.Openid.exists(resp.identity_url):
                 log.info(
                     'group openid %s with %s',
                     resp.identity_url,
-                    session['user_openid']
+                    session['openid']
                 )
-                store.User.group_openid(resp.identity_url, session['user_openid'])
+                store.User.group_openid(resp.identity_url, session['openid'])
                 return redirect(url_for('.posts'))
 
-        session['user_openid'] = resp.identity_url
+        session['openid'] = resp.identity_url
         return redirect(url_for(
             '.create_profile',
             next=oid.get_next_url(),
@@ -235,7 +235,7 @@ def make(app, oid, cached, store):
 
     @app.route('/create_profile', methods=['GET', 'POST'])
     def create_profile():
-        if authed() or 'user_openid' not in session:
+        if authed() or 'openid' not in session:
             return redirect(url_for('.posts'))
         if request.method == 'POST':
             name = request.form['name']
@@ -253,7 +253,7 @@ def make(app, oid, cached, store):
                     user = store.add_user(
                         name=name,
                         email=email,
-                        openid=session['user_openid']
+                        openid=session['openid']
                     )
                     store.db.session.commit()
                     return redirect(oid.get_next_url())
@@ -264,7 +264,7 @@ def make(app, oid, cached, store):
 
     @app.route('/logout')
     def logout():
-        session.pop('user_openid', None)
+        session.pop('openid', None)
         flash('You were signed out')
         return redirect(oid.get_next_url())
 

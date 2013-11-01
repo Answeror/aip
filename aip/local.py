@@ -1,26 +1,14 @@
 from werkzeug.local import LocalProxy
 from flask import (
     current_app,
-    request,
     session,
     g,
 )
 
 
 def get_user_bi_someid():
-    args = {}
-    if request.form:
-        args.update(request.form)
-    if request.json:
-        args.update(request.json)
-    if request.args:
-        args.update(request.args)
-    args.update(session)
-
-    if 'user_id' in args:
-        user = core.user_bi_id(args['user_id'])
-    elif 'user_openid' in args:
-        user = core.user_bi_openid(args['user_openid'])
+    if 'openid' in session:
+        user = core.user_bi_openid(session['openid'])
     else:
         user = None
     return user

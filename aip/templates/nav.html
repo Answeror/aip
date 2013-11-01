@@ -10,7 +10,7 @@
             <div class=nav-wrap>
                 <div class='nav-collapse collapse'>
                     <ul class=nav>
-                        {% if g.user %}
+                        {% if authed() %}
                             <li><a href='/plused'>plused</a></li>
                         {% endif %}
                         <li><a href='/about'>about</a></li>
@@ -24,7 +24,7 @@
                         </li>
                     </ul>
                     <div class='logio-wrap pull-right'>
-                        {% if g.user %}
+                        {% if authed() %}
                             <a href='/logout' class='btn'>logout</a>
                         {% else %}
                             <a href='/login' class='btn'>login</a>
