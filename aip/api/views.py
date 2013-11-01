@@ -240,21 +240,7 @@ def make(app, api, cached, store):
             return request.args[key]
         return None
 
-    def require_args(args):
-        fields = args
-
-        def gen(f):
-            @wraps(f)
-            def inner(*args, **kargs):
-                for key in fields:
-                    value = arg(key)
-                    if value is None:
-                        return jsonify(dict(error=dict(message='require arg: %s' % key)))
-                    kargs[key] = value
-                return f(*args, **kargs)
-            return inner
-
-        return gen
+    from ..utils import require
 
     def optional_args(args):
         fields = args
@@ -396,7 +382,7 @@ def make(app, api, cached, store):
 
     @guarded
     @logged
-    @require_args(['user_id', 'entry_id'])
+    @require(['user_id', 'entry_id'])
     def plus(user_id, entry_id):
         store.plus(user_id, entry_id)
         store.db.session.commit()
@@ -426,7 +412,7 @@ def make(app, api, cached, store):
     @api.route('/stream/plus', methods=['GET'])
     @logged
     @streamed
-    @require_args(['user_id', 'entry_id'])
+    @require(['user_id', 'entry_id'])
     def stream_plus(user_id, entry_id):
         store.plus(user_id, entry_id)
         store.db.session.commit()
@@ -435,7 +421,7 @@ def make(app, api, cached, store):
     @api.route('/stream/minus', methods=['GET'])
     @logged
     @streamed
-    @require_args(['user_id', 'entry_id'])
+    @require(['user_id', 'entry_id'])
     def stream_minus(user_id, entry_id):
         store.minus(user_id, entry_id)
         store.db.session.commit()
@@ -466,7 +452,7 @@ def make(app, api, cached, store):
 
     @guarded
     @logged
-    @require_args(['user_id', 'entry_id'])
+    @require(['user_id', 'entry_id'])
     def minus(user_id, entry_id):
         store.minus(user_id, entry_id)
         store.db.session.commit()

@@ -29,3 +29,25 @@ def timed(f):
 
 def thumbmd5(md5, width):
     return calcmd5(('%s.%d' % (md5, width)).encode('ascii'))
+
+
+def require(fields):
+    from .local import request_kargs
+    from flask import jsonify
+
+    def gen(f):
+        @wraps(f)
+        def g(*args, **kargs):
+            for key in fields:
+                value = request_kargs.get(key)
+                if value is None:
+                    return jsonify({
+                        'error': {
+                            'message': 'require arg: %s' % key
+                        }
+                    })
+                kargs[key] = value
+            return f(*args, **kargs)
+        return g
+
+    return gen
