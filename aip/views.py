@@ -563,22 +563,26 @@ def make(app, oid, cached, store):
             )
         })
 
-    @app.route('/plus', method=['POST'])
+    @app.route('/plus', methods=['POST'])
     @timed
     @require(['user_id', 'art_id'])
     def plus(user_id, art_id):
         core.plus(user_id, art_id)
         return jsonify({
-            'count': core.plus_count(art_id)
+            'result': {
+                'count': core.plus_count(art_id)
+            }
         })
 
-    @app.route('/minus', method=['POST'])
+    @app.route('/minus', methods=['POST'])
     @timed
     @require(['user_id', 'art_id'])
     def minus(user_id, art_id):
         core.minus(user_id, art_id)
         return jsonify({
-            'count': core.minus_count(art_id)
+            'result': {
+                'count': core.plus_count(art_id)
+            }
         })
 
     @app.context_processor

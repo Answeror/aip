@@ -5,6 +5,7 @@ from flask import (
     request,
     g,
 )
+import json
 
 
 def get_user_bi_someid():
@@ -46,9 +47,10 @@ def get_request_kargs():
     d = getattr(g, '_request_kargs', None)
     if d is None:
         d = {}
-        for name in ('form', 'json', 'args'):
-            if getattr(request, name):
-                d.update(getattr(request, name))
+        if request.method == 'GET':
+            d.update(request.args)
+        else:
+            d.update(json.loads(request.data.decode('utf-8')))
         g._request_kargs = d
     return d
 

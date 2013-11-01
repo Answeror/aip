@@ -13,10 +13,13 @@
             $plus.addClass('btn-primary');
             function minus() {
                 disable();
-                $.aip.stream({
-                    url: '/api/stream/minus',
-                    data: { user_id: $.aip.user_id(), entry_id: entry }
-                }).done(function(data) {
+                $.ajax({
+                    type: 'POST',
+                    url: '/minus',
+                    data: JSON.stringify({ user_id: $.aip.user_id(), art_id: entry }),
+                    contentType: 'application/json',
+                    dataType: 'json'
+                }).then($.aip.jsonresult).done(function(data) {
                     $plus.data('count', data.count);
                     $plus.data('plused', false);
                     $plus.plus_update();
@@ -30,10 +33,13 @@
             $plus.removeClass('btn-primary');
             function plus() {
                 disable();
-                $.aip.stream({
-                    url: '/api/stream/plus',
-                    data: { user_id: $.aip.user_id(), entry_id: entry }
-                }).done(function(data) {
+                $.ajax({
+                    type: 'POST',
+                    url: '/plus',
+                    data: JSON.stringify({ user_id: $.aip.user_id(), art_id: entry }),
+                    contentType: 'application/json',
+                    dataType: 'json'
+                }).then($.aip.jsonresult).done(function(data) {
                     $plus.data('count', data.count);
                     $plus.data('plused', true);
                     $plus.plus_update();

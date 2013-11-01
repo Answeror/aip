@@ -183,7 +183,7 @@ class Core(object):
 
     @sessioned
     def minus(self, user_id, art_id, session, commit):
-        rows = session.scalar(
+        session.execute(
             self.db.table(self.db.Plus).delete(
                 self.db.and_(
                     self.db.Plus.user_id == user_id,
@@ -191,8 +191,6 @@ class Core(object):
                 )
             )
         )
-        if rows == 0:
-            log.warning("minus didn't delete any rows")
         if commit:
             try:
                 session.commit()
