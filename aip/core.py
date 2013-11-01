@@ -23,7 +23,7 @@ def sessioned(f):
     def inner(self, *args, **kargs):
         if 'session' not in kargs:
             kargs['session'] = self.db.session
-        return f(*args, **kargs)
+        return f(self, *args, **kargs)
     return inner
 
 
