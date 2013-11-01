@@ -32,6 +32,14 @@ def wrap(name):
     return BASE + name
 
 
+def error_code(r):
+    d = r.json()
+    code = d.get('error_code', None)
+    if code is None:
+        code = d.get('content', {}).get('error_code', None)
+    return code
+
+
 class BaiduPCS(NameMixin):
 
     def __init__(self, access_token):
@@ -48,7 +56,10 @@ class BaiduPCS(NameMixin):
     def _save(self, name, data):
         r = self.pcs.upload(wrap(name), data, ondup='overwrite')
         if not r.ok:
-            raise BadResponse(r)
+            if r.status_code == 400 and error_code(r) == 31061:
+                pass
+            else:
+                raise BadResponse(r)
 
     def _thumbnail(self, name, width, height):
         data = self.load(name)
@@ -95,7 +106,7 @@ class BaiduPCS(NameMixin):
 def ensure_base(pcs, base):
     r = pcs.mkdir(base)
     if not r.ok:
-        if r.status_code == 400 and r.json()['error_code'] == 31061:
+        if r.status_code == 400 and error_code(r) == 31061:
             r = pcs.meta(base)
             if not r.ok:
                 raise BadResponse(r)
