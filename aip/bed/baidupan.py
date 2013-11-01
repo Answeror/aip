@@ -93,6 +93,11 @@ class BaiduPan(object):
         if uri:
             return uri.replace('http://', '//')
 
+    def uri_detail(self, md5, life=None):
+        uri = self.uri(md5)
+        if uri:
+            return Detail(uri, life)
+
 
 def parse_response(r, md5):
     if 'list' not in r:
@@ -106,3 +111,22 @@ def parse_response(r, md5):
     except:
         log.exception('get uri of {} failed, response: {}', md5, r)
         return None
+
+
+class Detail(object):
+
+    DEFAULT_LIFE = 600
+
+    def __init__(self, uri, life=None):
+        self.uri = uri
+        self.default_life = life
+        if self.default_life is None:
+            self.default_life = self.DEFAULT_LIFE
+
+    @property
+    def life(self):
+        import re
+        m = re.search(r'expires=(\d+)h', self.uri)
+        if m:
+            return float(m.group(1)) * 3600
+        return self.default_life

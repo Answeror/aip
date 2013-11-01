@@ -1,13 +1,26 @@
 #!/usr/bin/env python
 
 
-from logbook import FileHandler
+from logbook import TimedRotatingFileHandler
 import logbook
 import os
 from aip.log import RedisSub
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+
+
+def path(filename):
+    return os.path.join(CURRENT_PATH, 'data', filename)
+
+
+def handle(level):
+    return TimedRotatingFileHandler(
+        path('aip.%s.log' % level),
+        date_format='%Y-%m-%d',
+        level=getattr(logbook, level.upper()),
+        bubble=True,
+    )
 
 
 def main():
@@ -19,12 +32,10 @@ def main():
 
     sub = RedisSub()
     with logbook.NullHandler().applicationbound():
-        with FileHandler(
-            os.path.join(CURRENT_PATH, 'data', 'aip.redis.log'),
-            level=logbook.DEBUG,
-            bubble=True,
-        ):
-            sub.dispatch_forever()
+        with handle('debug'):
+            with handle('info'):
+                with handle('error'):
+                    sub.dispatch_forever()
 
 
 if __name__ == '__main__':

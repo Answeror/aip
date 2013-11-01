@@ -15,7 +15,7 @@ log = Log(__name__)
 
 
 def baidupan_redis_key(md5, width):
-    return 'baidupan.' + thumbmd5(md5, width)
+    return ':'.join(['baidupan', thumbmd5(md5, width)])
 
 
 def sessioned(f):
@@ -62,14 +62,19 @@ class Core(object):
         if not hasattr(self, 'baidupan'):
             return None
 
-        uri = self.baidupan.uri(thumbmd5(md5, width))
-        if uri:
+        detail = self.baidupan.uri_detail(
+            thumbmd5(md5, width),
+            life=self.baidupan_timeout,
+        )
+        if detail:
+            life = int(max(self.baidupan_timeout, detail.life - 60))
+            log.debug('{} life: {}', detail.uri, life)
             self.redis.setex(
                 baidupan_redis_key(md5, width),
-                uri.encode('ascii'),
-                self.baidupan_timeout,
+                detail.uri.encode('ascii'),
+                life,
             )
-            return uri
+            return detail.uri
 
         work.nonblock(
             tasks.persist_thumbnail_to_baidupan,
