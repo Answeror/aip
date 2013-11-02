@@ -31,7 +31,7 @@ def _timed(f, level):
             start = time()
             return f(*args, **kargs)
         finally:
-            getattr(log, name)('{} take {}', f.__name__, time() - start)
+            getattr(log, level)('{} take {}', f.__name__, time() - start)
     return inner
 
 
