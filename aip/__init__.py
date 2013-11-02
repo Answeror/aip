@@ -91,4 +91,7 @@ def make(config=None, dbmode=False, **kargs):
         from . import api
         api.make(app=app, cached=cached, store=app.store)
 
+        from . import admin
+        admin.make(app=app)
+
     return app

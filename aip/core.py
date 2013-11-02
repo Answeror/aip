@@ -2,7 +2,10 @@ from .utils import thumbmd5
 from . import tasks
 from .log import Log
 from . import work
-from flask import current_app
+from flask import (
+    current_app,
+    copy_current_request_context,
+)
 from .bed.baidupan import BaiduPan
 from redis import Redis
 from contextlib import contextmanager
@@ -93,7 +96,7 @@ class Core(object):
             return detail.uri
 
         work.nonblock_call(
-            tasks.persist_thumbnail_to_baidupan,
+            copy_current_request_context(tasks.persist_thumbnail_to_baidupan),
             kargs=dict(
                 makeapp=lambda: current_app,
                 md5=md5,
@@ -107,7 +110,7 @@ class Core(object):
         if bim:
             return bim.link.replace('http://', 'https://')
         work.nonblock_call(
-            tasks.persist_thumbnail_to_imgur,
+            copy_current_request_context(tasks.persist_thumbnail_to_imgur),
             kargs=dict(
                 makeapp=lambda: current_app,
                 md5=md5,
@@ -220,3 +223,21 @@ class Core(object):
                     user_id,
                     art_id
                 )
+
+    @sessioned
+    def set_baidupcs_access_token(self, value, session, commit):
+        session.merge(self.db.Meta(
+            id='baidupcs_access_token',
+            value=value.encode('ascii')
+        ))
+        if commit:
+            session.commit()
+
+    @sessioned
+    def set_baidupcs_refresh_token(self, value, session, commit):
+        session.merge(self.db.Meta(
+            id='baidupcs_refresh_token',
+            value=value.encode('ascii')
+        ))
+        if commit:
+            session.commit()
