@@ -2,8 +2,6 @@ from .utils import thumbmd5
 from . import tasks
 from .log import Log
 from . import work
-from . import make as makeapp
-from functools import partial
 from flask import current_app
 from .bed.baidupan import BaiduPan
 from redis import Redis
@@ -94,22 +92,28 @@ class Core(object):
             )
             return detail.uri
 
-        work.nonblock(
+        work.nonblock_call(
             tasks.persist_thumbnail_to_baidupan,
-            makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
-            md5=md5,
-            width=width,
+            kargs=dict(
+                makeapp=lambda: current_app,
+                md5=md5,
+                width=width,
+            ),
+            bound='io',
         )
 
     def imgur_thumbnail_linkout(self, md5, width):
         bim = self.db.imgur_bi_md5(thumbmd5(md5, width))
         if bim:
             return bim.link.replace('http://', 'https://')
-        work.nonblock(
+        work.nonblock_call(
             tasks.persist_thumbnail_to_imgur,
-            makeapp=partial(makeapp, dbmode=True, **current_app.kargs),
-            md5=md5,
-            width=width,
+            kargs=dict(
+                makeapp=lambda: current_app,
+                md5=md5,
+                width=width,
+            ),
+            bound='io',
         )
 
     def thumbnail_linkout(self, md5, width):

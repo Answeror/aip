@@ -85,3 +85,5 @@ def make_thread_slave(slave_count):
 
     import atexit
     atexit.register(cleanup)
+
+    return ex
