@@ -4,8 +4,7 @@ import requests
 import http.cookies
 from ..log import Log
 import urllib.parse
-from requests.adapters import HTTPAdapter
-from nose.tools import assert_greater_equal
+from ..utils import init_session_retry
 
 
 log = Log(__name__)
@@ -29,28 +28,26 @@ def timestamp():
     return int(time.time() * 1000)
 
 
-def init_session_retry(s, max_retries):
-    assert_greater_equal(max_retries, 0)
-    s.mount('http://', HTTPAdapter(max_retries=max_retries))
-    s.mount('https://', HTTPAdapter(max_retries=max_retries))
-
-
 def init_session_cookies(s, cookies):
+    c = http.cookies.SimpleCookie()
+    c.load(cookies)
+    s.cookies.update(c)
+
+
+def init_session_headers(s):
     s.headers.update({
         'User-agent': ''.join([
             'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.4',
             '(KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4',
         ])
     })
-    c = http.cookies.SimpleCookie()
-    c.load(cookies)
-    s.cookies.update(c)
 
 
 class BaiduPan(object):
 
     def __init__(self, cookies, max_retries=3):
         self.session = requests.Session()
+        init_session_headers(self.session)
         init_session_cookies(self.session, cookies)
         init_session_retry(self.session, max_retries)
 

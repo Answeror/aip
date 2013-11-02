@@ -43,11 +43,19 @@ def persist_thumbnail_to_imgur(makeapp, md5, width):
 def persist_thumbnail_to_baidupan(makeapp, md5, width):
     app = makeapp()
     from .imfs.baidupcs import BaiduPCS
+    from .imfs import ImfsError
     imfs = BaiduPCS(app.config['AIP_BAIDUPCS_ACCESS_TOKEN'])
     with app.app_context():
         data = app.store.thumbnail_bi_md5(md5, width)
-        imfs.save(thumbmd5(md5, width), data)
-        log.info('width {} thumbnail of {} saved to baidupan', width, md5)
+        try:
+            imfs.save(thumbmd5(md5, width), data)
+            log.info('width {} thumbnail of {} saved to baidupan', width, md5)
+        except ImfsError:
+            log.exception(
+                'safe {} thumbnail of {} to baidupan failed',
+                width,
+                md5
+            )
 
 
 def test_log():

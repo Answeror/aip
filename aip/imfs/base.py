@@ -53,3 +53,21 @@ class NotFoundError(ImfsError):
 
     def __str__(self):
         return '%s not found' % self.name
+
+
+class ConnectionError(ImfsError):
+    pass
+
+
+def guarded(f):
+    import requests.exceptions
+    from functools import wraps
+
+    @wraps(f)
+    def g(*args, **kargs):
+        try:
+            return f(*args, **kargs)
+        except requests.exceptions.ConnectionError as e:
+            raise ConnectionError(str(e))
+
+    return g

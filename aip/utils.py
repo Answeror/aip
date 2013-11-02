@@ -51,3 +51,11 @@ def require(fields):
         return g
 
     return gen
+
+
+def init_session_retry(session, max_retries):
+    from requests.adapters import HTTPAdapter
+    from nose.tools import assert_greater_equal
+    assert_greater_equal(max_retries, 0)
+    session.mount('http://', HTTPAdapter(max_retries=max_retries))
+    session.mount('https://', HTTPAdapter(max_retries=max_retries))

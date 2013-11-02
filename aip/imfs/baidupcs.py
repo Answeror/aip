@@ -1,4 +1,4 @@
-from .base import NameMixin, ImfsError, NotFoundError
+from .base import NameMixin, ImfsError, NotFoundError, guarded
 from .utils import thumbnail
 from pprint import pformat
 from .. import img
@@ -8,11 +8,11 @@ from datetime import datetime
 BASE = '/apps/aip/cache/'
 
 
-class PCSException(ImfsError):
+class PCSError(ImfsError):
     pass
 
 
-class BadResponse(PCSException):
+class BadResponse(PCSError):
 
     def __init__(self, r):
         self.status_code = r.status_code
@@ -45,6 +45,7 @@ class BaiduPCS(NameMixin):
     def __init__(self, access_token):
         self.access_token = access_token
 
+    @guarded
     def _load(self, name):
         r = self.pcs.download(wrap(name))
         if r.status_code == 404:
@@ -53,6 +54,7 @@ class BaiduPCS(NameMixin):
             raise BadResponse(r)
         return r.content
 
+    @guarded
     def _save(self, name, data):
         r = self.pcs.upload(wrap(name), data, ondup='overwrite')
         if not r.ok:
@@ -67,9 +69,10 @@ class BaiduPCS(NameMixin):
             return None
         kind = img.kind(data=data)
         if kind is None:
-            raise PCSException('cannot detect image type')
+            raise PCSError('cannot detect image type')
         return thumbnail(data, kind, width, height)
 
+    @guarded
     def _has(self, name):
         r = self.pcs.meta(wrap(name))
         if r.status_code == 404:
@@ -78,11 +81,13 @@ class BaiduPCS(NameMixin):
             raise BadResponse(r)
         return True
 
+    @guarded
     def _remove(self, name):
         r = self.pcs.delete(wrap(name))
         if not r.ok and r.status_code not in (404,):
             raise BadResponse(r)
 
+    @guarded
     def _mtime(self, name):
         r = self.pcs.meta(wrap(name))
         if not r.ok:
@@ -103,6 +108,7 @@ class BaiduPCS(NameMixin):
         return self._pcs
 
 
+@guarded
 def ensure_base(pcs, base):
     r = pcs.mkdir(base)
     if not r.ok:
@@ -111,6 +117,6 @@ def ensure_base(pcs, base):
             if not r.ok:
                 raise BadResponse(r)
             if not r.json()['list'][0]['isdir']:
-                raise PCSException('%s is not dir' % base)
+                raise PCSError('%s is not dir' % base)
         else:
             raise BadResponse(r)
