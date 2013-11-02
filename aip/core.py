@@ -244,4 +244,6 @@ class Core(object):
 
     @sessioned
     def baidupcs_access_token(self, session, commit):
-        return session.query(self.db.Meta).get('baidupcs_access_token')
+        meta = session.query(self.db.Meta).get('baidupcs_access_token')
+        if meta is not None:
+            return meta.value.decode('ascii')
