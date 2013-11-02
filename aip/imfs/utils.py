@@ -3,6 +3,7 @@ from io import BytesIO
 from ..log import Log
 from nose.tools import assert_greater
 from ..utils import calcmd5
+from .. import work
 
 
 log = Log(__name__)
@@ -116,7 +117,16 @@ def thumbnail(data, kind, width, height):
             return ret
     ret = safe(use_pil, data, kind, width, height)
     if ret is None:
-        ret = safe(use_wand, data, kind, width, height)
+        # wand seems consume many memory, make it run in other process
+        # and free the memory soon
+        ret = work.block(
+            safe,
+            use_wand,
+            data,
+            kind,
+            width,
+            height,
+        )
     assert ret is not None, 'all thumbail method failed for {}' % calcmd5(data)
     return ret
 
