@@ -17,13 +17,21 @@ calcmd5 = md5
 
 
 def timed(f):
+    return _timed(f, 'info')
+
+
+def debug_timed(f):
+    return _timed(f, 'debug')
+
+
+def _timed(f, level):
     @wraps(f)
     def inner(*args, **kargs):
         try:
             start = time()
             return f(*args, **kargs)
         finally:
-            log.info('{} take {}', f.__name__, time() - start)
+            getattr(log, name)('{} take {}', f.__name__, time() - start)
     return inner
 
 
