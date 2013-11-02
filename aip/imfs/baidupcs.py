@@ -33,11 +33,14 @@ def wrap(name):
 
 
 def error_code(r):
-    d = r.json()
-    code = d.get('error_code', None)
-    if code is None:
-        code = d.get('content', {}).get('error_code', None)
-    return code
+    try:
+        d = r.json()
+        code = d.get('error_code', None)
+        if code is None:
+            code = d.get('content', {}).get('error_code', None)
+        return code
+    except:
+        return None
 
 
 class BaiduPCS(NameMixin):
