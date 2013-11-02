@@ -193,9 +193,7 @@ class Core(object):
             if commit:
                 session.commit()
         except IntegrityError as e:
-            code, _ = e.orig
-            # http://stackoverflow.com/q/8072537/238472
-            if code == 1062:
+            if 'duplicate' in str(e):
                 log.warning('duplicated plus ({}, {})', user_id, art_id)
                 pass
 
