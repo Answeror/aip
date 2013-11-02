@@ -50,6 +50,8 @@ AIP_PROFILE_NAME = 'prof'
 AIP_PROFILE_MODE = 'a'
 AIP_PROFILE_SORT = ['time', 'cumulative', 'calls']
 
+AIP_THREAD_SLAVE_COUNT = 16
+
 try:
     import pkg_resources
     AIP_VERSION = pkg_resources.require('aip.core')[0].version

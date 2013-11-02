@@ -6,6 +6,7 @@ from flask import (
     g,
 )
 import json
+import threading
 
 
 def get_user_bi_someid():
@@ -56,3 +57,31 @@ def get_request_kargs():
 
 
 request_kargs = LocalProxy(get_request_kargs)
+
+thread_slave_lock = threading.RLock()
+
+
+def get_thread_slave():
+    s = getattr(g, '_thread_slave', None)
+    if s is None:
+        with thread_slave_lock:
+            if not hasattr(current_app, '_thread_slave'):
+                current_app._thread_slave = make_thread_slave(
+                    current_app.config['AIP_THREAD_SLAVE_COUNT']
+                )
+        s = g._thread_slave = current_app._thread_slave
+    return s
+
+
+thread_slave = LocalProxy(get_thread_slave)
+
+
+def make_thread_slave(slave_count):
+    from concurrent.futures import ThreadPoolExecutor as Ex
+    ex = Ex(slave_count)
+
+    def cleanup():
+        ex.shutdown()
+
+    import atexit
+    atexit.register(cleanup)

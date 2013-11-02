@@ -7,20 +7,6 @@ from flask import Flask
 from .log import RedisPub
 
 
-def init_slaves(app):
-    def cleanup():
-        if 'AIP_EXECUTOR' in app.config:
-            app.config['AIP_EXECUTOR'].shutdown()
-
-    import atexit
-    atexit.register(cleanup)
-    from concurrent.futures import ThreadPoolExecutor as Ex
-    app.config['AIP_EXECUTOR'] = ex = Ex(8)
-    # trigger process creation
-    import math
-    ex.map(math.sqrt, list(range(42)))
-
-
 def init_conf(app, config):
     # basic config
     from . import config as base

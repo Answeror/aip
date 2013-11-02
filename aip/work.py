@@ -18,7 +18,29 @@ def block(f, *args, **kargs):
     return block_call(f, args, kargs)
 
 
-def block_call(f, args=[], kargs={}, timeout=None):
+def block_call(f, args=[], kargs={}, timeout=None, bound='cpu'):
+    impl = {
+        'cpu': cpu_bound_block_call,
+        'io': io_bound_block_call,
+    }.get(bound)
+    assert impl, 'unknown bound type: %s' % bound
+    return impl(f, args, kargs, timeout)
+
+
+def nonblock(f, *args, **kargs):
+    return nonblock_call(f, args, kargs)
+
+
+def nonblock_call(f, args=[], kargs={}, timeout=None, bound='cpu'):
+    impl = {
+        'cpu': cpu_bound_nonblock_call,
+        'io': io_bound_nonblock_call,
+    }.get(bound)
+    assert impl, 'unknown bound type: %s' % bound
+    return impl(f, args, kargs, timeout)
+
+
+def cpu_bound_block_call(f, args, kargs, timeout):
     try:
         from .rq import q
         from time import sleep
@@ -44,11 +66,26 @@ def block_call(f, args=[], kargs={}, timeout=None):
             return future.result()
 
 
-def nonblock(f, *args, **kargs):
-    return nonblock_call(f, args, kargs)
+def io_bound_block_call(f, args, kargs, timeout):
+    from .local import thread_slave
+    return thread_slave.submit(
+        guard,
+        args=[f] + list(args),
+        kwargs=kargs,
+    ).result(timeout)
 
 
-def nonblock_call(f, args=[], kargs={}, timeout=None):
+def io_bound_nonblock_call(f, args, kargs, timeout):
+    assert timeout is None, "thread based non-block doesn't support timeout"
+    from .local import thread_slave
+    return thread_slave.submit(
+        guard,
+        args=[f] + list(args),
+        kwargs=kargs,
+    )
+
+
+def cpu_bound_nonblock_call(f, args, kargs, timeout):
     try:
         from .rq import q
         q.enqueue_call(
