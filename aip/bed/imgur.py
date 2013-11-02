@@ -11,7 +11,7 @@ from ..log import Log
 from random import shuffle
 import requests
 import http.client
-import requests.exception
+import requests.exceptions
 
 
 log = Log(__name__)
