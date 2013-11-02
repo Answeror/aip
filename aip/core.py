@@ -128,6 +128,16 @@ class Core(object):
     def art_bi_md5(self, md5):
         return self.db.art_bi_md5(md5)
 
+    @sessioned
+    def art_detail_bi_md5(self, md5, session, commit):
+        return (
+            session.query(self.db.Entry)
+            .filter_by(md5=md5)
+            .options(self.db.joinedload(self.Entry.posts, inner=True))
+            .options(self.db.subqueryload(self.Entry.tags))
+            .first()
+        )
+
     @contextmanager
     def scoped_all_session(self):
         try:

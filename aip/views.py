@@ -552,7 +552,7 @@ def make(app, oid, cached, store):
     @app.route('/art/detail/part/<md5>', methods=['GET'])
     @timed
     def art_detail_part(md5):
-        art = debug_timed(core.art_bi_md5)(md5)
+        art = debug_timed(core.art_detail_bi_md5)(md5)
         if art is None:
             return not_exist_resp()
 
