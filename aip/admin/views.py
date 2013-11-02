@@ -66,3 +66,10 @@ def make(app, admin):
                 'baidupcs_redirect.html',
                 message=str(e)
             )
+
+    @admin.route('/test')
+    def test():
+        return render_template(
+            'baidupcs_redirect.html',
+            message='test page'
+        )

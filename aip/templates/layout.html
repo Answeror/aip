@@ -11,9 +11,9 @@
         <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
         <![endif]-->
         <!-- Le styles -->
-        <link rel="stylesheet" href="{{ url_for('.static', filename='bootstrap/css/bootstrap.min.css') }}" media='screen'>
+        <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}" media='screen'>
         <link href='//fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
-        <link rel='stylesheet' href="{{ url_for('.style') }}">
+        <link rel='stylesheet' href="{{ url_for('style') }}">
         <script src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
         {% block head %}{% endblock %}
     </head>
@@ -33,8 +33,8 @@
             </div>
         </div>
         <script src='//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js' ></script>
-        <script src="{{ url_for('.static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
-        <script src="{{ url_for('.static', filename='js/android.ios.html.class.js') }}"></script>
+        <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/android.ios.html.class.js') }}"></script>
         <div id=brand-popup style='display:none'>{% include "brand.html" %}</div>
         <script>
             $('span.momentjs').each(function() {

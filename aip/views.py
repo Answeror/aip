@@ -20,7 +20,6 @@ from flask import (
 from operator import attrgetter as attr
 from collections import namedtuple
 from urllib.parse import urlparse, urlunparse
-from .layout import render_layout
 from functools import wraps
 from .log import Log
 from time import time
@@ -34,7 +33,7 @@ from . import tasks
 from .utils import timed, debug_timed
 from nose.tools import assert_in, assert_is
 import json
-from .local import current_user, authed, core
+from .local import current_user, authed, core, since_last_update
 
 
 Post = namedtuple('Post', (
@@ -252,7 +251,7 @@ def make(app, oid, cached, store):
                     )
                     store.db.session.commit()
                     return redirect(oid.get_next_url())
-        return render_layout(
+        return render_template(
             'create_profile.html',
             next_url=oid.get_next_url()
         )
@@ -266,11 +265,11 @@ def make(app, oid, cached, store):
     @app.route('/')
     def posts():
         tags = request.args.get('q', '')
-        return render_layout('index.html', tags=tags)
+        return render_template('index.html', tags=tags)
 
     @app.route('/plused')
     def plused():
-        return render_layout('plused.html')
+        return render_template('plused.html')
 
     def scss_sources(root):
         sources = []
@@ -386,7 +385,7 @@ def make(app, oid, cached, store):
 
     @app.route('/about')
     def about():
-        return render_layout('about.html')
+        return render_template('about.html')
 
     @app.route('/raw/<md5>', methods=['GET'])
     def raw(md5):
@@ -596,4 +595,5 @@ def make(app, oid, cached, store):
             current_user=current_user,
             authed=authed,
             momentjs=momentjs,
+            since_last_update=since_last_update,
         )

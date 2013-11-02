@@ -87,3 +87,11 @@ def make_thread_slave(slave_count):
     atexit.register(cleanup)
 
     return ex
+
+
+def since_last_update():
+    import pickle
+    from datetime import datetime
+    t = g.last_update_time
+    t = datetime(year=1970, month=1, day=1) if t is None else pickle.loads(t)
+    return t

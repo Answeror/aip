@@ -19,7 +19,6 @@ from ..async.background import Background
 from ..async.subpub import Subpub
 import json
 import time
-from ..layout import render_layout
 from nose.tools import assert_equal
 from ..log import Log
 from .. import make as makeapp
@@ -353,7 +352,7 @@ def make(app, api, cached, store):
     def plused_page_html(id):
         user = get_user_bi_someid()
         r = slice(g.per * id, g.per * (id + 1), 1)
-        return jsonify(result=render_layout('page.html', entries=wrap(user.get_plused(r))))
+        return jsonify(result=render_template('page.html', entries=wrap(user.get_plused(r))))
 
     @api.route('/stream/plused/page/html/<int:id>', methods=['GET'])
     @logged
@@ -361,7 +360,7 @@ def make(app, api, cached, store):
     def stream_plused_page_html(id):
         user = get_user_bi_someid()
         r = slice(g.per * id, g.per * (id + 1), 1)
-        yield dump_result(render_layout('page.html', entries=wrap(user.get_plused(r))))
+        yield dump_result(render_template('page.html', entries=wrap(user.get_plused(r))))
 
     @api.route('/plused', methods=['GET'])
     @guarded

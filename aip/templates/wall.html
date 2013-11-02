@@ -38,11 +38,11 @@
     <div class='level level-1'></div>
 {% endblock %}
 {% block script %}
-    <script src="{{ url_for('.static', filename='js/scroll.js') }}"></script>
-    <script src="{{ url_for('.static', filename='jquery-visible/jquery.visible.js') }}"></script>
-    <script src="{{ url_for('.static', filename='masonry.pkgd.min.js') }}"></script>
-    <script src="{{ url_for('.static', filename='waypoints.min.js') }}"></script>
-    <script src="{{ url_for('.static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
-    <script src="{{ url_for('.static', filename='js/jquery.ba-bbq.min.js') }}"></script>
-    <script src="{{ url_for('.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/scroll.js') }}"></script>
+    <script src="{{ url_for('static', filename='jquery-visible/jquery.visible.js') }}"></script>
+    <script src="{{ url_for('static', filename='masonry.pkgd.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='waypoints.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/imagesloaded.pkgd.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.ba-bbq.min.js') }}"></script>
+    <script src="{{ url_for('js') }}"></script>
 {% endblock %}
