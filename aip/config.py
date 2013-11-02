@@ -45,6 +45,11 @@ AIP_PULLING_INTERVAL = 2
 AIP_BAIDUPAN_TIMEOUT = 600
 AIP_UPDATE_TIMEOUT = 600
 
+AIP_PROFILE = False
+AIP_PROFILE_NAME = 'prof'
+AIP_PROFILE_MODE = 'a'
+AIP_PROFILE_SORT = ['time', 'cumulative', 'calls']
+
 try:
     import pkg_resources
     AIP_VERSION = pkg_resources.require('aip.core')[0].version

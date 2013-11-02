@@ -30,15 +30,24 @@ def profed(f):
     @wraps(f)
     def g(*args, **kargs):
         with closing(Tee(
-            os.path.join(current_app.config['AIP_TEMP_PATH'], 'prof'),
-            'a'
+            os.path.join(
+                current_app.config['AIP_TEMP_PATH'],
+                current_app.config['AIP_PROFILE_NAME'],
+            ),
+            current_app.config['AIP_PROFILE_MODE'],
         )):
-            return profile(immediate=True)(f)(*args, **kargs)
+            return profile(
+                immediate=True,
+                sort=current_app.config['AIP_PROFILE_SORT'],
+            )(f)(*args, **kargs)
     return g
 
 
 def debug_timed(f):
-    return _timed(profed(f), 'debug')
+    from flask import current_app
+    if current_app.config['AIP_PROFILE']:
+        f = profed(f)
+    return _timed(f, 'debug')
 
 
 def _timed(f, level):
