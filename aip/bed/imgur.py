@@ -10,6 +10,7 @@ from .base import FetchImageMixin
 from ..log import Log
 from random import shuffle
 import requests
+import http.client
 
 
 log = Log(__name__)
@@ -91,13 +92,21 @@ class Imgur(FetchImageMixin):
                     deletehash=d['data']['deletehash'],
                     link=d['data']['link']
                 )
+            except http.client.BadStatusLine:
+                log.warning(
+                    ''.join([
+                        'upload {} data to imgur using client_id {} failed, ',
+                        'server closed connection'
+                    ]),
+                    md5,
+                    client_id
+                )
             except:
                 log.exception(
                     'upload {} data to imgur using client_id {} failed',
                     md5,
                     client_id
                 )
-                return None
 
         for client_id in self.shuffled_client_ids():
             ret = use_one_client_id(client_id)
