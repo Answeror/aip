@@ -1,4 +1,4 @@
-from ..work import nonblock
+from ..work import nonblock_call
 
 
 class AsyncSave(object):
@@ -7,7 +7,11 @@ class AsyncSave(object):
         self.base = base
 
     def save(self, name, data):
-        return nonblock(self.base.save, name, data)
+        return nonblock_call(
+            self.base.save,
+            args=[name, data],
+            bound='io'
+        )
 
     def __getattr__(self, name):
         return getattr(self.base, name)
