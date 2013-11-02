@@ -46,8 +46,8 @@ def persist_thumbnail_to_baidupan(makeapp, md5, width):
     from .imfs import ImfsError
     imfs = BaiduPCS(app.config['AIP_BAIDUPCS_ACCESS_TOKEN'])
     with app.app_context():
-        data = app.store.thumbnail_bi_md5(md5, width)
         try:
+            data = app.store.thumbnail_bi_md5(md5, width)
             imfs.save(thumbmd5(md5, width), data)
             log.info('width {} thumbnail of {} saved to baidupan', width, md5)
         except ImfsError:
