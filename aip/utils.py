@@ -93,3 +93,4 @@ def init_session_retry(session, max_retries):
     assert_greater_equal(max_retries, 0)
     session.mount('http://', HTTPAdapter(max_retries=max_retries))
     session.mount('https://', HTTPAdapter(max_retries=max_retries))
+    return session
