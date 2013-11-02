@@ -18,6 +18,7 @@ from .imfs.utils import thumbnail
 from sqlalchemy import inspect
 from .local import imfs
 from .utils import init_session_retry
+from flask import current_app
 
 
 def _scalar_all(self):
