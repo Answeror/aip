@@ -490,7 +490,7 @@ def make(app, oid, cached, store):
 
     @app.route('/test/log', methods=['GET'])
     def test_log():
-        work.nonblock(tasks.test_log)
+        work.nonblock_call(tasks.test_log, bound='io')
         return jsonify({})
 
     def cache_timeout():

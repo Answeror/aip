@@ -58,31 +58,19 @@ def cpu_bound_block_call(f, args, kargs, timeout):
     except:
         from concurrent.futures import ProcessPoolExecutor as Ex
         with Ex() as ex:
-            future = ex.submit(
-                target=guard,
-                args=[f] + list(args),
-                kwargs=kargs,
-            )
+            future = ex.submit(guard, f, *args, **kargs)
             return future.result()
 
 
 def io_bound_block_call(f, args, kargs, timeout):
     from .local import thread_slave
-    return thread_slave.submit(
-        guard,
-        args=[f] + list(args),
-        kwargs=kargs,
-    ).result(timeout)
+    return thread_slave.submit(guard, f, *args, **kargs).result(timeout)
 
 
 def io_bound_nonblock_call(f, args, kargs, timeout):
     assert timeout is None, "thread based non-block doesn't support timeout"
     from .local import thread_slave
-    return thread_slave.submit(
-        guard,
-        args=[f] + list(args),
-        kwargs=kargs,
-    )
+    return thread_slave.submit(guard, f, *args, **kargs)
 
 
 def cpu_bound_nonblock_call(f, args, kargs, timeout):
