@@ -137,7 +137,6 @@ class Core(object):
             session.query(self.db.Entry)
             .filter_by(md5=md5)
             .options(self.db.joinedload(self.db.Entry.posts, inner=True))
-            .options(self.db.subqueryload(self.db.Entry.tags))
             .first()
         )
         if art:
