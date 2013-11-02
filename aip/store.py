@@ -7,12 +7,9 @@ from sqlalchemy import func, and_, desc
 from sqlalchemy.orm.exc import NoResultFound
 from functools import partial, wraps
 from datetime import datetime
-import threading
-import pickle
 from contextlib import contextmanager
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import exc as orm_exc
-from sqlalchemy.orm.util import identity_key
 from fn.iters import chain
 from .sources import sources
 import requests
@@ -173,18 +170,25 @@ def make(app, create=False):
 
         @property
         def plus_count(self):
-            session = inspect(self).session
-            return session.scalar(
-                db.select([db.func.count('*')])
-                .select_from(table(Plus))
-                .where(Plus.entry_id == self.id)
-            )
+            if not hasattr(self, '_plus_count'):
+                gen = lambda session: session.scalar(
+                    db.select([db.func.count('*')])
+                    .select_from(table(Plus))
+                    .where(Plus.entry_id == self.id)
+                )
+                session = inspect(self).session
+                if session is None:
+                    with make_session() as session:
+                        self._plus_count = gen(session)
+                else:
+                    self._plus_count = gen(session)
+            return self._plus_count
 
         def _select_valid_size_post(self):
             if valid_size_post(self.best_post):
                 return self.best_post
             for post in self.posts:
-                if valie_size_post(post):
+                if valid_size_post(post):
                     return post
 
         def _cache_size(self):
@@ -476,7 +480,6 @@ def make(app, create=False):
 
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.UnicodeText, unique=True, index=True)
-        lock = threading.RLock()
 
         @property
         def short_name(self):
@@ -491,15 +494,7 @@ def make(app, create=False):
         def escape_name(cls, name):
             return name.replace(' ', '_')
 
-        def locked(f):
-            @wraps(f)
-            def inner(self, *args, **kargs):
-                with self.lock:
-                    return f(self, *args, **kargs)
-            return inner
-
         @classmethod
-        @locked
         def add(cls, tag):
             # http://stackoverflow.com/a/5083472
             db.session.add(tag)
@@ -521,7 +516,6 @@ def make(app, create=False):
                 return inst
 
         @classmethod
-        @locked
         def remove(cls, id):
             db.session.execute(db.delete(cls.__table__, db.where(cls.id == id)))
 

@@ -130,13 +130,17 @@ class Core(object):
 
     @sessioned
     def art_detail_bi_md5(self, md5, session, commit):
-        return (
+        art = (
             session.query(self.db.Entry)
             .filter_by(md5=md5)
             .options(self.db.joinedload(self.db.Entry.posts, inner=True))
             .options(self.db.subqueryload(self.db.Entry.tags))
             .first()
         )
+        if art:
+            # touch it, to prevent session expire
+            art.plus_count
+        return art
 
     @contextmanager
     def scoped_all_session(self):
