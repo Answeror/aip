@@ -56,7 +56,8 @@
                     e.preventDefault();
                 });
             }).fail(function(reason) {
-                $.aip.notice('load art detail failed: ' + reason);
+                console.log('load art detail failed: ' + JSON.stringify(reason));
+                $.aip.notice('load art detail failed');
             });
         });
     };

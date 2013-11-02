@@ -2,6 +2,7 @@ import logbook.queues
 import logbook
 import json
 import redis
+import sys
 
 
 Log = logbook.Logger
@@ -39,3 +40,23 @@ class RedisSub(logbook.queues.SubscriberBase):
         rv = self.r.blpop('aip.log')
         d = json.loads(rv[1].decode('utf-8'))
         return logbook.LogRecord.from_dict(d)
+
+
+class Tee(object):
+
+    def __init__(self, name, mode):
+        self.file = open(name, mode)
+        self.stdout = sys.stdout
+        sys.stdout = self
+
+    def close(self):
+        sys.stdout = self.stdout
+        self.file.flush()
+        self.file.close()
+
+    def write(self, data):
+        self.file.write(data)
+        self.stdout.write(data)
+
+    def flush(self):
+        self.file.flush()

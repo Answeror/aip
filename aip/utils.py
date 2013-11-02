@@ -20,19 +20,36 @@ def timed(f):
     return _timed(f, 'info')
 
 
+def profed(f):
+    from .log import Tee
+    from flask import current_app
+    import os
+    from profilehooks import profile
+    from contextlib import closing
+
+    @wraps(f)
+    def g(*args, **kargs):
+        with closing(Tee(
+            os.path.join(current_app.config['AIP_TEMP_PATH'], 'prof'),
+            'a'
+        )):
+            return profile(immediate=True)(f)(*args, **kargs)
+    return g
+
+
 def debug_timed(f):
-    return _timed(f, 'debug')
+    return _timed(profed(f), 'debug')
 
 
 def _timed(f, level):
     @wraps(f)
-    def inner(*args, **kargs):
+    def g(*args, **kargs):
         try:
             start = time()
             return f(*args, **kargs)
         finally:
             getattr(log, level)('{} take {}', f.__name__, time() - start)
-    return inner
+    return g
 
 
 def thumbmd5(md5, width):
