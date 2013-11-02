@@ -11,6 +11,7 @@ from ..log import Log
 from random import shuffle
 import requests
 import http.client
+import requests.exception
 
 
 log = Log(__name__)
@@ -24,6 +25,17 @@ imgur_thumbnails = (
 
 
 Image = namedtuple('Image', ('kind', 'md5', 'id', 'deletehash', 'link'))
+
+
+def upload_warning(client_id, md5, reason):
+    log.warning(
+        ''.join([
+            'upload {} data to imgur using client_id {} failed, ',
+            reason
+        ]),
+        md5,
+        client_id
+    )
 
 
 class Imgur(FetchImageMixin):
@@ -93,14 +105,9 @@ class Imgur(FetchImageMixin):
                     link=d['data']['link']
                 )
             except http.client.BadStatusLine:
-                log.warning(
-                    ''.join([
-                        'upload {} data to imgur using client_id {} failed, ',
-                        'server closed connection'
-                    ]),
-                    md5,
-                    client_id
-                )
+                upload_warning(client_id, md5, 'server closed connection')
+            except requests.exceptions.ConnectionError:
+                upload_warning(client_id, md5, 'due to connection error')
             except:
                 log.exception(
                     'upload {} data to imgur using client_id {} failed',
