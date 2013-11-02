@@ -19,6 +19,10 @@ from sqlalchemy import inspect
 from .local import imfs
 from .utils import init_session_retry
 from flask import current_app
+from .log import Log
+
+
+log = Log(__name__)
 
 
 def _scalar_all(self):
@@ -337,16 +341,27 @@ def make(app, create=False):
                         session,
                         current_app.config['AIP_GET_IMAGE_DATA_MAX_RETRY'],
                     )
+                    uris = []
                     for post in self.posts:
                         try:
+                            uris.append(post.image_url)
                             r = session.get(post.image_url)
                             if r.ok:
                                 data = r.content
                                 break
-                        except:
-                            pass
+                        except Exception as e:
+                            log.debug(
+                                'fetch image from {} failed: {}',
+                                post.image_url,
+                                str(e)
+                            )
                     else:
-                        raise Exception('get data of %s failed' % self.md5)
+                        raise Exception(
+                            'get data of {} failed, tried: {}'.format(
+                                self.md5,
+                                uris
+                            )
+                        )
                     imfs.save(self.md5, data)
                 self._data = data
             return self._data
