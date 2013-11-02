@@ -10,6 +10,7 @@ from .bed.baidupan import BaiduPan
 from redis import Redis
 from contextlib import contextmanager
 from functools import wraps
+from sqlalchemy.exc import IntegrityError
 
 
 log = Log(__name__)
@@ -182,24 +183,21 @@ class Core(object):
 
     @sessioned
     def plus(self, user_id, art_id, session, commit):
-        session.execute(
-            self.db.table(self.db.Plus).insert(dict(
-                user_id=user_id,
-                entry_id=art_id,
-            ))
-        )
-        if commit:
-            from sqlalchemy.exc import IntegrityError
-            try:
+        try:
+            session.execute(
+                self.db.table(self.db.Plus).insert(dict(
+                    user_id=user_id,
+                    entry_id=art_id,
+                ))
+            )
+            if commit:
                 session.commit()
-            except IntegrityError as e:
-                code, _ = e.orig
-                # http://stackoverflow.com/q/8072537/238472
-                if code == 1062:
-                    log.warning('duplicated plus ({}, {})', user_id, art_id)
-                    pass
-                else:
-                    session.rollback()
+        except IntegrityError as e:
+            code, _ = e.orig
+            # http://stackoverflow.com/q/8072537/238472
+            if code == 1062:
+                log.warning('duplicated plus ({}, {})', user_id, art_id)
+                pass
 
     @sessioned
     def minus(self, user_id, art_id, session, commit):
