@@ -52,6 +52,8 @@ AIP_PROFILE_SORT = ['time', 'cumulative', 'calls']
 
 AIP_THREAD_SLAVE_COUNT = 16
 
+AIP_GET_IMAGE_DATA_MAX_RETRY = 3
+
 try:
     import pkg_resources
     AIP_VERSION = pkg_resources.require('aip.core')[0].version

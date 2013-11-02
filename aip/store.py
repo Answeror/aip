@@ -17,6 +17,7 @@ from . import img
 from .imfs.utils import thumbnail
 from sqlalchemy import inspect
 from .local import imfs
+from .utils import init_session_retry
 
 
 def _scalar_all(self):
@@ -330,9 +331,14 @@ def make(app, create=False):
             if not hasattr(self, '_data'):
                 data = imfs.load(self.md5)
                 if data is None:
+                    session = requests.Session()
+                    session = init_session_retry(
+                        session,
+                        current_app.config['AIP_GET_IMAGE_DATA_MAX_RETRY'],
+                    )
                     for post in self.posts:
                         try:
-                            r = requests.get(post.image_url)
+                            r = session.get(post.image_url)
                             if r.ok:
                                 data = r.content
                                 break
