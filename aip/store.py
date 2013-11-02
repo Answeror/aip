@@ -16,6 +16,7 @@ import requests
 from . import img
 from .imfs.utils import thumbnail
 from sqlalchemy import inspect
+from .local import imfs
 
 
 def _scalar_all(self):
@@ -33,21 +34,8 @@ def _scalar_all(self):
 Query.scalar_all = _scalar_all
 
 
-def make_imfs(app):
-    from .imfs.baidupcs import BaiduPCS
-    from .imfs.fs import FS
-    from .imfs.cascade import Cascade
-    from .imfs.asyncsave import asyncsave
-    import os
-    return Cascade(
-        FS(root=os.path.join(app.config['AIP_TEMP_PATH'], 'imfs')),
-        asyncsave(BaiduPCS(app.config['AIP_BAIDUPCS_ACCESS_TOKEN']))
-    )
-
-
 def make(app, create=False):
     store = db = SQLAlchemy(app)
-    imfs = make_imfs(app)
 
     def stored(f):
         setattr(store, f.__name__, f)

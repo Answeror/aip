@@ -241,3 +241,7 @@ class Core(object):
         ))
         if commit:
             session.commit()
+
+    @sessioned
+    def baidupcs_access_token(self, session, commit):
+        return session.query(self.db.Meta).get('baidupcs_access_token')

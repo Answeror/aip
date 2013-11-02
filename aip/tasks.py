@@ -12,6 +12,10 @@ from .utils import thumbmd5
 log = Log(__name__)
 
 
+class TaskError(Exception):
+    pass
+
+
 def persist_thumbnail_to_imgur(makeapp, md5, width):
     from .imfs import ConnectionError
     try:
@@ -52,11 +56,15 @@ def persist_thumbnail_to_imgur(makeapp, md5, width):
 
 def persist_thumbnail_to_baidupan(makeapp, md5, width):
     from .imfs import ConnectionError
+    from .imfs.baidupcs import BaiduPCS
+    from .local import core
     try:
         app = makeapp()
-        from .imfs.baidupcs import BaiduPCS
-        imfs = BaiduPCS(app.config['AIP_BAIDUPCS_ACCESS_TOKEN'])
         with app.app_context():
+            token = core.baidupcs_access_token()
+            if token is None:
+                raise TaskError('no baidupcs access token')
+            imfs = BaiduPCS(token)
             data = app.store.thumbnail_bi_md5(md5, width)
             imfs.save(thumbmd5(md5, width), data)
             log.info('width {} thumbnail of {} saved to baidupan', width, md5)
@@ -86,7 +94,7 @@ def update(begin, makeapp):
 
 def update_past(seconds, makeapp):
     app = makeapp()
-    with app.core.default_scoped_session():
+    with app.app_context():
         now = datetime.utcnow()
         _update_images(now - timedelta(seconds=seconds))
         _set_last_update_time(now)

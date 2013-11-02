@@ -7,6 +7,10 @@ from flask import (
 )
 import json
 import threading
+from .log import Log
+
+
+log = Log(__name__)
 
 
 def get_user_bi_someid():
@@ -58,6 +62,7 @@ def get_request_kargs():
 
 request_kargs = LocalProxy(get_request_kargs)
 
+
 thread_slave_lock = threading.RLock()
 
 
@@ -95,3 +100,34 @@ def since_last_update():
     t = g.last_update_time
     t = datetime(year=1970, month=1, day=1) if t is None else pickle.loads(t)
     return t
+
+
+imfs_lock = threading.RLock()
+
+
+def get_imfs():
+    fs = getattr(g, '_imfs', None)
+    if fs is None:
+        with imfs_lock:
+            if not hasattr(current_app, '_imfs'):
+                current_app._imfs = make_imfs(current_app)
+        fs = g._imfs = current_app._imfs
+    return fs
+
+
+imfs = LocalProxy(get_imfs)
+
+
+def make_imfs(app):
+    from .imfs.baidupcs import BaiduPCS
+    from .imfs.fs import FS
+    from .imfs.cascade import Cascade
+    from .imfs.asyncsave import asyncsave
+    import os
+    fss = [FS(root=os.path.join(app.config['AIP_TEMP_PATH'], 'imfs'))]
+    token = core.baidupcs_access_token()
+    if token is None:
+        log.warning('no baidupcs access token, only local image fs used')
+    else:
+        fss.append(asyncsave(BaiduPCS(token)))
+    return Cascade(*fss)
