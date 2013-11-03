@@ -329,6 +329,8 @@ def make(app, create=False):
                     raise Exception('get thumbnail of %s failed' % self.md5)
             else:
                 self._kind = img.kind(data=data)
+                if self._kind is None:
+                    raise Exception('get thumbnail of %s failed, unknown kind' % self.md5)
             return data
 
         @property
