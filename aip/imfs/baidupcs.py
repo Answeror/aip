@@ -1,4 +1,5 @@
-from .base import NameMixin, ImfsError, NotFoundError, guarded
+from .base import NameMixin, guarded
+from .error import ImfsError, NotFoundError
 from .utils import thumbnail
 from pprint import pformat
 from .. import img

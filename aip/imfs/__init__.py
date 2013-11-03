@@ -1,1 +1,1 @@
-from .base import ImfsError, NotFoundError, ConnectionError
+from .error import ImfsError, NotFoundError, ConnectionError

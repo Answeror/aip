@@ -1,4 +1,9 @@
 from ..work import nonblock_call
+from .error import ConnectionError
+from ..log import Log
+
+
+log = Log(__name__)
 
 
 class AsyncSave(object):
@@ -7,11 +12,20 @@ class AsyncSave(object):
         self.base = base
 
     def save(self, name, data):
-        return nonblock_call(
-            self.base.save,
-            args=[name, data],
-            bound='io'
-        )
+        try:
+            nonblock_call(
+                self.base.save,
+                args=[name, data],
+                bound='io'
+            )
+        except ConnectionError:
+            log.error(
+                ''.join([
+                    'save {} to baidupan failed, ',
+                    'due to connection error',
+                ]),
+                name
+            )
 
     def __getattr__(self, name):
         return getattr(self.base, name)

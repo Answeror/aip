@@ -1,5 +1,6 @@
 import os
-from .base import NameMixin, ImfsError, NotFoundError
+from .base import NameMixin
+from .error import ImfsError, NotFoundError
 import glob
 from .. import img
 from .utils import thumbnail

@@ -1,6 +1,7 @@
 import string
 import hashlib
 from nose.tools import assert_is
+from .error import ConnectionError
 
 
 def ismd5(s):
@@ -40,23 +41,6 @@ class NameMixin(object):
 
     def cache_timeout(self, name):
         return self._cache_timeout(wrap(name))
-
-
-class ImfsError(Exception):
-    pass
-
-
-class NotFoundError(ImfsError):
-
-    def __init__(self, name):
-        self.name = name
-
-    def __str__(self):
-        return '%s not found' % self.name
-
-
-class ConnectionError(ImfsError):
-    pass
 
 
 def guarded(f):
