@@ -138,24 +138,25 @@ def group_app_task(redis, name, appops, timeout):
     from . import make_slave_app
     from .local import core
     app = make_slave_app(appops)
-    while True:
-        message = redis.blpop(
-            ':'.join([core.group_app_task_key, name]),
-            timeout=timeout
-        )
-        if message is None:
-            break
-        task, args, kargs = pickle.loads(message[1])
-        try:
-            with app.test_request_context():
-                nonblock_call(
-                    copy_current_request_context(task),
-                    args=args,
-                    kargs=kargs,
-                    bound='io',
-                )
-        except:
-            log.exception('group task {} failed', task.__name__)
+    with app.app_context():
+        while True:
+            message = redis.blpop(
+                ':'.join([core.group_app_task_key, name]),
+                timeout=timeout
+            )
+            if message is None:
+                break
+            task, args, kargs = pickle.loads(message[1])
+            try:
+                with app.test_request_context():
+                    nonblock_call(
+                        copy_current_request_context(task),
+                        args=args,
+                        kargs=kargs,
+                        bound='io',
+                    )
+            except:
+                log.exception('group task {} failed', task.__name__)
     log.debug('group app task {} done', name)
 
 
