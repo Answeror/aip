@@ -51,4 +51,4 @@ def gunicorn():
                 runbg('aiplog')
                 for i in range(8):
                     runbg('rqworker')
-                runbg('gunicorn -t 600 -w 4 -k gunicorn_worker.Worker --keep-alive 5 gunicorn_app:app')
+                runbg('gunicorn -t 600 -w 2 -k gunicorn_worker.Worker --keep-alive 5 gunicorn_app:app')
