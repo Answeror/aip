@@ -305,3 +305,8 @@ class Core(object):
                 width,
                 md5
             )
+
+    @property
+    def debug(self):
+        from flask import current_app
+        return current_app.config.get('AIP_DEBUG', False)
