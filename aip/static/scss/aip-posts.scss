@@ -233,9 +233,6 @@ article {
     .btn[name="source"]:before {
         content: "src";
     }
-    .button-group {
-        margin-top: 5px;
-    }
 }
 @-webkit-keyframes rotation {
     from {-webkit-transform: rotate(0deg);}
@@ -391,9 +388,6 @@ p:last-child {
         .row {
             margin-left: -5px;
         }
-    }
-    .item .button-group {
-        display: none;
     }
 }
 

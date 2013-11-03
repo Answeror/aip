@@ -51,7 +51,6 @@
             var dealone = function($item) {
                 if ($item.data('dealed')) return;
                 try {
-                    $item.find('.plus').plus_init();
                     $.aip.init_detail($item);
                     mars($item);
                     inc('done');

@@ -1,8 +1,6 @@
 <div
     class='item span2 on'
     data-md5={{ art.md5 }}
-    data-source={{ art.post_url }}
-    data-thumbnail={{ url_for('.thumbnail', md5=art.md5) }}
     data-thumbnail-link={{ url_for('.thumbnail_link', md5=art.md5) }}
 >
     <div class='thumbnail'>
@@ -23,19 +21,6 @@
                 >
                 <span class='loading embed'><span class=spinner></span></span>
             </a>
-        </div>
-        <div class=button-group>
-            {% if authed() %}
-                <button
-                    class='plus btn btn-mini'
-                    data-plused={{ 'true' if core.has_plused(current_user, art) else 'false' }}
-                    data-count={{ art.plus_count }}
-                    data-entry={{ art.id }}
-                >+{{ art.plus_count }}</button>
-            {% else %}
-                <a class='plus disabled btn btn-mini' title='login to plus' href='/login'>+{{ art.plus_count }}</a>
-            {% endif %}
-            <a name=source class='btn btn-mini' href='{{ art.post_url }}' target=_blank></a>
         </div>
     </div>
 </div>
