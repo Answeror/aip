@@ -99,7 +99,7 @@ class Core(object):
                 width=width,
             ),
             bound='io',
-            group='app',
+            group='persist',
             timeout=self.group_app_task_timeout,
         )
 
@@ -107,6 +107,16 @@ class Core(object):
     def group_app_task_timeout(self):
         from flask import current_app
         return current_app.config['AIP_GROUP_APP_TASK_TIMEOUT']
+
+    @property
+    def group_app_task_persist_timeout(self):
+        from flask import current_app
+        return current_app.config['AIP_GROUP_APP_TASK_PERSIST_TIMEOUT']
+
+    @property
+    def group_app_task_key(self):
+        from flask import current_app
+        return current_app.config['AIP_GROUP_APP_TASK_KEY']
 
     def imgur_thumbnail_linkout(self, md5, width):
         bim = self.db.imgur_bi_md5(thumbmd5(md5, width))
@@ -119,7 +129,7 @@ class Core(object):
                 width=width,
             ),
             bound='io',
-            group='app',
+            group='persist',
             timeout=self.group_app_task_timeout,
         )
 

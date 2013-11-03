@@ -47,19 +47,20 @@ def nonblock_call(f, args=[], kargs={}, timeout=None, bound='cpu', group=None):
         )
     assert timeout is not None, 'group task must have timeout setting'
 
+    from .local import core
     from flask import current_app
     from redis import Redis
     redis = Redis()
     run_group_app_task(
         redis,
-        ':'.join([current_app.config['AIP_GROUP_APP_TASK_KEY'], group, 'lock']),
+        ':'.join([core.group_app_task_key, group, 'lock']),
         group,
         current_app.kargs,
         timeout
     )
     import pickle
     redis.rpush(
-        ':'.join([current_app.config['AIP_GROUP_APP_TASK_KEY'], group]),
+        ':'.join([core.group_app_task_key, group]),
         pickle.dumps((f, args, kargs))
     )
 
@@ -134,11 +135,12 @@ def group_app_task(redis, name, appops, timeout):
     log.debug('group app task {} start', name)
     import pickle
     from flask import copy_current_request_context
-    from .import make_slave_app
+    from . import make_slave_app
+    from .local import core
     app = make_slave_app(appops)
     while True:
         message = redis.blpop(
-            ':'.join([app.config['AIP_GROUP_APP_TASK_KEY'], name]),
+            ':'.join([core.group_app_task_key, name]),
             timeout=timeout
         )
         if message is None:
@@ -167,6 +169,7 @@ def group_app_task_out(lock, name, appops, timeout):
 
 
 def run_group_app_task(redis, lock, name, appops, timeout):
+    from .local import core
     from uuid import uuid4
     ts = str(uuid4()).encode('ascii')
     if not redis.setnx(lock, ts):
@@ -180,7 +183,8 @@ def run_group_app_task(redis, lock, name, appops, timeout):
                 appops=appops,
                 timeout=timeout,
             ),
-            bound='cpu'
+            bound='cpu',
+            timeout=core.group_app_task_timeout,
         )
     except:
         redis.delete(lock)
