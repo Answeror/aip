@@ -53,7 +53,7 @@ def nonblock_call(f, args=[], kargs={}, timeout=None, bound='cpu', group=None):
     redis = Redis()
     run_group_app_task(
         redis,
-        ':'.join([core.group_app_task_key, group, 'lock']),
+        group_app_task_lock(group),
         group,
         current_app.kargs,
         timeout
@@ -63,6 +63,11 @@ def nonblock_call(f, args=[], kargs={}, timeout=None, bound='cpu', group=None):
         ':'.join([core.group_app_task_key, group]),
         pickle.dumps((f, args, kargs))
     )
+
+
+def group_app_task_lock(group):
+    from .local import core
+    return ':'.join([core.group_app_task_key, group, 'lock'])
 
 
 def cpu_bound_block_call(f, args, kargs, timeout):
@@ -131,7 +136,12 @@ def callback(f, done, *args, **kargs):
     ).start()
 
 
-def group_app_task(redis, name, appops, timeout):
+def refresh_group_app_task_lock(redis, lock, name):
+    from time import time
+    redis.set(lock, bytes(time()))
+
+
+def group_app_task(redis, lock, name, appops, timeout):
     log.debug('group app task {} start', name)
     import pickle
     from flask import copy_current_request_context
@@ -140,6 +150,7 @@ def group_app_task(redis, name, appops, timeout):
     app = make_slave_app(appops)
     with app.app_context():
         while True:
+            refresh_group_app_task_lock(redis, lock, name)
             message = redis.blpop(
                 ':'.join([core.group_app_task_key, name]),
                 timeout=timeout
@@ -164,17 +175,21 @@ def group_app_task_out(lock, name, appops, timeout):
     from redis import Redis
     redis = Redis()
     try:
-        group_app_task(redis, name, appops, timeout)
+        group_app_task(redis, lock, name, appops, timeout)
     finally:
         redis.delete(lock)
 
 
 def run_group_app_task(redis, lock, name, appops, timeout):
     from .local import core
-    from uuid import uuid4
-    ts = str(uuid4()).encode('ascii')
-    if not redis.setnx(lock, ts):
-        return
+    from time import time
+    now = time()
+    if not redis.setnx(lock, bytes(now)):
+        dead = now - float(redis.get(lock)) > timeout + 13
+        if dead:
+            redis.set(lock, bytes(now))
+        else:
+            return
     try:
         nonblock_call(
             group_app_task_out,
