@@ -2,10 +2,6 @@ from .utils import thumbmd5
 from . import tasks
 from .log import Log
 from . import work
-from flask import (
-    current_app,
-    copy_current_request_context,
-)
 from .bed.baidupan import BaiduPan
 from redis import Redis
 from contextlib import contextmanager
@@ -97,27 +93,34 @@ class Core(object):
             return detail.uri
 
         work.nonblock_call(
-            copy_current_request_context(tasks.persist_thumbnail_to_baidupan),
+            tasks.persist_thumbnail_to_baidupan,
             kargs=dict(
-                makeapp=lambda: current_app,
                 md5=md5,
                 width=width,
             ),
             bound='io',
+            group='app',
+            timeout=self.group_app_task_timeout,
         )
+
+    @property
+    def group_app_task_timeout(self):
+        from flask import current_app
+        return current_app.config['AIP_GROUP_APP_TASK_TIMEOUT']
 
     def imgur_thumbnail_linkout(self, md5, width):
         bim = self.db.imgur_bi_md5(thumbmd5(md5, width))
         if bim:
             return bim.link.replace('http://', 'https://')
         work.nonblock_call(
-            copy_current_request_context(tasks.persist_thumbnail_to_imgur),
+            tasks.persist_thumbnail_to_imgur,
             kargs=dict(
-                makeapp=lambda: current_app,
                 md5=md5,
                 width=width,
             ),
             bound='io',
+            group='app',
+            timeout=self.group_app_task_timeout,
         )
 
     def thumbnail_linkout(self, md5, width):
@@ -242,3 +245,53 @@ class Core(object):
         meta = session.query(self.db.Meta).get('baidupcs_access_token')
         if meta is not None:
             return meta.value.decode('ascii')
+
+    def persist_thumbnail_to_imgur(self, md5, width):
+        from .imfs import ConnectionError
+        from .local import imgur
+        try:
+            data = self.db.thumbnail_bi_md5(md5, width)
+            r = imgur.upload(
+                data=data,
+                md5=thumbmd5(md5, width),
+            )
+            if r is not None:
+                self.db.session.flush()
+                self.db.session.merge(self.db.Imgur(
+                    id=r.id,
+                    md5=r.md5,
+                    link=r.link,
+                    deletehash=r.deletehash
+                ))
+                self.db.session.commit()
+                log.info('width {} thumbnail of {} saved to imgur', width, md5)
+        except ConnectionError:
+            log.error(
+                ''.join([
+                    'save {} thumbnail of {} to imgur failed, ',
+                    'due to connection error',
+                ]),
+                width,
+                md5
+            )
+
+    def persist_thumbnail_to_baidupan(self, md5, width):
+        from .imfs import ConnectionError
+        from .imfs.baidupcs import BaiduPCS
+        try:
+            token = self.baidupcs_access_token()
+            if token is None:
+                raise CoreError('no baidupcs access token')
+            imfs = BaiduPCS(token)
+            data = self.db.thumbnail_bi_md5(md5, width)
+            imfs.save(thumbmd5(md5, width), data)
+            log.info('width {} thumbnail of {} saved to baidupan', width, md5)
+        except ConnectionError:
+            log.error(
+                ''.join([
+                    'save {} thumbnail of {} to baidupan failed, ',
+                    'due to connection error',
+                ]),
+                width,
+                md5
+            )

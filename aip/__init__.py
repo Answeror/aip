@@ -95,3 +95,7 @@ def make(config=None, dbmode=False, **kargs):
         admin.make(app=app)
 
     return app
+
+
+def make_slave_app(options):
+    return make(dbmode=True, **options)

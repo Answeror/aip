@@ -31,13 +31,37 @@ def nonblock(f, *args, **kargs):
     return nonblock_call(f, args, kargs)
 
 
-def nonblock_call(f, args=[], kargs={}, timeout=None, bound='cpu'):
-    impl = {
-        'cpu': cpu_bound_nonblock_call,
-        'io': io_bound_nonblock_call,
-    }.get(bound)
-    assert impl, 'unknown bound type: %s' % bound
-    return impl(f, args, kargs, timeout)
+def nonblock_call(f, args=[], kargs={}, timeout=None, bound='cpu', group=None):
+    if group is None:
+        impl = {
+            'cpu': cpu_bound_nonblock_call,
+            'io': io_bound_nonblock_call,
+        }.get(bound)
+        assert impl, 'unknown bound type: %s' % bound
+        return impl(f, args, kargs, timeout)
+
+    if bound == 'cpu':
+        log.warning(
+            'task assigned to group "{}", bound type fall back to "io"',
+            group
+        )
+    assert timeout is not None, 'group task must have timeout setting'
+
+    from flask import current_app
+    from redis import Redis
+    redis = Redis()
+    run_group_app_task(
+        redis,
+        ':'.join([current_app.config['AIP_GROUP_APP_TASK_KEY'], group, 'lock']),
+        group,
+        current_app.kargs,
+        timeout
+    )
+    import pickle
+    redis.rpush(
+        ':'.join([current_app.config['AIP_GROUP_APP_TASK_KEY'], group]),
+        pickle.dumps((f, args, kargs))
+    )
 
 
 def cpu_bound_block_call(f, args, kargs, timeout):
@@ -104,3 +128,60 @@ def callback(f, done, *args, **kargs):
         args=(partial(block, guard, f, *args, **kargs), done),
         daemon=False,
     ).start()
+
+
+def group_app_task(redis, name, appops, timeout):
+    log.debug('group app task {} start', name)
+    import pickle
+    from flask import copy_current_request_context
+    from .import make_slave_app
+    app = make_slave_app(appops)
+    while True:
+        message = redis.blpop(
+            ':'.join([app.config['AIP_GROUP_APP_TASK_KEY'], name]),
+            timeout=timeout
+        )
+        if message is None:
+            break
+        task, args, kargs = pickle.loads(message[1])
+        try:
+            with app.test_request_context():
+                nonblock_call(
+                    copy_current_request_context(task),
+                    args=args,
+                    kargs=kargs,
+                    bound='io',
+                )
+        except:
+            log.exception('group task {} failed', task.__name__)
+    log.debug('group app task {} done', name)
+
+
+def group_app_task_out(lock, name, appops, timeout):
+    from redis import Redis
+    redis = Redis()
+    try:
+        group_app_task(redis, name, appops, timeout)
+    finally:
+        redis.delete(lock)
+
+
+def run_group_app_task(redis, lock, name, appops, timeout):
+    from uuid import uuid4
+    ts = str(uuid4()).encode('ascii')
+    if not redis.setnx(lock, ts):
+        return
+    try:
+        nonblock_call(
+            group_app_task_out,
+            kargs=dict(
+                lock=lock,
+                name=name,
+                appops=appops,
+                timeout=timeout,
+            ),
+            bound='cpu'
+        )
+    except:
+        redis.delete(lock)
+        raise

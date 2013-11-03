@@ -6,77 +6,19 @@ import os
 from fn.iters import chain
 from functools import partial
 import pickle
-from .utils import thumbmd5
 
 
 log = Log(__name__)
 
 
-class TaskError(Exception):
-    pass
-
-
-def persist_thumbnail_to_imgur(makeapp, md5, width):
-    from .imfs import ConnectionError
-    try:
-        app = makeapp()
-        from .bed.imgur import Imgur
-        bed = Imgur(
-            client_ids=app.config['AIP_IMGUR_CLIENT_IDS'],
-            timeout=app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
-            album_deletehash=app.config['AIP_IMGUR_ALBUM_DELETEHASH']
-        )
-
-        with app.app_context():
-            data = app.store.thumbnail_bi_md5(md5, width)
-            r = bed.upload(
-                data=data,
-                md5=thumbmd5(md5, width),
-            )
-            if r is not None:
-                app.store.session.flush()
-                app.store.session.merge(app.store.Imgur(
-                    id=r.id,
-                    md5=r.md5,
-                    link=r.link,
-                    deletehash=r.deletehash
-                ))
-                app.store.session.commit()
-                log.info('width {} thumbnail of {} saved to imgur', width, md5)
-    except ConnectionError:
-        log.error(
-            ''.join([
-                'save {} thumbnail of {} to imgur failed, ',
-                'due to connection error',
-            ]),
-            width,
-            md5
-        )
-
-
-def persist_thumbnail_to_baidupan(makeapp, md5, width):
-    from .imfs import ConnectionError
-    from .imfs.baidupcs import BaiduPCS
+def persist_thumbnail_to_imgur(md5, width):
     from .local import core
-    try:
-        app = makeapp()
-        with app.app_context():
-            token = core.baidupcs_access_token()
-            if token is None:
-                raise TaskError('no baidupcs access token')
-            imfs = BaiduPCS(token)
-            data = app.store.thumbnail_bi_md5(md5, width)
-            imfs.save(thumbmd5(md5, width), data)
-            log.info('width {} thumbnail of {} saved to baidupan', width, md5)
-    except ConnectionError:
-        log.error(
-            ''.join([
-                'save {} thumbnail of {} to baidupan failed, ',
-                'due to connection error',
-            ]),
-            width,
-            md5
-        )
+    return core.persist_thumbnail_to_imgur(md5, width)
+
+
+def persist_thumbnail_to_baidupan(md5, width):
+    from .local import core
+    return core.persist_thumbnail_to_baidupan(md5, width)
 
 
 def test_log():

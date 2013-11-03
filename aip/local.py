@@ -131,3 +131,24 @@ def make_imfs(app):
     else:
         fss.append(asyncsave(BaiduPCS(token)))
     return Cascade(*fss)
+
+
+imgur_lock = threading.RLock()
+
+
+def get_imgur():
+    imgur = getattr(g, '_imgur', None)
+    if imgur is None:
+        with imgur_lock:
+            if not hasattr(current_app, '_imgur'):
+                from .bed.imgur import Imgur
+                current_app._imgur = Imgur(
+                    client_ids=current_app.config['AIP_IMGUR_CLIENT_IDS'],
+                    timeout=current_app.config['AIP_UPLOAD_IMGUR_TIMEOUT'],
+                    album_deletehash=current_app.config['AIP_IMGUR_ALBUM_DELETEHASH']
+                )
+        imgur = g._imgur = current_app._imgur
+    return imgur
+
+
+imgur = LocalProxy(get_imgur)

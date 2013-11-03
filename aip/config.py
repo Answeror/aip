@@ -50,9 +50,11 @@ AIP_PROFILE_NAME = 'prof'
 AIP_PROFILE_MODE = 'a'
 AIP_PROFILE_SORT = ['time', 'cumulative', 'calls']
 
-AIP_THREAD_SLAVE_COUNT = 16
-
 AIP_GET_IMAGE_DATA_MAX_RETRY = 3
+
+AIP_THREAD_SLAVE_COUNT = 16
+AIP_GROUP_APP_TASK_KEY = 'aip:group'
+AIP_GROUP_APP_TASK_TIMEOUT = 30
 
 try:
     import pkg_resources
