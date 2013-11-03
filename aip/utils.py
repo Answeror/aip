@@ -17,7 +17,7 @@ calcmd5 = md5
 
 
 def timed(f):
-    return _timed(f, 'info')
+    return _timed(f, 'debug')
 
 
 def profed(f):
