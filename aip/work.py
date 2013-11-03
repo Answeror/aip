@@ -138,7 +138,8 @@ def callback(f, done, *args, **kargs):
 
 def refresh_group_app_task_lock(redis, lock, name):
     from time import time
-    redis.set(lock, bytes(time()))
+    import pickle
+    redis.set(lock, pickle.dumps(time()))
 
 
 def group_app_task(redis, lock, name, appops, timeout):
@@ -183,11 +184,12 @@ def group_app_task_out(lock, name, appops, timeout):
 def run_group_app_task(redis, lock, name, appops, timeout):
     from .local import core
     from time import time
+    import pickle
     now = time()
-    if not redis.setnx(lock, bytes(now)):
-        dead = now - float(redis.get(lock)) > timeout + 13
+    if not redis.setnx(lock, pickle.dumps(now)):
+        dead = now - pickle.loads(redis.get(lock)) > timeout + 13
         if dead:
-            redis.set(lock, bytes(now))
+            redis.set(lock, pickle.dumps(now))
         else:
             return
     try:
