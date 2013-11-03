@@ -4,6 +4,7 @@ from ..log import Log
 from nose.tools import assert_greater
 from ..utils import calcmd5
 from .. import work
+from .error import ImfsError
 
 
 log = Log(__name__)
@@ -85,11 +86,20 @@ def use_gifsicle(data, kind, width, height):
             '%dx%d' % (width, height),
             fin.name
         ], stderr=ferr, stdout=fout)
-        if ret:
-            raise Exception('gifsicle failed with %d' % ret)
-
         with open(fout.name, 'rb') as f:
-            return f.read()
+            data = f.read()
+        if ret:
+            if data:
+                log.warning(
+                    '{}x{} thumbnail of {} using gifsicle return {}',
+                    width,
+                    height,
+                    calcmd5(data),
+                    ret,
+                )
+            else:
+                raise ImfsError('gifsicle failed with %d' % ret)
+        return data
     finally:
         fout.close()
         os.unlink(fout.name)
@@ -101,7 +111,13 @@ def safe(f, data, kind, width, height):
     try:
         return f(data, kind, width, height)
     except:
-        log.exception('thumbnail of {} {} failed', calcmd5(data), f.__name__)
+        log.exception(
+            '{}x{} thumbnail of {} {} failed',
+            width,
+            height,
+            calcmd5(data),
+            f.__name__,
+        )
 
 
 def thumbnail(data, kind, width, height):
