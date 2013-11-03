@@ -53,7 +53,7 @@ def use_pil(data, kind, width, height, quality=80):
     if kind == 'gif' or pim.mode == 'P':
         pim = pim.convert('RGB')
 
-    if transp:
+    if not transp:
         pim.save(output_stream, format='JPEG', quality=quality)
     else:
         pim.save(output_stream, format=kind.upper())
