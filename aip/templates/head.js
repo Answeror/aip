@@ -1,5 +1,5 @@
 (function($) {
-    {% if core.debug %}
+    {% if core.debug or core.isadmin %}
         // http://stackoverflow.com/a/3326655/238472
         if (!window.console) console = {log: function() {}};
     {% else %}

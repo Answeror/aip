@@ -310,3 +310,9 @@ class Core(object):
     def debug(self):
         from flask import current_app
         return current_app.config.get('AIP_DEBUG', False)
+
+    @property
+    def isadmin(self):
+        from flask import current_app
+        from .local import current_user
+        return current_user.id == current_app.config.get('AIP_ADMIN_ID', 1)
