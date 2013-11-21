@@ -135,8 +135,8 @@ class Core(object):
 
     def thumbnail_linkout(self, md5, width):
         for method in (
-            self.baidupan_thumbnail_linkout,
             self.imgur_thumbnail_linkout,
+            self.baidupan_thumbnail_linkout,
         ):
             uri = method(md5, width)
             if uri:
