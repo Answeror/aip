@@ -43,6 +43,7 @@ setup(
         'logbook',
         'Wand',
         'profilehooks',
+        'psycopg2'
     ],
     dependency_links = [
         'https://github.com/Answeror/ConfigIt/tarball/version#egg=ConfigIt-0.1.3',
