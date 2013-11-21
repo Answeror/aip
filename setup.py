@@ -10,6 +10,8 @@ import subprocess as sp
 version = sp.check_output(["git", "describe"]).decode('utf-8').strip()
 
 
+# also (optionally) depends on gifsicle
+
 setup(
     name='aip.core',
     version=version,
@@ -26,7 +28,7 @@ setup(
     install_requires=[
         'Flask==0.10.1',
         'urllib3',
-        'pyScss==1.2.0',
+        'pyScss',
         'SQLAlchemy==0.8.2',
         'Flask-SQLAlchemy==0.17',
         'Pillow==2.1.0',
