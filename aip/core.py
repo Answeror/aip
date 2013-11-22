@@ -315,4 +315,13 @@ class Core(object):
     def isadmin(self):
         from flask import current_app
         from .local import current_user
-        return current_user.id == current_app.config.get('AIP_ADMIN_ID', 1)
+        return self.authed and current_user.id == self.adminid
+
+    @property
+    def adminid(self):
+        return current_app.config.get('AIP_ADMIN_ID', 1)
+
+    @property
+    def authed(self):
+        from .local import authed
+        return authed()
