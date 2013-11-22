@@ -313,12 +313,12 @@ class Core(object):
 
     @property
     def isadmin(self):
-        from flask import current_app
         from .local import current_user
         return self.authed and current_user.id == self.adminid
 
     @property
     def adminid(self):
+        from flask import current_app
         return current_app.config.get('AIP_ADMIN_ID', 1)
 
     @property
